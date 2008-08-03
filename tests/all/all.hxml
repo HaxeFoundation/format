@@ -1,0 +1,31 @@
+# Neko
+-neko all.n
+-main All
+-cp ../..
+
+--next
+# Flash
+-swf all8.swf
+-main All
+-debug
+-cp ../..
+
+--next
+# Flash9
+-swf9 all9.swf
+-main All
+-debug
+-cp ../..
+
+--next
+# JS
+-js all.js
+-main All
+-debug
+-cp ../..
+
+--next
+# PHP
+-php php
+-main All
+-cp ../..

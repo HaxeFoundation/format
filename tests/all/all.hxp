@@ -1,0 +1,10 @@
+﻿<haxe selected="0">
+  <output name="Neko" mode="neko" out="all.n" class="All" lib="" cmd="" main="True" debug="False">-cp ../..</output>
+  <output name="Flash" mode="swf" out="all8.swf" class="All" lib="" cmd="" main="True" debug="True">-cp ../..</output>
+  <output name="Flash9" mode="swf9" out="all9.swf" class="All" lib="" cmd="" main="True" debug="True">-cp ../..</output>
+  <output name="JS" mode="js" out="all.js" class="All" lib="" cmd="" main="True" debug="True">-cp ../..</output>
+  <output name="PHP" mode="php" out="php" class="All" lib="" cmd="" main="True" debug="False">-cp ../..</output>
+  <files path="/">
+    <file path="All.hx" />
+  </files>
+</haxe>

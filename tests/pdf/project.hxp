@@ -1,0 +1,14 @@
+﻿<haxe selected="0">
+  <output name="hxpdf" mode="neko" out="hxpdf.n" class="Test" lib="" cmd="run.bat" main="True" debug="False">-cp ../..</output>
+  <files path="/">
+    <dir path="tools">
+      <file path="..\..\format\tools\ArcFour.hx" />
+    </dir>
+    <file path="..\..\format\pdf\Crypt.hx" />
+    <file path="..\..\format\pdf\Data.hx" />
+    <file path="..\..\format\pdf\Extract.hx" />
+    <file path="..\..\format\pdf\Filter.hx" />
+    <file path="..\..\format\pdf\Reader.hx" />
+    <file path="Test.hx" />
+  </files>
+</haxe>

@@ -1,0 +1,153 @@
+/*
+ * format - haXe File Formats
+ *
+ * Copyright (c) 2008, The haXe Project Contributors
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE HAXE PROJECT CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE HAXE PROJECT CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
+ */
+package format.zip;
+import format.zip.Data;
+
+class Writer {
+
+	/*
+	* The next constant is required for computing the Central
+	* Directory Record(CDR) size. CDR consists of some fields
+	* of constant size and a filename. Constant represents
+	* total length of all fields with constant size for each
+	* file in archive
+	*/
+	inline static var CENTRAL_DIRECTORY_RECORD_FIELDS_SIZE = 46;
+
+	/*
+	* The following constant is the total size of all fields
+	* of Local File Header. It's required for calculating
+	* offset of start of central directory record
+	*/
+	inline static var LOCAL_FILE_HEADER_FIELDS_SIZE = 30;
+
+	var o : haxe.io.Output;
+	var files : List<{ name : String, compressed : Bool, clen : Int, size : Int, crc : haxe.Int32, date : Date }>;
+
+	public function new( o : haxe.io.Output ) {
+		this.o = o;
+		files = new List();
+	}
+
+	function writeZipDate( date : Date ) {
+		var hour = date.getHours();
+		var min = date.getMinutes();
+		var sec = date.getSeconds() >> 1;
+		o.writeUInt16( (hour << 11) | (min << 5) | sec );
+		var year = date.getFullYear() - 1980;
+		var month = date.getMonth() + 1;
+		var day = date.getDate();
+		o.writeUInt16( (year << 9) | (month << 5) | day );
+	}
+
+	public function writeEntryHeader( f : Entry ) {
+		var o = this.o;
+		o.writeUInt30(0x04034B50);
+		o.writeUInt16(0x0014); // version
+		o.writeUInt16(0); // flags
+		if( f.data == null ) {
+			f.fileSize = 0;
+			f.dataSize = 0;
+			f.crc32 = haxe.Int32.ofInt(0);
+			f.compressed = false;
+			f.data = haxe.io.Bytes.alloc(0);
+		} else {
+			if( f.crc32 == null ) {
+				if( f.compressed ) throw "CRC32 must be processed before compression";
+				f.crc32 = format.tools.CRC32.encode(f.data);
+			}
+			if( !f.compressed )
+				f.fileSize = f.data.length;
+			f.dataSize = f.data.length;
+		}
+		o.writeUInt16(f.compressed?8:0);
+		writeZipDate(f.fileTime);
+		o.writeInt32(f.crc32);
+		o.writeUInt30(f.dataSize);
+		o.writeUInt30(f.fileSize);
+		o.writeUInt16(f.fileName.length);
+		o.writeUInt16(0);
+		o.writeString(f.fileName);
+		files.add({ name : f.fileName, compressed : f.compressed, clen : f.data.length, size : f.fileSize, crc : f.crc32, date : f.fileTime });
+	}
+
+	public function writeEntryData( e : Entry, buf : haxe.io.Bytes, data : haxe.io.Input ) {
+		format.tools.IO.copy(data,o,buf,e.dataSize);
+	}
+
+	public function write( files : Data ) {
+		for( f in files ) {
+			writeEntryHeader(f);
+			o.writeFullBytes(f.data,0,f.data.length);
+		}
+		writeCDR();
+	}
+
+	public function writeCDR() {
+		var cdr_size = 0;
+		var cdr_offset = 0;
+		for( f in files ) {
+			var namelen = f.name.length;
+			o.writeUInt30(0x02014B50); // header
+			o.writeUInt16(0x0014); // version made-by
+			o.writeUInt16(0x0014); // version
+			o.writeUInt16(0); // flags
+			o.writeUInt16(f.compressed?8:0);
+			writeZipDate(f.date);
+			o.writeInt32(f.crc);
+			o.writeUInt30(f.clen);
+			o.writeUInt30(f.size);
+			o.writeUInt16(namelen);
+			o.writeUInt16(0); //extra field length always 0
+			o.writeUInt16(0); //comment length always 0
+			o.writeUInt16(0); //disk number start
+			o.writeUInt16(0); //internal file attributes
+			o.writeUInt30(0); //external file attributes
+			o.writeUInt30(0); //relative offset of local header
+			o.writeString(f.name);
+			cdr_size += CENTRAL_DIRECTORY_RECORD_FIELDS_SIZE + namelen;
+			cdr_offset += LOCAL_FILE_HEADER_FIELDS_SIZE + namelen + f.clen;
+		}
+		//end of central dir signature
+		o.writeUInt30(0x06054B50);
+		//number of this disk
+		o.writeUInt16(0);
+		//number of the disk with the start of the central directory
+		o.writeUInt16(0);
+		//total number of entries in the central directory on this disk
+		o.writeUInt16(files.length);
+		//total number of entries in the central directory
+		o.writeUInt16(files.length);
+		//size of the central directory record
+		o.writeUInt30(cdr_size);
+		//offset of start of central directory with respect to the starting disk number
+		o.writeUInt30(cdr_offset);
+		// .ZIP file comment length
+		o.writeUInt16(0);
+	}
+
+}
