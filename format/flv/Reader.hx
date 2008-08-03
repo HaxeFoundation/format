@@ -36,6 +36,10 @@ class Reader {
 		i.bigEndian = true;
 	}
 
+	public function close() {
+		ch.close();
+	}
+
 	public function readHeader() : Header {
 		if( ch.readString(3) != 'FLV' )
 			throw "Invalid signature";

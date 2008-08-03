@@ -32,6 +32,7 @@ class Writer {
 
 	public function new(o) {
 		this.o = o;
+		o.bigEndian = true;
 	}
 
 	public function write( v : Value ) {

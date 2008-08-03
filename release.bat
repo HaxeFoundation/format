@@ -1,5 +1,5 @@
 @echo off
-rm -rf release
+rm -rf release release.zip
 mkdir release
 cp -R format haxelib.xml release
 rm -rf release/.svn release/*/.svn

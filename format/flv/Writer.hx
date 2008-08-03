@@ -36,6 +36,10 @@ class Writer {
 		o.bigEndian = true;
 	}
 
+	public function close() {
+		ch.close();
+	}
+
 	public static function readHeader( ch : haxe.io.Input ) {
 		ch.bigEndian = true;
 		if( ch.readString(3) != 'FLV' )

@@ -33,6 +33,7 @@ class Reader {
 
 	public function new( i : haxe.io.Input ) {
 		this.i = i;
+		i.bigEndian = true;
 	}
 
 	public function readWithCode( id ) {
