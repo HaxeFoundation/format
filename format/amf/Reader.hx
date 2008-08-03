@@ -25,7 +25,7 @@
  * DAMAGE.
  */
 package format.amf;
-import format.amf.Data;
+import format.amf.Value;
 
 class Reader {
 

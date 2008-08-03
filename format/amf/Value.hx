@@ -26,11 +26,11 @@
  */
 package format.amf;
 
-enum Data {
+enum Value {
 	ANumber( f : Float );
 	ABool( b : Bool );
 	AString( s : String );
-	AObject( fields : Hash<Data>, ?size : Int );
+	AObject( fields : Hash<Value>, ?size : Int );
 	ADate( d : Date );
 	AUndefined;
 	ANull;

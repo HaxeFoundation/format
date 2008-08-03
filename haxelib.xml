@@ -1,5 +1,5 @@
 <project name="format" url="http://code.google.com/p/hxformat" license="BSD">
     <user name="ncannasse"/>
     <description>A haXe Library for supporting different file formats.</description>
-    <version name="1.0">Included currently supported file formats</version>
+    <version name="1.01">Included currently supported file formats</version>
 </project>

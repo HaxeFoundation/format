@@ -34,7 +34,7 @@ class Writer {
 		this.o = o;
 	}
 
-	public function write( v : Data ) {
+	public function write( v : Value ) {
 		var o = this.o;
 		switch( v ) {
 		case ANumber(n):

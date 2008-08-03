@@ -25,6 +25,7 @@
  * DAMAGE.
  */
 package format.amf;
+import format.amf.Value;
 
 class Tools {
 
@@ -57,7 +58,7 @@ class Tools {
 		}
 	}
 
-	public static function number( a : AmfValue ) {
+	public static function number( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
 		case ANumber(n): n;
@@ -65,7 +66,7 @@ class Tools {
 		}
 	}
 
-	public static function string( a : AmfValue ) {
+	public static function string( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
 		case AString(s): s;
@@ -73,7 +74,7 @@ class Tools {
 		}
 	}
 
-	public static function object( a : AmfValue ) {
+	public static function object( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
 		case AObject(o,_): o;
@@ -81,7 +82,7 @@ class Tools {
 		}
 	}
 
-	public static function bool( a : AmfValue ) {
+	public static function bool( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
 		case ABool(b): b;
