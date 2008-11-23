@@ -1,0 +1,10 @@
+﻿<haxe selected="0">
+  <output name="" mode="neko" out="test.n" class="Test" lib="" cmd="run.bat" main="True" debug="False">-cp ../..</output>
+  <files path="/">
+    <file path="..\..\format\pbj\Data.hx" />
+    <file path="..\..\format\pbj\Reader.hx" />
+    <file path="Test.hx" />
+    <file path="..\..\format\pbj\Tools.hx" />
+    <file path="..\..\format\pbj\Writer.hx" />
+  </files>
+</haxe>

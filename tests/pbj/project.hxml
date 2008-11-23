@@ -1,0 +1,4 @@
+# 
+-neko test.n
+-main Test
+-cp ../..
