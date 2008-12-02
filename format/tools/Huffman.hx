@@ -70,7 +70,7 @@ class HuffTools {
 	}
 
 	function treeWalk(table,p,cd,d,t) {
-		return switch( t ) {
+		switch( t ) {
 		case NeedBit(a,b):
 			if( d > 0 ) {
 				treeWalk(table,p,cd+1,d-1,a);
