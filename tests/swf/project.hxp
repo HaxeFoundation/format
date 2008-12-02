@@ -1,0 +1,14 @@
+﻿<haxe selected="0">
+  <output name="Test" mode="neko" out="test.n" class="Test" lib="" cmd="run.bat" main="True" debug="False">-cp ../..</output>
+  <files path="/">
+    <dir path="inflate">
+      <file path="..\..\format\tools\Adler32.hx" />
+      <file path="..\..\format\tools\Huffman.hx" />
+      <file path="..\..\format\tools\Inflate.hx" />
+    </dir>
+    <file path="..\..\format\swf\Data.hx" />
+    <file path="..\..\format\tools\InputBits.hx" />
+    <file path="..\..\format\swf\Reader.hx" />
+    <file path="Test.hx" />
+  </files>
+</haxe>
