@@ -1,4 +1,13 @@
-# 
+# TestNeko
 -neko test.n
 -main Test
 -cp ../..
+-resource default.pbj
+
+--next
+# TestF9
+-swf9 test.swf
+-main Test
+-cp ../..
+-swf-version 10
+-resource default.pbj

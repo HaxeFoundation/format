@@ -3,14 +3,19 @@ import format.pbj.Data;
 class Test {
 
 	static function main() {
+		#if flash
+		var bytes = haxe.Resource.getBytes("default.pbj");
+		#else
 		var file = neko.Sys.args()[0];
 		var bytes = neko.io.File.getBytes(file);
+		#end
+
 		// read
 		var i = new haxe.io.BytesInput(bytes);
 		var reader = new format.pbj.Reader(i);
 		var p = reader.read();
 		i.close();
-		neko.Lib.println(format.pbj.Tools.dump(p));
+		trace("\n\n"+format.pbj.Tools.dump(p));
 
 		// calculate header size
 		var o = new haxe.io.BytesOutput();
@@ -19,8 +24,6 @@ class Test {
 		p.code = new Array();
 		writer.write(p);
 		p.code = code;
-		neko.Lib.println("HEADER-SIZE : "+o.getBytes().length);
-
 
 		// write
 		var o = new haxe.io.BytesOutput();
