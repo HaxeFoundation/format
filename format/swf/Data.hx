@@ -1,6 +1,7 @@
 package format.swf;
 
-typedef Float16 = Int;
+typedef Fixed = haxe.Int32;
+typedef Fixed8 = Int;
 
 enum SWFTag {
 	TShowFrame;
@@ -19,7 +20,7 @@ typedef SWF = {
 	var compressed : Bool;
 	var width : Int;
 	var height : Int;
-	var fps : Float16;
+	var fps : Fixed8;
 	var nframes : Int;
 }
 
@@ -29,19 +30,19 @@ typedef PlaceObject = {
 	var cid : Null<Int>;
 	var matrix : Null<Matrix>;
 	var color : Null<CXA>;
-	var ratio : Null<Float16>;
+	var ratio : Null<Fixed8>;
 	var instanceName : Null<String>;
 	var clipDepth : Null<Int>;
 	var events : Null<Array<ClipEvent>>;
 	var filters : Null<Array<Filter>>;
-	var blendMode : Null<Int>;
-	var bitmapCache : Null<Int>;
+	var blendMode : Null<BlendMode>;
+	var bitmapCache : Bool;
 }
 
 typedef MatrixPart = {
 	var nbits : Int;
-	var x : Float16;
-	var y : Float16;
+	var x : Int;
+	var y : Int;
 }
 
 typedef Matrix = {
@@ -68,17 +69,58 @@ typedef ClipEvent = {
 	var data : haxe.io.Bytes;
 }
 
-enum Filter {
-	FDropShadow( data : haxe.io.Bytes );
-	FBlur( data : haxe.io.Bytes );
-	FGlow( data : haxe.io.Bytes );
-	FBevel( data : haxe.io.Bytes );
-	FGradientGlow( data : FilterGradient );
-	FAdjustColor( data : haxe.io.Bytes );
-	FGradientBevel( data : FilterGradient );
+enum BlendMode {
+	BNormal;
+	BLayer;
+	BMultiply;
+	BScreen;
+	BLighten;
+	BDarken;
+	BAdd;
+	BSubtract;
+	BDifference;
+	BInvert;
+	BAlpha;
+	BErase;
+	BOverlay;
+	BHardLight;
 }
 
-typedef FilterGradient = {
+enum Filter {
+	FDropShadow( data : FilterData );
+	FBlur( data : BlurFilterData );
+	FGlow( data : FilterData );
+	FBevel( data : FilterData );
+	FGradientGlow( data : GradientFilterData );
+	FColorMatrix( data : Array<Float> );
+	FGradientBevel( data : GradientFilterData );
+}
+
+typedef FilterFlags = {
+	var inner : Bool;
+	var knockout : Bool;
+	var ontop : Bool;
+	var passes : Int;
+}
+
+typedef FilterData = {
+	var color : RGBA;
+	var color2 : RGBA;
+	var blurX : Fixed;
+	var blurY : Fixed;
+	var angle : Fixed;
+	var distance : Fixed;
+	var strength : Fixed8;
+	var flags : FilterFlags;
+}
+
+typedef BlurFilterData = {
+	var blurX : Fixed;
+	var blurY : Fixed;
+	var passes : Int;
+}
+
+typedef GradientFilterData = {
 	var colors : Array<{ color : RGBA, position : Int }>;
-	var data : haxe.io.Bytes;
+	var data : FilterData;
 }

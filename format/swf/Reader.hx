@@ -12,6 +12,14 @@ class Reader {
 		bits = new format.tools.InputBits(i);
 	}
 
+	inline function readFixed8() {
+		return i.readUInt16();
+	}
+
+	inline function readFixed() {
+		return i.readInt32();
+	}
+
 	function readRect() {
 		bits.reset();
 		var nbits = bits.readBits(5);
@@ -84,6 +92,17 @@ class Reader {
 		return a;
 	}
 
+	function readFilterFlags(top) {
+		var flags = i.readByte();
+		return {
+			inner : flags & 128 != 0,
+			knockout : flags & 64 != 0,
+			// composite : flags & 32 != 0, // always 1 ?
+			ontop : top ? (flags & 16 != 0) : false,
+			passes : flags & (top ? 15 : 31),
+		};
+	}
+
 	function readFilterGradient() {
 		var ncolors = i.readByte();
 		var colors = new Array();
@@ -91,7 +110,16 @@ class Reader {
 			colors.push({ color : readRGBA(), position : 0 });
 		for( c in colors )
 			c.position = i.readByte();
-		var data = i.read(19);
+		var data : FilterData = {
+			color : null,
+			color2 : null,
+			blurX : readFixed(),
+			blurY : readFixed(),
+			angle : readFixed(),
+			distance : readFixed(),
+			strength : readFixed8(),
+			flags : readFilterFlags(true),
+		};
 		return {
 			colors : colors,
 			data : data,
@@ -101,12 +129,50 @@ class Reader {
 	function readFilter() {
 		var n = i.readByte();
 		return switch( n ) {
-			case 0: FDropShadow(i.read(23));
-			case 1: FBlur(i.read(9));
-			case 2: FGlow(i.read(15));
-			case 3: FBevel(i.read(27));
+			case 0: FDropShadow({
+				color : readRGBA(),
+				color2 : null,
+				blurX : readFixed(),
+				blurY : readFixed(),
+				angle : readFixed(),
+				distance : readFixed(),
+				strength : readFixed8(),
+				flags : readFilterFlags(false),
+			});
+			case 1: FBlur({
+				blurX : readFixed(),
+				blurY : readFixed(),
+				passes : i.readByte() >> 3
+			});
+			case 2: FGlow({
+				color : readRGBA(),
+				color2 : null,
+				blurX : readFixed(),
+				blurY : readFixed(),
+				angle : null,
+				distance : null,
+				strength : readFixed8(),
+				flags : readFilterFlags(false),
+			});
+			case 3: FBevel({
+				color : readRGBA(),
+				color2 : readRGBA(),
+				blurX : readFixed(),
+				blurY : readFixed(),
+				angle : readFixed(),
+				distance : readFixed(),
+				strength : readFixed8(),
+				flags : readFilterFlags(true),
+			});
+			case 5:
+				// ConvolutionFilter
+				throw error();
 			case 4: FGradientGlow(readFilterGradient());
-			case 6: FAdjustColor(i.read(80));
+			case 6:
+				var a = new Array();
+				for( n in 0...20 )
+					a.push(i.readFloat());
+				FColorMatrix(a);
 			case 7: FGradientBevel(readFilterGradient());
 			default:
 				throw error();
@@ -145,7 +211,7 @@ class Reader {
 		var r = readRect();
 		if( r.left != 0 || r.top != 0 || r.right % 20 != 0 || r.bottom % 20 != 0 )
 			throw error();
-		var fps = i.readUInt16();
+		var fps = readFixed8();
 		var nframes = i.readUInt16();
 		return {
 			version : version,
@@ -173,22 +239,43 @@ class Reader {
 		return TShape(id,ver,i.read(len - 2));
 	}
 
+	function readBlendMode() {
+		return switch( i.readByte() ) {
+		case 0,1: BNormal;
+		case 2: BLayer;
+		case 3: BMultiply;
+		case 4: BScreen;
+		case 5: BLighten;
+		case 6: BDarken;
+		case 7: BAdd;
+		case 8: BSubtract;
+		case 9: BDifference;
+		case 10: BInvert;
+		case 11: BAlpha;
+		case 12: BErase;
+		case 13: BOverlay;
+		case 14: BHardLight;
+		default: throw error();
+		}
+	}
+
 	function readPlaceObject(v3) : PlaceObject {
 		var f = i.readByte();
 		var f2 = if( v3 ) i.readByte() else 0;
+		if( f2 >> 3 != 0 ) throw error(); // unsupported bit flags
 		return {
 			depth : i.readUInt16(),
 			move : if( f & 1 != 0 ) true else false,
 			cid : if( f & 2 != 0 ) i.readUInt16() else null,
 			matrix : if( f & 4 != 0 ) readMatrix() else null,
 			color : if( f & 8 != 0 ) readCXA() else null,
-			ratio : if( f & 16 != 0 ) i.readUInt16() else null,
+			ratio : if( f & 16 != 0 ) readFixed8() else null,
 			instanceName : if( f & 32 != 0 ) i.readUntil(0) else null,
 			clipDepth : if( f & 64 != 0 ) i.readUInt16() else null,
 			events : if( f & 128 != 0 ) readClipEvents() else null,
 			filters : if( f2 & 1 != 0 ) readFilters() else null,
-			blendMode : if( f2 & 2 != 0 ) i.readByte() else null,
-			bitmapCache : if( f2 & 4 != 0 ) i.readByte() else null,
+			blendMode : if( f2 & 2 != 0 ) readBlendMode() else null,
+			bitmapCache : if( f2 & 4 != 0 ) true else false,
 		};
 	}
 
