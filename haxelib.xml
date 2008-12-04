@@ -1,5 +1,5 @@
 <project name="format" url="http://code.google.com/p/hxformat" license="BSD">
     <user name="ncannasse"/>
     <description>A haXe Library for supporting different file formats.</description>
-    <version name="1.04">Added PBJ and SWF support</version>
+    <version name="1.05">Fixed SWF compression on Flash9</version>
 </project>
