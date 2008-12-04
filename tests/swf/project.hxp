@@ -6,6 +6,7 @@
       <file path="..\..\format\tools\Deflate.hx" />
       <file path="..\..\format\tools\Huffman.hx" />
       <file path="..\..\format\tools\Inflate.hx" />
+      <file path="..\..\format\tools\InflateImpl.hx" />
     </dir>
     <file path="..\..\format\tools\BitsInput.hx" />
     <file path="..\..\format\tools\BitsOutput.hx" />

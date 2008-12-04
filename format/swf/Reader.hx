@@ -231,7 +231,7 @@ class Reader {
 		version = i.readByte();
 		var size = i.readUInt30();
 		if( compressed ) {
-			var bytes = format.tools.Inflate.run(i);
+			var bytes = format.tools.Inflate.run(i.readAll());
 			if( bytes.length + 8 != size ) throw error();
 			i = new haxe.io.BytesInput(bytes);
 		}

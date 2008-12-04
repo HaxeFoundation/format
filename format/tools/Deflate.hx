@@ -35,10 +35,7 @@ class Deflate {
 		var bytes = b.sub(0,b.length);
 		var data = bytes.getData();
 		data.compress();
-		// remove 2-bytes header and 4 bytes Adler32 CRC
-		var data2 = new flash.utils.ByteArray();
-		data2.writeBytes(data,2,data.length - 6);
-		return haxe.io.Bytes.ofData(data2);
+		return haxe.io.Bytes.ofData(data);
 		#else
 		throw "Deflate is not supported on this platform";
 		return null;
