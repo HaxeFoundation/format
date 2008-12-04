@@ -1,7 +1,41 @@
+/*
+ * format - haXe File Formats
+ *
+ *  SWF File Format
+ *  Copyright (C) 2004-2008 Nicolas Cannasse
+ *
+ * Copyright (c) 2008, The haXe Project Contributors
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE HAXE PROJECT CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE HAXE PROJECT CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
+ */
 package format.swf;
 
 typedef Fixed = haxe.Int32;
 typedef Fixed8 = Int;
+
+typedef SWF = {
+	var header : SWFHeader;
+	var tags : Array<SWFTag>;
+}
 
 enum SWFTag {
 	TShowFrame;
@@ -12,16 +46,23 @@ enum SWFTag {
 	TPlaceObject3( po : PlaceObject );
 	TRemoveObject2( depth : Int );
 	TFrameLabel( label : String, anchor : Bool );
+	TDoInitActions( id : Int, data : haxe.io.Bytes );
+	TActionScript3( data : haxe.io.Bytes, context : AS3Context );
 	TExtended( t : SWFTag );
 }
 
-typedef SWF = {
+typedef SWFHeader = {
 	var version : Int;
 	var compressed : Bool;
 	var width : Int;
 	var height : Int;
 	var fps : Fixed8;
 	var nframes : Int;
+}
+
+typedef AS3Context = {
+	var id : Int;
+	var label : String;
 }
 
 typedef PlaceObject = {

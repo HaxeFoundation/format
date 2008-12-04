@@ -1,15 +1,43 @@
+/*
+ * format - haXe File Formats
+ *
+ *  SWF File Format
+ *  Copyright (C) 2004-2008 Nicolas Cannasse
+ *
+ * Copyright (c) 2008, The haXe Project Contributors
+ * All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   - Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   - Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE HAXE PROJECT CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE HAXE PROJECT CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
+ */
 package format.swf;
 import format.swf.Data;
 
 class Reader {
 
 	var i : haxe.io.Input;
-	var bits : format.tools.InputBits;
+	var bits : format.tools.BitsInput;
 	var version : Int;
 
 	public function new(i) {
 		this.i = i;
-		bits = new format.tools.InputBits(i);
 	}
 
 	inline function readFixed8() {
@@ -103,7 +131,7 @@ class Reader {
 		};
 	}
 
-	function readFilterGradient() {
+	function readFilterGradient() : GradientFilterData {
 		var ncolors = i.readByte();
 		var colors = new Array();
 		for( i in 0...ncolors )
@@ -149,8 +177,8 @@ class Reader {
 				color2 : null,
 				blurX : readFixed(),
 				blurY : readFixed(),
-				angle : null,
-				distance : null,
+				angle : haxe.Int32.ofInt(0),
+				distance : haxe.Int32.ofInt(0),
 				strength : readFixed8(),
 				flags : readFilterFlags(false),
 			});
@@ -191,7 +219,7 @@ class Reader {
 		return "Invalid SWF";
 	}
 
-	public function readHeader() : SWF {
+	public function readHeader() : SWFHeader {
 		var tag = i.readString(3);
 		var compressed;
 		if( tag == "CWS" )
@@ -206,8 +234,8 @@ class Reader {
 			var bytes = format.tools.Inflate.run(i);
 			if( bytes.length + 8 != size ) throw error();
 			i = new haxe.io.BytesInput(bytes);
-			bits = new format.tools.InputBits(i);
 		}
+		bits = new format.tools.BitsInput(i);
 		var r = readRect();
 		if( r.left != 0 || r.top != 0 || r.right % 20 != 0 || r.bottom % 20 != 0 )
 			throw error();
@@ -313,8 +341,20 @@ class Reader {
 			var label = i.readUntil(0);
 			var anchor = if( len == label.length + 2 ) i.readByte() == 1 else false;
 			t = TFrameLabel(label,anchor);
+		case 0x3B:
+			var cid = i.readUInt16();
+			t = TDoInitActions(cid,i.read(len-2));
 		case 0x46:
 			t = TPlaceObject3(readPlaceObject(true));
+		case 0x48:
+			t = TActionScript3(i.read(len),null);
+		case 0x52:
+			var infos = {
+				id : i.readUInt30(),
+				label : i.readUntil(0),
+			};
+			len -= 4 + infos.label.length + 1;
+			t = TActionScript3(i.read(len),infos);
 		case 0x53:
 			t = readShape(len,4);
 		case 0x54:
@@ -327,5 +367,11 @@ class Reader {
 		return t;
 	}
 
+	public function read() : SWF {
+		return {
+			header : readHeader(),
+			tags : readTagList(),
+		};
+	}
 
 }

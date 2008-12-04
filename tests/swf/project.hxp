@@ -3,12 +3,15 @@
   <files path="/">
     <dir path="inflate">
       <file path="..\..\format\tools\Adler32.hx" />
+      <file path="..\..\format\tools\Deflate.hx" />
       <file path="..\..\format\tools\Huffman.hx" />
       <file path="..\..\format\tools\Inflate.hx" />
     </dir>
+    <file path="..\..\format\tools\BitsInput.hx" />
+    <file path="..\..\format\tools\BitsOutput.hx" />
     <file path="..\..\format\swf\Data.hx" />
-    <file path="..\..\format\tools\InputBits.hx" />
     <file path="..\..\format\swf\Reader.hx" />
     <file path="Test.hx" />
+    <file path="..\..\format\swf\Writer.hx" />
   </files>
 </haxe>
