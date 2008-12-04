@@ -65,19 +65,21 @@ typedef AS3Context = {
 	var label : String;
 }
 
-typedef PlaceObject = {
-	var depth : Int;
-	var move : Bool;
-	var cid : Null<Int>;
-	var matrix : Null<Matrix>;
-	var color : Null<CXA>;
-	var ratio : Null<Fixed8>;
-	var instanceName : Null<String>;
-	var clipDepth : Null<Int>;
-	var events : Null<Array<ClipEvent>>;
-	var filters : Null<Array<Filter>>;
-	var blendMode : Null<BlendMode>;
-	var bitmapCache : Bool;
+class PlaceObject {
+	public var depth : Int;
+	public var move : Bool;
+	public var cid : Null<Int>;
+	public var matrix : Null<Matrix>;
+	public var color : Null<CXA>;
+	public var ratio : Null<Int>;
+	public var instanceName : Null<String>;
+	public var clipDepth : Null<Int>;
+	public var events : Null<Array<ClipEvent>>;
+	public var filters : Null<Array<Filter>>;
+	public var blendMode : Null<BlendMode>;
+	public var bitmapCache : Bool;
+	public function new() {
+	}
 }
 
 typedef MatrixPart = {

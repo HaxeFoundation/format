@@ -291,20 +291,18 @@ class Reader {
 		var f = i.readByte();
 		var f2 = if( v3 ) i.readByte() else 0;
 		if( f2 >> 3 != 0 ) throw error(); // unsupported bit flags
-		var po = {
-			depth : i.readUInt16(),
-			move : if( f & 1 != 0 ) true else false,
-			cid : if( f & 2 != 0 ) i.readUInt16() else null,
-			matrix : if( f & 4 != 0 ) readMatrix() else null,
-			color : if( f & 8 != 0 ) readCXA() else null,
-			ratio : if( f & 16 != 0 ) readFixed8() else null,
-			instanceName : if( f & 32 != 0 ) i.readUntil(0) else null,
-			clipDepth : if( f & 64 != 0 ) i.readUInt16() else null,
-			events : null,
-			filters : if( f2 & 1 != 0 ) readFilters() else null,
-			blendMode : if( f2 & 2 != 0 ) readBlendMode() else null,
-			bitmapCache : if( f2 & 4 != 0 ) true else false,
-		};
+		var po = new PlaceObject();
+		po.depth = i.readUInt16();
+		if( f & 1 != 0 ) po.move = true;
+		if( f & 2 != 0 ) po.cid = i.readUInt16();
+		if( f & 4 != 0 ) po.matrix = readMatrix();
+		if( f & 8 != 0 ) po.color = readCXA();
+		if( f & 16 != 0 ) po.ratio = i.readUInt16();
+		if( f & 32 != 0 ) po.instanceName = i.readUntil(0);
+		if( f & 64 != 0 ) po.clipDepth = i.readUInt16();
+		if( f2 & 1 != 0 ) po.filters = readFilters();
+		if( f2 & 2 != 0 ) po.blendMode = readBlendMode();
+		if( f2 & 4 != 0 ) po.bitmapCache = true;
 		if( f & 128 != 0 ) po.events = readClipEvents();
 		return po;
 	}

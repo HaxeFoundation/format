@@ -258,15 +258,15 @@ class Writer {
 		if( po.cid != null ) o.writeUInt16(po.cid);
 		if( po.matrix != null ) writeMatrix(po.matrix);
 		if( po.color != null ) writeCXA(po.color);
-		if( po.ratio != null ) writeFixed8(po.ratio);
+		if( po.ratio != null ) o.writeUInt16(po.ratio);
 		if( po.instanceName != null ) {
 			o.writeString(po.instanceName);
 			o.writeByte(0);
 		}
 		if( po.clipDepth != null ) o.writeUInt16(po.clipDepth);
-		if( po.events != null ) writeClipEvents(po.events);
 		if( po.filters != null ) writeFilters(po.filters);
 		if( po.blendMode != null ) writeBlendMode(po.blendMode);
+		if( po.events != null ) writeClipEvents(po.events);
 	}
 
 	function writeTID( id : Int, len : Int, ext : Bool ) {
