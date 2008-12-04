@@ -291,7 +291,7 @@ class Reader {
 		var f = i.readByte();
 		var f2 = if( v3 ) i.readByte() else 0;
 		if( f2 >> 3 != 0 ) throw error(); // unsupported bit flags
-		return {
+		var po = {
 			depth : i.readUInt16(),
 			move : if( f & 1 != 0 ) true else false,
 			cid : if( f & 2 != 0 ) i.readUInt16() else null,
@@ -300,11 +300,13 @@ class Reader {
 			ratio : if( f & 16 != 0 ) readFixed8() else null,
 			instanceName : if( f & 32 != 0 ) i.readUntil(0) else null,
 			clipDepth : if( f & 64 != 0 ) i.readUInt16() else null,
-			events : if( f & 128 != 0 ) readClipEvents() else null,
+			events : null,
 			filters : if( f2 & 1 != 0 ) readFilters() else null,
 			blendMode : if( f2 & 2 != 0 ) readBlendMode() else null,
 			bitmapCache : if( f2 & 4 != 0 ) true else false,
 		};
+		if( f & 128 != 0 ) po.events = readClipEvents();
+		return po;
 	}
 
 	public function readTag() : SWFTag {
