@@ -269,9 +269,9 @@ class Writer {
 		if( po.events != null ) writeClipEvents(po.events);
 	}
 
-	function writeTID( id : Int, len : Int, ext : Bool ) {
+	function writeTID( id : Int, len : Int ) {
 		var h = (id << 6);
-		if( len < 63 && !ext )
+		if( len < 63 )
 			o.writeUInt16(h|len);
 		else {
 			o.writeUInt16(h|63);
@@ -279,34 +279,34 @@ class Writer {
 		}
 	}
 
-	public function writeTag( t : SWFTag, ext = false ) {
+	public function writeTag( t : SWFTag ) {
 		switch( t ) {
 		case TUnknown(id,data):
-			writeTID(id,data.length,ext);
+			writeTID(id,data.length);
 			o.write(data);
 		case TShowFrame:
-			writeTID(0x01,0,ext);
+			writeTID(0x01,0);
 		case TShape(id,ver,data):
-			writeTID([0,0x02,0x16,0x20,0x53,0x54][ver],data.length + 2,ext);
+			writeTID([0,0x02,0x16,0x20,0x53,0x54][ver],data.length + 2);
 			o.writeUInt16(id);
 			o.write(data);
 		case TPlaceObject2(po):
 			var t = openTMP();
 			writePlaceObject(po,false);
 			var bytes = closeTMP(t);
-			writeTID(0x1A,bytes.length,ext);
+			writeTID(0x1A,bytes.length);
 			o.write(bytes);
 		case TPlaceObject3(po):
 			var t = openTMP();
 			writePlaceObject(po,true);
 			var bytes = closeTMP(t);
-			writeTID(0x46,bytes.length,ext);
+			writeTID(0x46,bytes.length);
 			o.write(bytes);
 		case TRemoveObject2(depth):
-			writeTID(0x1C,2,ext);
+			writeTID(0x1C,2);
 			o.writeUInt16(depth);
 		case TFrameLabel(label,anchor):
-			writeTID(0x2B,label.length + 1 + (anchor?1:0),ext);
+			writeTID(0x2B,label.length + 1 + (anchor?1:0));
 			o.writeString(label);
 			o.writeByte(0);
 			if( anchor ) o.writeByte(1);
@@ -315,28 +315,40 @@ class Writer {
 			for( t in tags )
 				writeTag(t);
 			var bytes = closeTMP(t);
-			writeTID(0x27,bytes.length + 6,ext);
+			writeTID(0x27,bytes.length + 6);
 			o.writeUInt16(id);
 			o.writeUInt16(frames);
 			o.write(bytes);
 			o.writeUInt16(0); // end-tag
 		case TDoInitActions(id,data):
-			writeTID(0x3B,data.length + 2,ext);
+			writeTID(0x3B,data.length + 2);
 			o.writeUInt16(id);
 			o.write(data);
 		case TActionScript3(data,ctx):
 			if( ctx == null )
-				writeTID(0x48,data.length,ext);
+				writeTID(0x48,data.length);
 			else {
 				var len = data.length + 4 + ctx.label.length + 1;
-				writeTID(0x52,len,ext);
+				writeTID(0x52,len);
 				o.writeUInt30(ctx.id);
 				o.writeString(ctx.label);
 				o.writeByte(0);
 			}
 			o.write(data);
-		case TExtended(t):
-			writeTag(t,true);
+		case TSymbolClass(sl):
+			var len = 2;
+			for( s in sl )
+				len += 2 + s.className.length + 1;
+			writeTID(0x4C,len);
+			o.writeUInt16(sl.length);
+			for( s in sl ) {
+				o.writeUInt16(s.cid);
+				o.writeString(s.className);
+				o.writeByte(0);
+			}
+		case TSandBox(n):
+			writeTID(0x45,4);
+			o.writeUInt30(n);
 		}
 	}
 

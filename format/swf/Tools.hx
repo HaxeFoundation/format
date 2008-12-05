@@ -39,8 +39,17 @@ class Tools {
 		return v;
 	}
 
-	public inline static function floatFixed( i : Int ) {
-		return (i >> 16) + (i & 0xFFFF) / 65536;
+	public inline static function floatFixedBits( i : Int, nbits ) {
+		i = signExtend(i,nbits);
+		return (i >> 16) + (i & 0xFFFF) / 65536.0;
+	}
+
+	public inline static function floatFixed( i : haxe.Int32 ) {
+		return haxe.Int32.toInt(haxe.Int32.shr(i,16)) + haxe.Int32.toInt(haxe.Int32.and(i,haxe.Int32.ofInt(0xFFFF))) / 65536.0;
+	}
+
+	public inline static function floatFixed8( i : Int ) {
+		return (i >> 8) + (i & 0xFF) / 256.0;
 	}
 
 }

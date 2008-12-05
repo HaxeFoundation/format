@@ -115,8 +115,13 @@ class Test {
 			"DoInitActions #"+cid+" ["+data.length+"]";
 		case TActionScript3(data,context):
 			"AS3"+((context == null) ? " #"+context.id+":"+context.label : "")+" ["+data.length+"]";
-		case TExtended(t):
-			tagStr(t);
+		case TSandBox(n):
+			"Sandbox 0x"+StringTools.hex(n);
+		case TSymbolClass(sl):
+			var str = "Symbols";
+			for( s in sl )
+				str += "\n  #"+s.cid+" "+s.className;
+			return str;
 		};
 	}
 

@@ -316,55 +316,62 @@ class Reader {
 			len = i.readUInt30();
 			if( len < 63 ) ext = true;
 		}
-		var t;
-		switch( id ) {
+		return switch( id ) {
 		case 0x00:
-			return null;
+			null;
 		case 0x01:
-			t = TShowFrame;
+			TShowFrame;
 		case 0x02:
-			t = readShape(len,1);
+			readShape(len,1);
 		case 0x16:
-			t = readShape(len,2);
+			readShape(len,2);
 		case 0x1A:
-			t = TPlaceObject2(readPlaceObject(false));
+			TPlaceObject2(readPlaceObject(false));
 		case 0x1C:
-			t = TRemoveObject2(i.readUInt16());
+			TRemoveObject2(i.readUInt16());
 		case 0x20:
-			t = readShape(len,3);
+			readShape(len,3);
 		case 0x27:
 			var cid = i.readUInt16();
 			var fcount = i.readUInt16();
 			var tags = readTagList();
-			t = TClip(cid,fcount,tags);
+			TClip(cid,fcount,tags);
 		case 0x2B:
 			var label = i.readUntil(0);
 			var anchor = if( len == label.length + 2 ) i.readByte() == 1 else false;
-			t = TFrameLabel(label,anchor);
+			TFrameLabel(label,anchor);
 		case 0x3B:
 			var cid = i.readUInt16();
-			t = TDoInitActions(cid,i.read(len-2));
+			TDoInitActions(cid,i.read(len-2));
+		case 0x45:
+			TSandBox(i.readUInt30());
 		case 0x46:
-			t = TPlaceObject3(readPlaceObject(true));
+			TPlaceObject3(readPlaceObject(true));
 		case 0x48:
-			t = TActionScript3(i.read(len),null);
+			TActionScript3(i.read(len),null);
+		case 0x4C:
+			var sl = new Array();
+			for( n in 0...i.readUInt16() )
+				sl.push({
+					cid : i.readUInt16(),
+					className : i.readUntil(0),
+				});
+			TSymbolClass(sl);
 		case 0x52:
 			var infos = {
 				id : i.readUInt30(),
 				label : i.readUntil(0),
 			};
 			len -= 4 + infos.label.length + 1;
-			t = TActionScript3(i.read(len),infos);
+			TActionScript3(i.read(len),infos);
 		case 0x53:
-			t = readShape(len,4);
+			readShape(len,4);
 		case 0x54:
-			t = readShape(len,5);
+			readShape(len,5);
 		default:
 			var data = i.read(len);
-			t = TUnknown(id,data);
+			TUnknown(id,data);
 		}
-		if( ext ) t = TExtended(t);
-		return t;
 	}
 
 	public function read() : SWF {
