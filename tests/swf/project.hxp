@@ -1,6 +1,14 @@
 ﻿<haxe selected="0">
   <output name="Test" mode="neko" out="test.n" class="Test" lib="" cmd="run.bat" main="True" debug="False">-cp ../..</output>
   <files path="/">
+    <dir path="abc">
+      <file path="..\..\format\abc\Context.hx" />
+      <file path="..\..\format\abc\Data.hx" />
+      <file path="..\..\format\abc\OpReader.hx" />
+      <file path="..\..\format\abc\OpWriter.hx" />
+      <file path="..\..\format\abc\Reader.hx" />
+      <file path="..\..\format\abc\Writer.hx" />
+    </dir>
     <dir path="inflate">
       <file path="..\..\format\tools\Adler32.hx" />
       <file path="..\..\format\tools\Deflate.hx" />
@@ -8,11 +16,12 @@
       <file path="..\..\format\tools\Inflate.hx" />
       <file path="..\..\format\tools\InflateImpl.hx" />
     </dir>
-    <file path="..\..\format\tools\BitsInput.hx" />
-    <file path="..\..\format\tools\BitsOutput.hx" />
-    <file path="..\..\format\swf\Data.hx" />
-    <file path="..\..\format\swf\Reader.hx" />
+    <dir path="swf">
+      <file path="..\..\format\swf\Data.hx" />
+      <file path="..\..\format\swf\Reader.hx" />
+      <file path="..\..\format\swf\Tools.hx" />
+      <file path="..\..\format\swf\Writer.hx" />
+    </dir>
     <file path="Test.hx" />
-    <file path="..\..\format\swf\Writer.hx" />
   </files>
 </haxe>

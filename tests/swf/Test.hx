@@ -114,7 +114,14 @@ class Test {
 		case TDoInitActions(cid,data):
 			"DoInitActions #"+cid+" ["+data.length+"]";
 		case TActionScript3(data,context):
-			"AS3"+((context == null) ? " #"+context.id+":"+context.label : "")+" ["+data.length+"]";
+			var str = "AS3"+((context == null) ? "" : " #"+context.id+":"+context.label);
+			var reader = new format.abc.Reader(new haxe.io.BytesInput(data));
+			var ctx = reader.read();
+			var output = new haxe.io.BytesOutput();
+			format.abc.Writer.write(output,ctx);
+			var bytes = output.getBytes();
+			if( bytes.compare(data) != 0 )
+				throw "ERROR";
 		case TSandBox(n):
 			"Sandbox 0x"+StringTools.hex(n);
 		case TSymbolClass(sl):
