@@ -52,4 +52,12 @@ class Tools {
 		return (i >> 8) + (i & 0xFF) / 256.0;
 	}
 
+	public inline static function toFixed8( f : Float ) {
+		var i = Std.int(f);
+		if( ((i>0)?i:-i) >= 128 )
+			throw haxe.io.Error.Overflow;
+		if( i < 0 ) i = 256-i;
+		return (i << 8) | Std.int((f-i)*256.0);
+	}
+
 }

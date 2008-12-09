@@ -1,4 +1,5 @@
 import format.swf.Data;
+import format.abc.Data;
 
 class Test {
 
@@ -17,10 +18,66 @@ class Test {
 		});
 		l.load(new flash.net.URLRequest("file.swf"));
 		#end
+		var swf = build();
+		#if neko
+		var f = neko.io.File.write("fib.swf",true);
+		f.write(swf);
+		f.close();
+		#else
+		#end
+	}
+
+	static function build() {
+		var ctx = new format.abc.Context();
+		ctx.beginClass("Main");
+		var tint = ctx.type("int");
+		var m = ctx.beginMethod("fib",[tint],tint);
+		m.maxStack = 3;
+		ctx.ops([
+			OReg(1),
+			OSmallInt(1),
+		]);
+		var j = ctx.jump(JGt);
+		ctx.ops([
+			OInt(1),
+			ORet,
+		]);
+		j();
+		ctx.ops([
+			ODecrIReg(1),
+			OThis,
+			OReg(1),
+			OCallProperty(ctx.property("fib"),1),
+			ODecrIReg(1),
+			OThis,
+			OReg(1),
+			OCallProperty(ctx.property("fib"),1),
+			OOp(OpIAdd),
+			ORet,
+		]);
+		ctx.finalize();
+		var o = new haxe.io.BytesOutput();
+		format.abc.Writer.write(o,ctx.getData());
+		var abc = o.getBytes();
+		var header : SWFHeader = {
+			version : 9,
+			width : 400,
+			height : 300,
+			nframes : 1,
+			fps : format.swf.Tools.toFixed8(30.0),
+			compressed : false,
+		};
+		var tags = [
+			TSandBox(25),
+			TActionScript3(abc),
+			TShowFrame,
+		];
+		o = new haxe.io.BytesOutput();
+		new format.swf.Writer(o).write({ header : header, tags : tags });
+		return o.getBytes();
 	}
 
 	static function decode( bytes : haxe.io.Bytes ) {
-		// read
 		var t = haxe.Timer.stamp();
 		var i = new haxe.io.BytesInput(bytes);
 		var reader = new format.swf.Reader(i);
@@ -114,14 +171,27 @@ class Test {
 		case TDoInitActions(cid,data):
 			"DoInitActions #"+cid+" ["+data.length+"]";
 		case TActionScript3(data,context):
-			var str = "AS3"+((context == null) ? "" : " #"+context.id+":"+context.label);
+			var str = "AS3"+((context == null) ? "" : " #"+context.id+" '"+context.label+"'");
 			var reader = new format.abc.Reader(new haxe.io.BytesInput(data));
 			var ctx = reader.read();
+			// decode bytecode
+			var opcodes = 0;
+			for( f in ctx.functions ) {
+				var ops = format.abc.OpReader.decode(new haxe.io.BytesInput(f.code));
+				opcodes += ops.length;
+				var bytes = new haxe.io.BytesOutput();
+				var opw = new format.abc.OpWriter(bytes);
+				for( o in ops )
+					opw.write(o);
+				f.code = bytes.getBytes();
+			}
+			str += " "+opcodes+" ops";
 			var output = new haxe.io.BytesOutput();
 			format.abc.Writer.write(output,ctx);
 			var bytes = output.getBytes();
 			if( bytes.compare(data) != 0 )
 				throw "ERROR";
+			str;
 		case TSandBox(n):
 			"Sandbox 0x"+StringTools.hex(n);
 		case TSymbolClass(sl):

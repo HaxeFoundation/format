@@ -259,10 +259,7 @@ class Reader {
 		var nregs = readInt();
 		var init_scope = readInt();
 		var max_scope = readInt();
-		var size = readInt();
-		var code = new Array();
-		for( _ in 0...size )
-			code.push(OUnknown(i.readByte()));
+		var code = i.read(readInt());
 		var trys = readList2(readTryCatch);
 		var locals = readList2(readField);
 		return {

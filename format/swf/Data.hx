@@ -47,7 +47,7 @@ enum SWFTag {
 	TRemoveObject2( depth : Int );
 	TFrameLabel( label : String, anchor : Bool );
 	TDoInitActions( id : Int, data : haxe.io.Bytes );
-	TActionScript3( data : haxe.io.Bytes, context : AS3Context );
+	TActionScript3( data : haxe.io.Bytes, ?context : AS3Context );
 	TSymbolClass( symbols : Array<{ cid : Int, className : String }> );
 	TSandBox( v : Int );
 }

@@ -57,4 +57,341 @@ class OpReader {
 		return Int32.or(big,small);
 	}
 
+	inline function reg() {
+		return i.readByte();
+	}
+
+	inline function jmp(j) {
+		return OJump(j,i.readInt24());
+	}
+
+	public function readOp(op) {
+		return switch( op ) {
+		case 0x01:
+			OBreakPoint;
+		case 0x02:
+			ONop;
+		case 0x03:
+			OThrow;
+		case 0x04:
+			OGetSuper(Idx(readInt()));
+		case 0x05:
+			OSetSuper(Idx(readInt()));
+		case 0x08:
+			ORegKill(reg());
+		case 0x09:
+			OLabel;
+		case 0x0C:
+			jmp(JNotLt);
+		case 0x0D:
+			jmp(JNotLte);
+		case 0x0E:
+			jmp(JNotGt);
+		case 0x0F:
+			jmp(JNotGte);
+		case 0x10:
+			jmp(JAlways);
+		case 0x11:
+			jmp(JTrue);
+		case 0x12:
+			jmp(JFalse);
+		case 0x13:
+			jmp(JEq);
+		case 0x14:
+			jmp(JNeq);
+		case 0x15:
+			jmp(JLt);
+		case 0x16:
+			jmp(JLte);
+		case 0x17:
+			jmp(JGt);
+		case 0x18:
+			jmp(JGte);
+		case 0x19:
+			jmp(JPhysEq);
+		case 0x1A:
+			jmp(JPhysNeq);
+		case 0x1B:
+			var def = i.readInt24();
+			var cases = new Array();
+			for( _ in 0...readInt() + 1 )
+				cases.push(i.readInt24());
+			OSwitch(def,cases);
+		case 0x1C:
+			OPushWith;
+		case 0x1D:
+			OPopScope;
+		case 0x1E:
+			OForIn;
+		case 0x1F:
+			OHasNext;
+		case 0x20:
+			ONull;
+		case 0x21:
+			OUndefined;
+		case 0x23:
+			OForEach;
+		case 0x24:
+			OSmallInt(i.readInt8());
+		case 0x25:
+			OInt(readInt());
+		case 0x26:
+			OTrue;
+		case 0x27:
+			OFalse;
+		case 0x28:
+			ONaN;
+		case 0x29:
+			OPop;
+		case 0x2A:
+			ODup;
+		case 0x2B:
+			OSwap;
+		case 0x2C:
+			OString(Idx(readInt()));
+		case 0x2D:
+			OIntRef(Idx(readInt()));
+		case 0x2E:
+			OUIntRef(Idx(readInt()));
+		case 0x2F:
+			OFloat(Idx(readInt()));
+		case 0x30:
+			OScope;
+		case 0x31:
+			ONamespace(Idx(readInt()));
+		case 0x32:
+			var r1 = readInt();
+			var r2 = readInt();
+			ONext(r1,r2);
+		case 0x40:
+			OFunction(Idx(readInt()));
+		case 0x41:
+			OCallStack(readInt());
+		case 0x42:
+			OConstruct(readInt());
+		case 0x43:
+			var s = readInt();
+			var n = readInt();
+			OCallMethod(s,n);
+		case 0x44:
+			var m = Idx(readInt());
+			var n = readInt();
+			OCallStatic(m,n);
+		case 0x45:
+			var p = Idx(readInt());
+			var n = readInt();
+			OCallSuper(p,n);
+		case 0x46:
+			var p = Idx(readInt());
+			var n = readInt();
+			OCallProperty(p,n);
+		case 0x47:
+			ORetVoid;
+		case 0x48:
+			ORet;
+		case 0x49:
+			OConstructSuper(readInt());
+		case 0x4A:
+			var p = Idx(readInt());
+			var n = readInt();
+			OConstructProperty(p,n);
+		case 0x4C:
+			var p = Idx(readInt());
+			var n = readInt();
+			OCallPropLex(p,n);
+		case 0x4E:
+			var p = Idx(readInt());
+			var n = readInt();
+			OCallSuperVoid(p,n);
+		case 0x4F:
+			var p = Idx(readInt());
+			var n = readInt();
+			OCallPropVoid(p,n);
+		case 0x55:
+			OObject(readInt());
+		case 0x56:
+			OArray(readInt());
+		case 0x57:
+			ONewBlock;
+		case 0x58:
+			OClassDef(Idx(readInt()));
+		case 0x5A:
+			OCatch(readInt());
+		case 0x5D:
+			OFindPropStrict(Idx(readInt()));
+		case 0x5E:
+			OFindProp(Idx(readInt()));
+		case 0x5F:
+			OFindDefinition(Idx(readInt()));
+		case 0x60:
+			OGetLex(Idx(readInt()));
+		case 0x61:
+			OSetProp(Idx(readInt()));
+		case 0x62:
+			OReg(reg());
+		case 0x63:
+			OSetReg(reg());
+		case 0x64:
+			OGetGlobalScope;
+		case 0x65:
+			OGetScope(i.readByte());
+		case 0x66:
+			OGetProp(Idx(readInt()));
+		case 0x68:
+			OInitProp(Idx(readInt()));
+		case 0x6A:
+			ODeleteProp(Idx(readInt()));
+		case 0x6C:
+			OGetSlot(readInt());
+		case 0x6D:
+			OSetSlot(readInt());
+		case 0x70:
+			OToString;
+		case 0x71:
+			OToXml;
+		case 0x72:
+			OToXmlAttr;
+		case 0x73:
+			OToInt;
+		case 0x74:
+			OToUInt;
+		case 0x75:
+			OToNumber;
+		case 0x76:
+			OToBool;
+		case 0x77:
+			OToObject;
+		case 0x78:
+			OCheckIsXml;
+		case 0x80:
+			OCast(Idx(readInt()));
+		case 0x82:
+			OAsAny;
+		case 0x85:
+			OAsString;
+		case 0x86:
+			OAsType(Idx(readInt()));
+		case 0x87:
+			OOp(OpAs);
+		case 0x89:
+			OAsObject;
+		case 0x90:
+			OOp(OpNeg);
+		case 0x91:
+			OOp(OpIncr);
+		case 0x92:
+			OIncrReg(reg());
+		case 0x93:
+			OOp(OpDecr);
+		case 0x94:
+			ODecrReg(reg());
+		case 0x95:
+			OTypeof;
+		case 0x96:
+			OOp(OpNot);
+		case 0x97:
+			OOp(OpBitNot);
+		case 0xA0:
+			OOp(OpAdd);
+		case 0xA1:
+			OOp(OpSub);
+		case 0xA2:
+			OOp(OpMul);
+		case 0xA3:
+			OOp(OpDiv);
+		case 0xA4:
+			OOp(OpMod);
+		case 0xA5:
+			OOp(OpShl);
+		case 0xA6:
+			OOp(OpShr);
+		case 0xA7:
+			OOp(OpUShr);
+		case 0xA8:
+			OOp(OpAnd);
+		case 0xA9:
+			OOp(OpOr);
+		case 0xAA:
+			OOp(OpXor);
+		case 0xAB:
+			OOp(OpEq);
+		case 0xAC:
+			OOp(OpPhysEq);
+		case 0xAD:
+			OOp(OpLt);
+		case 0xAE:
+			OOp(OpLte);
+		case 0xAF:
+			OOp(OpGt);
+		case 0xB0:
+			OOp(OpGte);
+		case 0xB1:
+			OInstanceOf;
+		case 0xB2:
+			OIsType(Idx(readInt()));
+		case 0xB3:
+			OOp(OpIs);
+		case 0xB4:
+			OOp(OpIn);
+		case 0xC0:
+			OOp(OpIIncr);
+		case 0xC1:
+			OOp(OpIDecr);
+		case 0xC2:
+			OIncrIReg(reg());
+		case 0xC3:
+			ODecrIReg(reg());
+		case 0xC4:
+			OOp(OpINeg);
+		case 0xC5:
+			OOp(OpIAdd);
+		case 0xC6:
+			OOp(OpISub);
+		case 0xC7:
+			OOp(OpIMul);
+		case 0xD0:
+			OThis;
+		case 0xD1:
+			OReg(1);
+		case 0xD2:
+			OReg(2);
+		case 0xD3:
+			OReg(3);
+		case 0xD4:
+			OSetThis;
+		case 0xD5:
+			OSetReg(1);
+		case 0xD6:
+			OSetReg(2);
+		case 0xD7:
+			OSetReg(3);
+		case 0xEF:
+			var name = Idx(readInt());
+			var r = reg();
+			var line = readInt();
+			ODebugReg(name,r,line);
+		case 0xF0:
+			ODebugLine(readInt());
+		case 0xF1:
+			ODebugFile(Idx(readInt()));
+		case 0xF2:
+			OBreakPointLine(readInt());
+		case 0xF3:
+			OTimestamp;
+		default:
+			OUnknown(op);
+		}
+	}
+
+	public static function decode( i : haxe.io.Input ) {
+		var opr = new OpReader(i);
+		var ops = new Array();
+		while( true ) {
+			var op;
+			try op = i.readByte() catch( e : haxe.io.Eof ) break;
+			ops.push(opr.readOp(op));
+		}
+		return ops;
+	}
+
 }

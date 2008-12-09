@@ -25,8 +25,8 @@ class Context {
 	var data : ABCData;
 	var hstrings : Hash<Int>;
 	var curClass : ClassDef;
-	var curFunction : Function;
-	var init : Function;
+	var curFunction : { f : Function, ops : Array<OpCode> };
+	var init : { f : Function, ops : Array<OpCode> };
 	var fieldSlot : Int;
 	var registers : Array<Bool>;
 	var bytepos : NullOutput;
@@ -58,8 +58,9 @@ class Context {
 		beginFunction([],null);
 		ops([OThis,OScope]);
 		init = curFunction;
-		init.maxStack = 2;
-		init.maxScope = 2;
+		init.f.maxStack = 2;
+		init.f.maxScope = 2;
+		data.inits = [{ method : init.f.type, fields : [] }];
 	}
 
 	public function int(i) {
@@ -156,21 +157,36 @@ class Context {
 	}
 
 	function beginFunction(args,ret,?extra) : Index<Function> {
-		curFunction = {
+		endFunction();
+		var f = {
 			type : methodType({ args : args, ret : ret, extra : extra }),
 			nRegs : args.length + 1,
 			initScope : 0,
 			maxScope : 0,
 			maxStack : 0,
-			code : [],
+			code : null,
 			trys : [],
 			locals : [],
 		};
-		data.functions.push(curFunction);
+		curFunction = { f : f, ops : [] };
+		data.functions.push(f);
 		registers = new Array();
-		for( x in 0...curFunction.nRegs )
+		for( x in 0...f.nRegs )
 			registers.push(true);
 		return Idx(data.functions.length - 1);
+	}
+
+	function endFunction() {
+		if( curFunction == null )
+			return;
+		var old = opw.o;
+		var bytes = new haxe.io.BytesOutput();
+		opw.o = bytes;
+		for( op in curFunction.ops )
+			opw.write(op);
+		curFunction.f.code = bytes.getBytes();
+		opw.o = old;
+		curFunction = null;
 	}
 
 	public function allocRegister() {
@@ -180,7 +196,7 @@ class Context {
 				return i;
 			}
 		registers.push(true);
-		curFunction.nRegs++;
+		curFunction.f.nRegs++;
 		return registers.length - 1;
 	}
 
@@ -192,11 +208,13 @@ class Context {
 		endClass();
 		var tpath = this.type(path);
 		beginFunction([],null);
-		var st = curFunction.type;
+		var st = curFunction.f.type;
 		op(ORetVoid);
+		endFunction();
 		beginFunction([],null);
-		var cst = curFunction.type;
+		var cst = curFunction.f.type;
 		op(ORetVoid);
+		endFunction();
 		fieldSlot = 1;
 		curClass = {
 			name : tpath,
@@ -219,6 +237,7 @@ class Context {
 	function endClass() {
 		if( curClass == null )
 			return;
+		endFunction();
 		curFunction = init;
 		ops([
 			OGetGlobalScope,
@@ -239,10 +258,14 @@ class Context {
 		fl.push({
 			name : property(mname),
 			slot : 0,
-			kind : FMethod(curFunction.type,KNormal,isFinal,isOverride),
+			kind : FMethod(curFunction.f.type,KNormal,isFinal,isOverride),
 			metadatas : null,
 		});
-		return curFunction;
+		return curFunction.f;
+	}
+
+	public function endMethod() {
+		endFunction();
 	}
 
 	public function defineField( fname : String, t, ?isStatic ) : Slot {
@@ -258,13 +281,13 @@ class Context {
 	}
 
 	public function op(o) {
-		curFunction.code.push(o);
+		curFunction.ops.push(o);
 		opw.write(o);
 	}
 
 	public function ops( ops : Array<OpCode> ) {
-		for( i in 0...ops.length )
-			op(ops[i]);
+		for( o in ops )
+			op(o);
 	}
 
 	public function backwardJump() {
@@ -277,7 +300,7 @@ class Context {
 	}
 
 	public function jump( jcond ) {
-		var ops = curFunction.code;
+		var ops = curFunction.ops;
 		var pos = ops.length;
 		op(OJump(JTrue,-1));
 		var start = bytepos.n;
@@ -291,7 +314,7 @@ class Context {
 		endClass();
 		curFunction = init;
 		op(ORetVoid);
-		curFunction = null;
+		endFunction();
 		curClass = null;
 	}
 

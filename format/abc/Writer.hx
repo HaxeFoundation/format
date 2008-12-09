@@ -278,14 +278,8 @@ class Writer {
 		writeInt(f.nRegs);
 		writeInt(f.initScope);
 		writeInt(f.maxScope);
-		var bytes = new haxe.io.BytesOutput();
-		opw.o = bytes;
-		for( o in f.code )
-			opw.write(o);
-		opw.o = o;
-		var codeStr = bytes.getBytes();
-		writeInt(codeStr.length);
-		o.write(codeStr);
+		writeInt(f.code.length);
+		o.write(f.code);
 		writeList2(f.trys,writeTryCatch);
 		writeList2(f.locals,writeField);
 	}

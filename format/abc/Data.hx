@@ -68,7 +68,7 @@ typedef Function = {
 	var nRegs : Int;
 	var initScope : Int;
 	var maxScope : Int;
-	var code : Array<OpCode>;
+	var code : haxe.io.Bytes;
 	var trys : Array<TryCatch>;
 	var locals : Array<Field>;
 }
