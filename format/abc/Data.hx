@@ -23,12 +23,12 @@ enum Name {
 	NRuntimeLate;
 	NMultiLate( nset : Index<NamespaceSet> );
 	NAttrib( n : Name );
-	NParams( n : Index<Name>, params : Array<Index<Name>> );
+	NParams( n : IName, params : Array<IName> );
 }
 
 typedef MethodType = {
-	var args : Array<Null<Index<Name>>>;
-	var ret : Null<Index<Name>>;
+	var args : Array<Null<IName>>;
+	var ret : Null<IName>;
 	var extra : Null<MethodTypeExtra>;
 }
 
@@ -58,8 +58,8 @@ typedef TryCatch = {
 	var start : Int;
 	var end : Int;
 	var handle : Int;
-	var type : Null<Index<Name>>;
-	var variable : Null<Index<Name>>;
+	var type : Null<IName>;
+	var variable : Null<IName>;
 }
 
 typedef Function = {
@@ -74,7 +74,7 @@ typedef Function = {
 }
 
 typedef Field = {
-	var name : Index<Name>;
+	var name : IName;
 	var slot : Slot;
 	var kind : FieldKind;
 	var metadatas : Null<Array<Metadata>>;
@@ -87,16 +87,16 @@ enum MethodKind {
 }
 
 enum FieldKind {
-	FVar( ?type : Null<Index<Name>>, ?value : Value, ?const : Bool );
+	FVar( ?type : Null<IName>, ?value : Value, ?const : Bool );
 	FMethod( type : Index<MethodType>, k : MethodKind, ?isOverride : Bool, ?isFinal : Bool );
 	FClass( c : Index<ClassDef> );
 	FFunction( f : Index<MethodType> );
 }
 
 typedef ClassDef = {
-	var name : Index<Name>;
-	var superclass : Null<Index<Name>>;
-	var interfaces : Array<Index<Name>>;
+	var name : IName;
+	var superclass : Null<IName>;
+	var interfaces : Array<IName>;
 	var constructor : Index<MethodType>;
 	var fields : Array<Field>;
 	var namespace : Null<Index<Namespace>>;
@@ -130,6 +130,10 @@ class ABCData {
 	public var classes : Array<ClassDef>;
 	public var inits : Array<Init>;
 	public var functions : Array<Function>;
+
+	public function get<T>( t : Array<T>, i : Index<T> ) : T {
+		return switch( i ) { case Idx(n): t[n-1]; };
+	}
 
 	public function new() {
 	}
