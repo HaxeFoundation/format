@@ -1,13 +1,18 @@
-﻿<haxe selected="0">
+﻿<haxe selected="2">
   <output name="TestNeko" mode="neko" out="test.n" class="Test" lib="" cmd="run.bat" main="True" debug="False">-cp ../..
 -resource default.pbj</output>
-  <output name="TestF9" mode="swf9" out="test.swf" class="Test" lib="" cmd="" main="True" debug="False">-cp ../..
+  <output name="Reader" mode="swf" out="pbjreader.swf" class="PBJReader" lib="" cmd="" main="True" debug="False">-cp ../..
 -swf-version 10
--resource default.pbj</output>
+-resource default.pbj
+</output>
+  <output name="TestFlash" mode="swf" out="test.swf" class="TestFlash" lib="" cmd="" main="True" debug="False">-swf-version 10
+-lib format</output>
   <files path="/">
     <file path="..\..\format\pbj\Data.hx" />
+    <file path="PBJReader.hx" />
     <file path="..\..\format\pbj\Reader.hx" />
     <file path="Test.hx" />
+    <file path="TestFlash.hx" />
     <file path="..\..\format\pbj\Tools.hx" />
     <file path="..\..\format\pbj\Writer.hx" />
   </files>

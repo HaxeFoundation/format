@@ -5,9 +5,17 @@
 -resource default.pbj
 
 --next
-# TestF9
--swf9 test.swf
--main Test
+# Reader
+-swf pbjreader.swf
+-main PBJReader
 -cp ../..
 -swf-version 10
 -resource default.pbj
+
+
+--next
+# TestFlash
+-swf test.swf
+-main TestFlash
+-swf-version 10
+-lib format
