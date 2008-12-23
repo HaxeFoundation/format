@@ -127,7 +127,7 @@ class Writer {
 			o.writeUInt16(0); //disk number start
 			o.writeUInt16(0); //internal file attributes
 			o.writeUInt30(0); //external file attributes
-			o.writeUInt30(0); //relative offset of local header
+			o.writeUInt30(cdr_offset); //relative offset of local header
 			o.writeString(f.name);
 			cdr_size += CENTRAL_DIRECTORY_RECORD_FIELDS_SIZE + namelen;
 			cdr_offset += LOCAL_FILE_HEADER_FIELDS_SIZE + namelen + f.clen;
