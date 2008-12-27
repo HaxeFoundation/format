@@ -1,0 +1,26 @@
+2008-12-27: 1.07
+	bugfix in Zip Writer with multiples files
+	added Tar Writer (contributed by Ian Liu)
+	bugfix in ABC Context (classes were not properly registered)
+
+2008-12-23: 1.06
+	added ABC support (merged from hxASM)
+	completed SWF support
+
+2008-12-04: 1.05
+	fixes in Inflate and Deflate
+
+2008-12-04: 1.04
+	added SWF support
+	added Inflate support
+
+2008-11-23: 1.03
+	added PBJ support
+	
+2008-08-04: 1.02
+	minor fixes
+
+2008-08-03: 1.0
+	AMF and FLV (from haxeVideo)
+	PDF (from hxPDF)
+	ZIP, TAR, GZ (from haXe Neko Library)
