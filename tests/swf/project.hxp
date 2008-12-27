@@ -1,5 +1,6 @@
 ﻿<haxe selected="0">
   <output name="Test" mode="neko" out="test.n" class="Test" lib="" cmd="run.bat" main="True" debug="False">-cp ../..</output>
+  <output name="FibAsm" mode="swf9" out="fibasm.swf" class="FibAsm" lib="" cmd="" main="True" debug="False">-cp ../..</output>
   <files path="/">
     <dir path="abc">
       <file path="..\..\format\abc\Context.hx" />
@@ -22,6 +23,7 @@
       <file path="..\..\format\swf\Tools.hx" />
       <file path="..\..\format\swf\Writer.hx" />
     </dir>
+    <file path="FibAsm.hx" />
     <file path="Test.hx" />
   </files>
 </haxe>

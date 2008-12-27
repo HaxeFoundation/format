@@ -26,6 +26,7 @@ class Context {
 	var hstrings : Hash<Int>;
 	var curClass : ClassDef;
 	var curFunction : { f : Function, ops : Array<OpCode> };
+	var classes : Array<Field>;
 	var init : { f : Function, ops : Array<OpCode> };
 	var fieldSlot : Int;
 	var registers : Array<Bool>;
@@ -60,7 +61,8 @@ class Context {
 		init = curFunction;
 		init.f.maxStack = 2;
 		init.f.maxScope = 2;
-		data.inits = [{ method : init.f.type, fields : [] }];
+		classes = new Array();
+		data.inits = [{ method : init.f.type, fields : classes }];
 	}
 
 	public function int(i) {
@@ -230,11 +232,17 @@ class Context {
 			staticFields : [],
 		};
 		data.classes.push(curClass);
+		classes.push({
+			name: tpath,
+			slot: 0,
+			kind: FClass(Idx(data.classes.length - 1)),
+            metadatas: null,
+		});
 		curFunction = null;
 		return curClass;
 	}
 
-	function endClass() {
+	public function endClass() {
 		if( curClass == null )
 			return;
 		endFunction();

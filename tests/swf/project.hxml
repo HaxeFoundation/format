@@ -2,3 +2,9 @@
 -neko test.n
 -main Test
 -cp ../..
+
+--next
+# FibAsm
+-swf9 fibasm.swf
+-main FibAsm
+-cp ../..
