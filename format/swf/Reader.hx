@@ -48,6 +48,16 @@ class Reader {
 		return i.readInt32();
 	}
 
+	function readUTF8Bytes() {
+		var b = new haxe.io.BytesBuffer();
+		while( true ) {
+			var c = i.readByte();
+			if( c == 0 ) break;
+			b.addByte(c);
+		}
+		return b.getBytes();
+	}
+
 	function readRect() {
 		bits.reset();
 		var nbits = bits.readBits(5);
@@ -298,13 +308,28 @@ class Reader {
 		if( f & 4 != 0 ) po.matrix = readMatrix();
 		if( f & 8 != 0 ) po.color = readCXA();
 		if( f & 16 != 0 ) po.ratio = i.readUInt16();
-		if( f & 32 != 0 ) po.instanceName = i.readUntil(0);
+		if( f & 32 != 0 ) po.instanceName = readUTF8Bytes().toString();
 		if( f & 64 != 0 ) po.clipDepth = i.readUInt16();
 		if( f2 & 1 != 0 ) po.filters = readFilters();
 		if( f2 & 2 != 0 ) po.blendMode = readBlendMode();
 		if( f2 & 4 != 0 ) po.bitmapCache = true;
 		if( f & 128 != 0 ) po.events = readClipEvents();
 		return po;
+	}
+
+	function readLossless(len,v2) {
+		return {
+			cid : i.readUInt16(),
+			bits : switch( i.readByte() ) {
+				case 3: 8;
+				case 4: 15;
+				case 5: if( v2 ) 32 else 24;
+				default: throw error();
+			},
+			width : i.readUInt16(),
+			height : i.readUInt16(),
+			data : i.read(len - 7),
+		};
 	}
 
 	public function readTag() : SWFTag {
@@ -323,6 +348,8 @@ class Reader {
 			TShowFrame;
 		case 0x02:
 			readShape(len,1);
+		case 0x14:
+			TBitsLossless(readLossless(len,false));
 		case 0x16:
 			readShape(len,2);
 		case 0x1A:
@@ -331,15 +358,17 @@ class Reader {
 			TRemoveObject2(i.readUInt16());
 		case 0x20:
 			readShape(len,3);
+		case 0x24:
+			TBitsLossless2(readLossless(len,true));
 		case 0x27:
 			var cid = i.readUInt16();
 			var fcount = i.readUInt16();
 			var tags = readTagList();
 			TClip(cid,fcount,tags);
 		case 0x2B:
-			var label = i.readUntil(0);
+			var label = readUTF8Bytes();
 			var anchor = if( len == label.length + 2 ) i.readByte() == 1 else false;
-			TFrameLabel(label,anchor);
+			TFrameLabel(label.toString(),anchor);
 		case 0x3B:
 			var cid = i.readUInt16();
 			TDoInitActions(cid,i.read(len-2));

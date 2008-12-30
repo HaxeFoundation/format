@@ -279,6 +279,11 @@ class Writer {
 		}
 	}
 
+	function writeTIDExt( id : Int, len : Int ) {
+		o.writeUInt16((id << 6)|63);
+		o.writeUInt30(len);
+	}
+
 	public function writeTag( t : SWFTag ) {
 		switch( t ) {
 		case TUnknown(id,data):
@@ -306,8 +311,9 @@ class Writer {
 			writeTID(0x1C,2);
 			o.writeUInt16(depth);
 		case TFrameLabel(label,anchor):
-			writeTID(0x2B,label.length + 1 + (anchor?1:0));
-			o.writeString(label);
+			var bytes = haxe.io.Bytes.ofString(label);
+			writeTID(0x2B,bytes.length + 1 + (anchor?1:0));
+			o.write(bytes);
 			o.writeByte(0);
 			if( anchor ) o.writeByte(1);
 		case TClip(id,frames,tags):
@@ -349,6 +355,29 @@ class Writer {
 		case TSandBox(n):
 			writeTID(0x45,4);
 			o.writeUInt30(n);
+		case TBitsLossless(l):
+			writeTIDExt(0x14,l.data.length + 7);
+			o.writeUInt16(l.cid);
+			switch(l.bits) {
+			case 8: o.writeByte(3);
+			case 15: o.writeByte(4);
+			case 24: o.writeByte(5);
+			default: throw "assert";
+			}
+			o.writeUInt16(l.width);
+			o.writeUInt16(l.height);
+			o.write(l.data);
+		case TBitsLossless2(l):
+			writeTIDExt(0x24,l.data.length + 7);
+			o.writeUInt16(l.cid);
+			switch(l.bits) {
+			case 8: o.writeByte(3);
+			case 32: o.writeByte(5);
+			default: throw "assert";
+			}
+			o.writeUInt16(l.width);
+			o.writeUInt16(l.height);
+			o.write(l.data);
 		}
 	}
 

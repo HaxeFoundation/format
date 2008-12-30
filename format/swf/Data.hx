@@ -40,7 +40,6 @@ typedef SWF = {
 enum SWFTag {
 	TShowFrame;
 	TShape( id : Int, version : Int, data : haxe.io.Bytes );
-	TUnknown( id : Int, data : haxe.io.Bytes );
 	TClip( id : Int, frames : Int, tags : Array<SWFTag> );
 	TPlaceObject2( po : PlaceObject );
 	TPlaceObject3( po : PlaceObject );
@@ -50,6 +49,9 @@ enum SWFTag {
 	TActionScript3( data : haxe.io.Bytes, ?context : AS3Context );
 	TSymbolClass( symbols : Array<{ cid : Int, className : String }> );
 	TSandBox( v : Int );
+	TBitsLossless( data : Lossless );
+	TBitsLossless2( data : Lossless );
+	TUnknown( id : Int, data : haxe.io.Bytes );
 }
 
 typedef SWFHeader = {
@@ -167,4 +169,12 @@ typedef BlurFilterData = {
 typedef GradientFilterData = {
 	var colors : Array<{ color : RGBA, position : Int }>;
 	var data : FilterData;
+}
+
+typedef Lossless = {
+	var cid : Int;
+	var bits : Int;
+	var width : Int;
+	var height : Int;
+	var data : haxe.io.Bytes;
 }
