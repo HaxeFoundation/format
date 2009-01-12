@@ -1,3 +1,7 @@
+2009-01-12: 1.08
+	swf : fixed UTF8 issues in labels and instance names
+	swf : added lossless bits (require "ext" tag mode)
+
 2008-12-27: 1.07
 	bugfix in Zip Writer with multiples files
 	added Tar Writer (contributed by Ian Liu)
@@ -16,7 +20,7 @@
 
 2008-11-23: 1.03
 	added PBJ support
-	
+
 2008-08-04: 1.02
 	minor fixes
 
