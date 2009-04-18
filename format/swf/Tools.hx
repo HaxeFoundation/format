@@ -92,7 +92,21 @@ class Tools {
 		case TBitsLossless(l),TBitsLossless2(l): ["id",l.cid,"bits",l.bits,"width",l.width,"height",l.height,"data",hex(l.data,max)];
 		case TUnknown(id,data): ["id",id,"data",hex(data,max)];
 		}
-		return Type.enumConstructor(t)+"("+infos.join(",")+")";
+		var b = new StringBuf();
+		b.add(Type.enumConstructor(t));
+		b.add("(");
+		while( infos.length > 0 ) {
+			b.add(infos.shift());
+			if( infos.length == 0 )
+				break;
+			b.add(":");
+			b.add(infos.shift());
+			if( infos.length == 0 )
+				break;
+			b.add(",");
+		}
+		b.add(")");
+		return b.toString();
 	}
 
 }

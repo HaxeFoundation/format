@@ -33,6 +33,13 @@ import format.swf.Reader;
 import format.swf.Writer;
 import format.swf.Tools;
 
+import format.abc.Data;
+import format.abc.Reader;
+import format.abc.Writer;
+import format.abc.OpReader;
+import format.abc.OpWriter;
+import format.abc.Context;
+
 class All {
 
 	static function main() {

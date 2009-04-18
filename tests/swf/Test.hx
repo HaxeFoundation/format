@@ -93,6 +93,8 @@ class Test {
 			"Shape"+version+" #"+sid+" ["+data.length+"]";
 		case TShowFrame:
 			"ShowFrame "+frame++;
+		case TBackgroundColor(color):
+			"BgColor "+StringTools.hex(color,6);
 		case TClip(cid,frames,tags):
 			var old = frame;
 			frame = 1;
@@ -141,7 +143,9 @@ class Test {
 			var str = "Symbols";
 			for( s in sl )
 				str += "\n  #"+s.cid+" "+s.className;
-			return str;
+			str;
+		case TBitsLossless2(l),TBitsLossless(l):
+			"BitsLossless [#"+l.cid+","+l.width+"x"+l.height+":"+l.bits+","+l.data.length+" bytes]";
 		};
 	}
 

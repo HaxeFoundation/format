@@ -230,7 +230,7 @@ class Reader {
 		};
 		var metas = null;
 		if( (kind & 0x40) != 0 )
-			metas = readList2(readMetadata);
+			metas = readList2(readIndex);
 		return {
 			name : name,
 			slot : slot,

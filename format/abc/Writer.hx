@@ -224,7 +224,7 @@ class Writer {
 			writeIndex(i);
 		}
 		if( f.metadatas != null )
-			writeList2(f.metadatas,writeMetadata);
+			writeList2(f.metadatas,writeIndex);
 	}
 
 	function writeMethodType( m : MethodType ) {
@@ -311,7 +311,7 @@ class Writer {
 		writeList2(f.locals,writeField);
 	}
 
-	function write( d : ABCData ) {
+	function writeABC( d : ABCData ) {
 		o.writeInt31(0x002E0010); // as3 magic header
 		writeList(d.ints,opw.writeInt32);
 		writeList(d.uints,opw.writeInt32);

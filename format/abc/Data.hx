@@ -104,7 +104,7 @@ typedef Field = {
 	var name : IName;
 	var slot : Slot;
 	var kind : FieldKind;
-	var metadatas : Null<Array<Metadata>>;
+	var metadatas : Null<Array<Index<Metadata>>>;
 }
 
 enum MethodKind {
