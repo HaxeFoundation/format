@@ -28,6 +28,7 @@
  * DAMAGE.
  */
 package format.swf;
+import format.swf.Data;
 
 class Tools {
 
@@ -58,6 +59,40 @@ class Tools {
 			throw haxe.io.Error.Overflow;
 		if( i < 0 ) i = 256-i;
 		return (i << 8) | Std.int((f-i)*256.0);
+	}
+
+	public static function hex( b : haxe.io.Bytes, ?max : Int ) {
+		var hex = ["0".code,"1".code,"2".code,"3".code,"4".code,"5".code,"6".code,"7".code,"8".code,"9".code,"A".code,"B".code,"C".code,"D".code,"E".code,"F".code];
+		var count = if( max == null || b.length <= max ) b.length else max;
+		var buf = new StringBuf();
+		for( i in 0...count ) {
+			var v = b.get(i);
+			buf.addChar(hex[v>>4]);
+			buf.addChar(hex[v&15]);
+		}
+		if( count < b.length )
+			buf.add("...");
+		return buf.toString();
+	}
+
+	public static function dumpTag( t : SWFTag, ?max : Int ) {
+		var infos = switch( t ) {
+		case TShowFrame: [];
+		case TBackgroundColor(color): [StringTools.hex(color,6)];
+		case TShape(id,version,data): ["id",id,"version",version,"data",hex(data,max)];
+		case TClip(id,frames,tags): ["id",id,"frames",frames];
+		case TPlaceObject2(po): [Std.string(po)];
+		case TPlaceObject3(po): [Std.string(po)];
+		case TRemoveObject2(d): ["depth",d];
+		case TFrameLabel(label,anchor): ["label",label,"anchor",anchor];
+		case TDoInitActions(id,data): ["id",id,"data",hex(data,max)];
+		case TActionScript3(data,context): ["context",context,"data",hex(data,max)];
+		case TSymbolClass(symbols): [Std.string(symbols)];
+		case TSandBox(v): [v];
+		case TBitsLossless(l),TBitsLossless2(l): ["id",l.cid,"bits",l.bits,"width",l.width,"height",l.height,"data",hex(l.data,max)];
+		case TUnknown(id,data): ["id",id,"data",hex(data,max)];
+		}
+		return Type.enumConstructor(t)+"("+infos.join(",")+")";
 	}
 
 }

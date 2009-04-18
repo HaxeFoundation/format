@@ -1,3 +1,7 @@
+2009-04-18: 1.09
+	swf : added TBackgroundColor tag
+	swf : fixed InflateImpl for JS/Flash8
+
 2009-01-12: 1.08
 	swf : fixed UTF8 issues in labels and instance names
 	swf : added lossless bits (require "ext" tag mode)

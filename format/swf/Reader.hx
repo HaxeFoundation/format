@@ -348,6 +348,8 @@ class Reader {
 			TShowFrame;
 		case 0x02:
 			readShape(len,1);
+		case 0x09:
+			TBackgroundColor(i.readUInt24());
 		case 0x14:
 			TBitsLossless(readLossless(len,false));
 		case 0x16:
