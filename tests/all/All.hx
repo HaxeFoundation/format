@@ -28,6 +28,11 @@ import format.gz.Data;
 import format.gz.Reader;
 //import format.gz.Writer;
 
+import format.swf.Data;
+import format.swf.Reader;
+import format.swf.Writer;
+import format.swf.Tools;
+
 class All {
 
 	static function main() {

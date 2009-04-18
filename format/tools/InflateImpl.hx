@@ -364,7 +364,7 @@ class InflateImpl {
 	public static function run( i : haxe.io.Input, ?bufsize = 65536 ) {
 		var buf = haxe.io.Bytes.alloc(bufsize);
 		var output = new haxe.io.BytesBuffer();
-		var inflate = new Inflate(i);
+		var inflate = new InflateImpl(i);
 		while( true ) {
 			var len = inflate.readBytes(buf,0,bufsize);
 			output.addBytes(buf,0,len);
