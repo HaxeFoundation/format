@@ -1,3 +1,7 @@
+2009-04-19: 1.10
+	swf : fixed typo
+	pbj : bugfix for opcodes with various lengths
+	
 2009-04-18: 1.09
 	swf : added TBackgroundColor tag
 	swf : fixed InflateImpl for JS/Flash8

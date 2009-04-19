@@ -28,6 +28,11 @@ class PBJReader {
 		var reader = new format.pbj.Reader(input);
 		var pbj = reader.read();
 		tf.text = format.pbj.Tools.dump(pbj);
+		var out = new haxe.io.BytesOutput();
+		var writer = new format.pbj.Writer(out);
+		writer.write(pbj);
+		if( bytes.compare(out.getBytes()) != 0 )
+			throw "BYTES DIFFERS";
 	}
 
 }

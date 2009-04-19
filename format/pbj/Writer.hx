@@ -202,7 +202,7 @@ class Writer {
 		var dste = switch(dst) { case RInt(_,e), RFloat(_,e): e; };
 		var srce = switch(src) { case RInt(_,e), RFloat(_,e): e; };
 		var maskBits = destMask(dste);
-		var sizeBits = ((dste == null) ? 4 : dste.length) - 1;
+		var sizeBits = ((srce == null) ? 4 : srce.length) - 1;
 		if( srce != null && srce.length == 1 )
 			switch( srce[0] ) {
 			case M2x2: sizeBits = 4;

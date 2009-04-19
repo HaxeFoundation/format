@@ -1,6 +1,6 @@
 import format.pbj.Data;
 
-class TestShader {
+class TestFlash {
 
 	static function main() {
 		var pbj : PBJ = {
