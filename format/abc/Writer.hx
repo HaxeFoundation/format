@@ -333,7 +333,7 @@ class Writer {
 
 	public static function write( out, data ) {
 		var w = new Writer(out);
-		w.write(data);
+		w.writeABC(data);
 	}
 
 }
