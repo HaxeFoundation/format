@@ -60,6 +60,10 @@ class OpReader {
 		return (e << 28) | (d << 21) | (c << 14) | (b << 7) | a;
 	}
 
+	inline function readIndex<T>() : Index<T> {
+		return Idx(readInt());
+	}
+
 	public function readInt32() : Int32 {
 		var a = i.readByte();
 		if( a < 128 )
@@ -101,9 +105,13 @@ class OpReader {
 		case 0x03:
 			OThrow;
 		case 0x04:
-			OGetSuper(Idx(readInt()));
+			OGetSuper(readIndex());
 		case 0x05:
-			OSetSuper(Idx(readInt()));
+			OSetSuper(readIndex());
+		case 0x06:
+			ODxNs(readIndex());
+		case 0x07:
+			ODxNsLate;
 		case 0x08:
 			ORegKill(reg());
 		case 0x09:
@@ -175,23 +183,43 @@ class OpReader {
 		case 0x2B:
 			OSwap;
 		case 0x2C:
-			OString(Idx(readInt()));
+			OString(readIndex());
 		case 0x2D:
-			OIntRef(Idx(readInt()));
+			OIntRef(readIndex());
 		case 0x2E:
-			OUIntRef(Idx(readInt()));
+			OUIntRef(readIndex());
 		case 0x2F:
-			OFloat(Idx(readInt()));
+			OFloat(readIndex());
 		case 0x30:
 			OScope;
 		case 0x31:
-			ONamespace(Idx(readInt()));
+			ONamespace(readIndex());
 		case 0x32:
 			var r1 = readInt();
 			var r2 = readInt();
 			ONext(r1,r2);
+		case 0x35:
+			OOp(OpMemGet8);
+		case 0x36:
+			OOp(OpMemGet16);
+		case 0x37:
+			OOp(OpMemGet32);
+		case 0x38:
+			OOp(OpMemGetFloat);
+		case 0x39:
+			OOp(OpMemGetDouble);
+		case 0x3A:
+			OOp(OpMemSet8);
+		case 0x3B:
+			OOp(OpMemSet16);
+		case 0x3C:
+			OOp(OpMemSet32);
+		case 0x3D:
+			OOp(OpMemSetFloat);
+		case 0x3E:
+			OOp(OpMemSetDouble);
 		case 0x40:
-			OFunction(Idx(readInt()));
+			OFunction(readIndex());
 		case 0x41:
 			OCallStack(readInt());
 		case 0x42:
@@ -201,15 +229,15 @@ class OpReader {
 			var n = readInt();
 			OCallMethod(s,n);
 		case 0x44:
-			var m = Idx(readInt());
+			var m = readIndex();
 			var n = readInt();
 			OCallStatic(m,n);
 		case 0x45:
-			var p = Idx(readInt());
+			var p = readIndex();
 			var n = readInt();
 			OCallSuper(p,n);
 		case 0x46:
-			var p = Idx(readInt());
+			var p = readIndex();
 			var n = readInt();
 			OCallProperty(p,n);
 		case 0x47:
@@ -219,21 +247,29 @@ class OpReader {
 		case 0x49:
 			OConstructSuper(readInt());
 		case 0x4A:
-			var p = Idx(readInt());
+			var p = readIndex();
 			var n = readInt();
 			OConstructProperty(p,n);
 		case 0x4C:
-			var p = Idx(readInt());
+			var p = readIndex();
 			var n = readInt();
 			OCallPropLex(p,n);
 		case 0x4E:
-			var p = Idx(readInt());
+			var p = readIndex();
 			var n = readInt();
 			OCallSuperVoid(p,n);
 		case 0x4F:
-			var p = Idx(readInt());
+			var p = readIndex();
 			var n = readInt();
 			OCallPropVoid(p,n);
+		case 0x50:
+			OOp(OpSign1);
+		case 0x51:
+			OOp(OpSign8);
+		case 0x52:
+			OOp(OpSign16);
+		case 0x53:
+			OApplyType(readInt());
 		case 0x55:
 			OObject(readInt());
 		case 0x56:
@@ -241,19 +277,21 @@ class OpReader {
 		case 0x57:
 			ONewBlock;
 		case 0x58:
-			OClassDef(Idx(readInt()));
+			OClassDef(readIndex());
+		case 0x59:
+			OGetDescendants(readIndex());
 		case 0x5A:
 			OCatch(readInt());
 		case 0x5D:
-			OFindPropStrict(Idx(readInt()));
+			OFindPropStrict(readIndex());
 		case 0x5E:
-			OFindProp(Idx(readInt()));
+			OFindProp(readIndex());
 		case 0x5F:
-			OFindDefinition(Idx(readInt()));
+			OFindDefinition(readIndex());
 		case 0x60:
-			OGetLex(Idx(readInt()));
+			OGetLex(readIndex());
 		case 0x61:
-			OSetProp(Idx(readInt()));
+			OSetProp(readIndex());
 		case 0x62:
 			OReg(reg());
 		case 0x63:
@@ -263,11 +301,11 @@ class OpReader {
 		case 0x65:
 			OGetScope(i.readByte());
 		case 0x66:
-			OGetProp(Idx(readInt()));
+			OGetProp(readIndex());
 		case 0x68:
-			OInitProp(Idx(readInt()));
+			OInitProp(readIndex());
 		case 0x6A:
-			ODeleteProp(Idx(readInt()));
+			ODeleteProp(readIndex());
 		case 0x6C:
 			OGetSlot(readInt());
 		case 0x6D:
@@ -291,13 +329,13 @@ class OpReader {
 		case 0x78:
 			OCheckIsXml;
 		case 0x80:
-			OCast(Idx(readInt()));
+			OCast(readIndex());
 		case 0x82:
 			OAsAny;
 		case 0x85:
 			OAsString;
 		case 0x86:
-			OAsType(Idx(readInt()));
+			OAsType(readIndex());
 		case 0x87:
 			OOp(OpAs);
 		case 0x89:
@@ -355,7 +393,7 @@ class OpReader {
 		case 0xB1:
 			OInstanceOf;
 		case 0xB2:
-			OIsType(Idx(readInt()));
+			OIsType(readIndex());
 		case 0xB3:
 			OOp(OpIs);
 		case 0xB4:
@@ -393,14 +431,14 @@ class OpReader {
 		case 0xD7:
 			OSetReg(3);
 		case 0xEF:
-			var name = Idx(readInt());
+			var name = readIndex();
 			var r = reg();
 			var line = readInt();
 			ODebugReg(name,r,line);
 		case 0xF0:
 			ODebugLine(readInt());
 		case 0xF1:
-			ODebugFile(Idx(readInt()));
+			ODebugFile(readIndex());
 		case 0xF2:
 			OBreakPointLine(readInt());
 		case 0xF3:

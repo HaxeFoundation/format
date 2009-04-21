@@ -176,6 +176,8 @@ enum OpCode {
 	OThrow;
 	OGetSuper( v : IName );
 	OSetSuper( v : IName );
+	ODxNs( v : Index<String> );
+	ODxNsLate;
 	ORegKill( r : Register );
 	OLabel;
 	OJump( j : JumpStyle, delta : Int );
@@ -216,10 +218,12 @@ enum OpCode {
 	OCallPropLex( name : IName, nargs : Int );
 	OCallSuperVoid( name : IName, nargs : Int );
 	OCallPropVoid( name : IName, nargs : Int );
+	OApplyType( nargs : Int );
 	OObject( nfields : Int );
 	OArray( nvalues : Int );
 	ONewBlock;
 	OClassDef( c : Index<ClassDef> );
+	OGetDescendants( c : IName );
 	OCatch( c : Int );
 	OFindPropStrict( p : IName );
 	OFindProp( p : IName );
@@ -317,4 +321,17 @@ enum Operation {
 	OpIAdd;
 	OpISub;
 	OpIMul;
+	OpMemGet8;
+	OpMemGet16;
+	OpMemGet32;
+	OpMemGetFloat;
+	OpMemGetDouble;
+	OpMemSet8;
+	OpMemSet16;
+	OpMemSet32;
+	OpMemSetFloat;
+	OpMemSetDouble;
+	OpSign1;
+	OpSign8;
+	OpSign16;
 }

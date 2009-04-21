@@ -158,6 +158,19 @@ class OpWriter {
 		case OpIAdd: 0xC5;
 		case OpISub: 0xC6;
 		case OpIMul: 0xC7;
+		case OpMemGet8: 0x35;
+		case OpMemGet16: 0x36;
+		case OpMemGet32: 0x37;
+		case OpMemGetFloat: 0x38;
+		case OpMemGetDouble: 0x39;
+		case OpMemSet8: 0x3A;
+		case OpMemSet16: 0x3B;
+		case OpMemSet32: 0x3C;
+		case OpMemSetFloat: 0x3D;
+		case OpMemSetDouble: 0x3E;
+		case OpSign1: 0x50;
+		case OpSign8: 0x51;
+		case OpSign16: 0x52;
 		}
 	}
 
@@ -175,6 +188,11 @@ class OpWriter {
 		case OSetSuper(v):
 			b(0x05);
 			idx(v);
+		case ODxNs(i):
+			b(0x06);
+			idx(i);
+		case ODxNsLate:
+			b(0x07);
 		case ORegKill(r):
 			b(0x08);
 			reg(r);
@@ -290,6 +308,9 @@ class OpWriter {
 			b(0x4F);
 			idx(p);
 			int(n);
+		case OApplyType(n):
+			b(0x53);
+			int(n);
 		case OObject(n):
 			b(0x55);
 			int(n);
@@ -301,6 +322,9 @@ class OpWriter {
 		case OClassDef(c):
 			b(0x58);
 			idx(c);
+		case OGetDescendants(i):
+			b(0x59);
+			idx(i);
 		case OCatch(c):
 			b(0x5A);
 			int(c);
