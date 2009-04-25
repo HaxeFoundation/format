@@ -1,3 +1,6 @@
+2009-04-25: 1.12
+	swf : fixed TBackgroundColor write bug
+	
 2009-04-21: 1.11
 	abc : added missing flash10 + alchemy opcodes
 
