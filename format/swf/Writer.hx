@@ -296,6 +296,7 @@ class Writer {
 			o.writeUInt16(id);
 			o.write(data);
 		case TBackgroundColor(color):
+			writeTID(0x09,3);
 			o.writeUInt24(color);
 		case TPlaceObject2(po):
 			var t = openTMP();
