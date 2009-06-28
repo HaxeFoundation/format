@@ -49,6 +49,34 @@ class Reader {
 		return new Date(year + 1980, month-1, day, hour, min, sec << 1);
 	}
 
+	function readExtraFields(length) {
+		var fields = new List();
+		while( length > 0 ) {
+			if( length < 4 ) throw "Invalid extra fields data";
+			var tag = i.readUInt16();
+			var len = i.readUInt16();
+			if( length < len ) throw "Invalid extra fields data";
+			switch( tag ) {
+			case 0x7075:
+				var version = i.readByte();
+				if( version != 1 ) {
+					var data = new haxe.io.BytesBuffer();
+					data.addByte(version);
+					data.add(i.read(len-1));
+					fields.add(FUnknown(tag,data.getBytes()));
+				} else {
+					var crc = i.readInt32();
+					var name = i.read(len - 5).toString();
+					fields.add(FInfoZipUnicodePath(name,crc));
+				}
+			default:
+				fields.add(FUnknown(tag,i.read(len)));
+			}
+			length -= 4 + len;
+		}
+		return fields;
+	}
+
 	public function readEntryHeader() : Entry {
 		var i = this.i;
 		var h = i.readInt31();
@@ -58,7 +86,13 @@ class Reader {
 			throw "Invalid Zip Data";
 		var version = i.readUInt16();
 		var flags = i.readUInt16();
-		var extraFields = (flags & 8) != 0;
+		if( (flags & 8) != 0 ) {
+			// TODO : it is needed to directly read the compressed
+			// data streamed from the input (needs additional neko apis)
+			// then, we can set "compressed" to false, and then follows
+			// 12 bytes with real crc, csize and usize
+			throw "Zip format compressed size stored after compressed data is currently not supported";
+		}
 		if( (flags & 0xFFF7) != 0 )
 			throw "Unsupported flags "+flags;
 		var compression = i.readUInt16();
@@ -72,15 +106,7 @@ class Reader {
 		var fnamelen = i.readInt16();
 		var elen = i.readInt16();
 		var fname = i.readString(fnamelen);
-		var ename = i.readString(elen);
-		var data;
-		if( extraFields ) {
-			// TODO : it is needed to directly read the compressed
-			// data streamed from the input (needs additional neko apis)
-			// then, we can set "compressed" to false, and then follows
-			// 12 bytes with real crc, csize and usize
-			throw "Zip format with extrafields is currently not supported";
-		}
+		var fields = readExtraFields(elen);
 		return {
 			fileName : fname,
 			fileSize : usize,
@@ -89,6 +115,7 @@ class Reader {
 			dataSize : csize,
 			data : null,
 			crc32 : crc32,
+			extraFields : fields,
 		};
 	}
 

@@ -80,7 +80,7 @@ class Reader {
 				buf = refill(buf,0);
 				bufpos = 0;
 			}
-			var r = u.run(buf,bufpos,out,0);
+			var r = u.execute(buf,bufpos,out,0);
 			if( r.read == 0 ) {
 				if( bufpos == 0 )
 					throw new haxe.io.Eof();

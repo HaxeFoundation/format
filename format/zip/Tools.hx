@@ -35,7 +35,7 @@ class Tools {
 		#if neko
 		var c = new neko.zip.Uncompress(-15);
 		var s = haxe.io.Bytes.alloc(f.fileSize);
-		var r = c.run(f.data,0,s,0);
+		var r = c.execute(f.data,0,s,0);
 		c.close();
 		if( !r.done || r.read != f.data.length || r.write != f.fileSize )
 			throw "Invalid compressed data for "+f.fileName;

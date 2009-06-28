@@ -26,6 +26,11 @@
  */
 package format.zip;
 
+enum ExtraField {
+	FUnknown( tag : Int, bytes : haxe.io.Bytes );
+	FInfoZipUnicodePath( name : String, crc : haxe.Int32 );
+}
+
 typedef Entry =  {
 	var fileName : String;
 	var fileSize : Int;
@@ -34,6 +39,7 @@ typedef Entry =  {
 	var dataSize : Int;
 	var data : Null<haxe.io.Bytes>;
 	var crc32 : Null<haxe.Int32>;
+	var extraFields : Null<List<ExtraField>>;
 }
 
 typedef Data = List<Entry>
