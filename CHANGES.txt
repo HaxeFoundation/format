@@ -1,6 +1,7 @@
 2009-??-??: 1.13
 	zip : added extra fields handling
 	zip : fixed .run was renamed to .execute in haXe 2.04
+	abc : fixed ODebugReg
 
 2009-04-25: 1.12
 	swf : fixed TBackgroundColor write bug

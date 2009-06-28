@@ -438,6 +438,7 @@ class OpWriter {
 			b(0xD4);
 		case ODebugReg(name,r,line):
 			b(0xEF);
+			b(1);
 			idx(name);
 			reg(r);
 			int(line);

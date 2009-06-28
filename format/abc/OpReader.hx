@@ -431,6 +431,7 @@ class OpReader {
 		case 0xD7:
 			OSetReg(3);
 		case 0xEF:
+			if( i.readByte() != 1 ) throw "assert";
 			var name = readIndex();
 			var r = reg();
 			var line = readInt();
