@@ -122,7 +122,7 @@ class Reader {
 			NAttrib(readName(0x1B));
 		case 0x1D:
 			var id = readIndex();
-			var params = readList(readIndex);
+			var params = readList2(readIndex);
 			NParams(id,params);
 		default:
 			throw "assert";
