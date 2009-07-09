@@ -80,6 +80,7 @@ class Tools {
 		case TShowFrame: [];
 		case TBackgroundColor(color): [StringTools.hex(color,6)];
 		case TShape(id,version,data): ["id",id,"version",version,"data",hex(data,max)];
+		case TBinaryData(id,data): ["id",id,"data",hex(data,max)];
 		case TClip(id,frames,tags): ["id",id,"frames",frames];
 		case TPlaceObject2(po): [Std.string(po)];
 		case TPlaceObject3(po): [Std.string(po)];
@@ -89,7 +90,10 @@ class Tools {
 		case TActionScript3(data,context): ["context",context,"data",hex(data,max)];
 		case TSymbolClass(symbols): [Std.string(symbols)];
 		case TSandBox(v): [v];
-		case TBitsLossless(l),TBitsLossless2(l): ["id",l.cid,"bits",l.bits,"width",l.width,"height",l.height,"data",hex(l.data,max)];
+		case TBitsLossless(l),TBitsLossless2(l): ["id",l.cid,"color",l.color,"width",l.width,"height",l.height,"data",hex(l.data,max)];
+		case TBitsJPEG2(id, data): ["id", id, "data", hex(data,max)];
+		case TBitsJPEG3(id, data, mask): ["id", id, "data", hex(data,max), "mask", hex(mask,max)];
+		case TSound(data): ["sid", data.sid, "format", data.format, "rate", data.rate ];
 		case TUnknown(id,data): ["id",id,"data",hex(data,max)];
 		}
 		var b = new StringBuf();

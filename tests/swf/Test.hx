@@ -91,6 +91,8 @@ class Test {
 		return switch(t) {
 		case TShape(sid,version,data):
 			"Shape"+version+" #"+sid+" ["+data.length+"]";
+		case TBinaryData(cid,data):
+			"BinaryData #"+cid+" ["+data.length+"]";
 		case TShowFrame:
 			"ShowFrame "+frame++;
 		case TBackgroundColor(color):
@@ -145,7 +147,21 @@ class Test {
 				str += "\n  #"+s.cid+" "+s.className;
 			str;
 		case TBitsLossless2(l),TBitsLossless(l):
-			"BitsLossless [#"+l.cid+","+l.width+"x"+l.height+":"+l.bits+","+l.data.length+" bytes]";
+			"BitsLossless [#"+l.cid+","+l.width+"x"+l.height+":"+l.color+","+l.data.length+" bytes]";
+		case TBitsJPEG2(id, data):
+			"BitsJPEG2 [#" + id + ", " + data.length + " bytes]";
+		case TBitsJPEG3(id, data, mask):
+			"BitsJPEG3 [#" + id + ", " + data.length + " bytes data, " + mask.length + " bytes mask]";
+		case TSound(s):
+			var desc = switch( s.data ) {
+			case SDMp3(seek,data):
+				var i = new haxe.io.BytesInput(data);
+				var mp3 = new format.mp3.Reader(i).read();
+				(", frames: " + mp3.frames.length);
+			default:
+				" (format not yet supported) ";
+			};
+			"Sound [#"+s.sid+","+s.format+","+s.rate+desc+"]";
 		};
 	}
 

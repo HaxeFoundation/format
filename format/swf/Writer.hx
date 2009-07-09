@@ -29,6 +29,7 @@
  */
 package format.swf;
 import format.swf.Data;
+import format.swf.Constants;
 
 class Writer {
 
@@ -284,103 +285,188 @@ class Writer {
 		o.writeUInt30(len);
 	}
 
+	function writeSound( s : Sound ) {
+		var len = 7 + switch( s.data ) {
+			case SDMp3(_,data): data.length + 2;
+			case SDOther(data): data.length;
+		};
+		writeTIDExt(TagId.DefineSound, len);
+		o.writeUInt16(s.sid);
+		bits.writeBits(4, switch( s.format ) {
+			case SFNativeEndianUncompressed: 0;
+			case SFADPCM: 1;
+			case SFMP3: 2;
+			case SFLittleEndianUncompressed: 3;
+			case SFNellymoser16k: 4;
+			case SFNellymoser8k: 5;
+			case SFNellymoser: 6;
+			case SFSpeex: 11;
+		});
+		bits.writeBits(2, switch( s.rate ) {
+			case SR5k: 0;
+			case SR11k: 1;
+			case SR22k: 2;
+			case SR44k: 3;
+		});
+		bits.writeBit(s.is16bit);
+		bits.writeBit(s.isStereo);
+		bits.flush();
+		o.writeInt32(s.samples);
+		switch( s.data ) {
+		case SDMp3(seek,data):
+			o.writeInt16(seek);
+			o.write(data);
+		case SDOther(data):
+			o.write(data);
+		};
+	}
+
 	public function writeTag( t : SWFTag ) {
 		switch( t ) {
 		case TUnknown(id,data):
 			writeTID(id,data.length);
 			o.write(data);
+
 		case TShowFrame:
-			writeTID(0x01,0);
+			writeTID(TagId.ShowFrame,0);
+
 		case TShape(id,ver,data):
-			writeTID([0,0x02,0x16,0x20,0x53,0x54][ver],data.length + 2);
+			writeTID([
+				0,
+				TagId.DefineShape,
+				TagId.DefineShape2,
+				TagId.DefineShape3,
+				TagId.DefineShape4,
+				TagId.DefineMorphShape2
+				][ver],
+				data.length + 2
+			);
 			o.writeUInt16(id);
 			o.write(data);
+
+		case TBinaryData(id, data):
+			writeTID(TagId.DefineBinaryData, data.length + 6);
+			o.writeUInt16(id);
+			o.writeUInt30(0);
+			o.write(data);
+
 		case TBackgroundColor(color):
-			writeTID(0x09,3);
+			writeTID(TagId.SetBackgroundColor,3);
 			o.writeUInt24(color);
+
 		case TPlaceObject2(po):
 			var t = openTMP();
 			writePlaceObject(po,false);
 			var bytes = closeTMP(t);
-			writeTID(0x1A,bytes.length);
+			writeTID(TagId.PlaceObject2,bytes.length);
 			o.write(bytes);
+
 		case TPlaceObject3(po):
 			var t = openTMP();
 			writePlaceObject(po,true);
 			var bytes = closeTMP(t);
-			writeTID(0x46,bytes.length);
+			writeTID(TagId.PlaceObject3,bytes.length);
 			o.write(bytes);
+
 		case TRemoveObject2(depth):
-			writeTID(0x1C,2);
+			writeTID(TagId.RemoveObject2,2);
 			o.writeUInt16(depth);
+
 		case TFrameLabel(label,anchor):
 			var bytes = haxe.io.Bytes.ofString(label);
-			writeTID(0x2B,bytes.length + 1 + (anchor?1:0));
+			writeTID(TagId.FrameLabel,bytes.length + 1 + (anchor?1:0));
 			o.write(bytes);
 			o.writeByte(0);
 			if( anchor ) o.writeByte(1);
+
 		case TClip(id,frames,tags):
 			var t = openTMP();
 			for( t in tags )
 				writeTag(t);
 			var bytes = closeTMP(t);
-			writeTID(0x27,bytes.length + 6);
+			writeTID(TagId.DefineSprite,bytes.length + 6);
 			o.writeUInt16(id);
 			o.writeUInt16(frames);
 			o.write(bytes);
 			o.writeUInt16(0); // end-tag
+
 		case TDoInitActions(id,data):
-			writeTID(0x3B,data.length + 2);
+			writeTID(TagId.DoInitAction,data.length + 2);
 			o.writeUInt16(id);
 			o.write(data);
+
 		case TActionScript3(data,ctx):
 			if( ctx == null )
-				writeTID(0x48,data.length);
+				writeTID(TagId.RawABC,data.length);
 			else {
 				var len = data.length + 4 + ctx.label.length + 1;
-				writeTID(0x52,len);
+				writeTID(TagId.DoABC,len);
 				o.writeUInt30(ctx.id);
 				o.writeString(ctx.label);
 				o.writeByte(0);
 			}
 			o.write(data);
+
 		case TSymbolClass(sl):
 			var len = 2;
 			for( s in sl )
 				len += 2 + s.className.length + 1;
-			writeTID(0x4C,len);
+			writeTID(TagId.SymbolClass,len);
 			o.writeUInt16(sl.length);
 			for( s in sl ) {
 				o.writeUInt16(s.cid);
 				o.writeString(s.className);
 				o.writeByte(0);
 			}
+
 		case TSandBox(n):
-			writeTID(0x45,4);
+			writeTID(TagId.FileAttributes,4);
 			o.writeUInt30(n);
+
 		case TBitsLossless(l):
-			writeTIDExt(0x14,l.data.length + 7);
+			var cbits = switch( l.color ) { case CM8Bits(n): n; default: null; };
+			writeTIDExt(TagId.DefineBitsLossless,l.data.length + ((cbits == null)?8:7));
 			o.writeUInt16(l.cid);
-			switch(l.bits) {
-			case 8: o.writeByte(3);
-			case 15: o.writeByte(4);
-			case 24: o.writeByte(5);
+			switch( l.color ) {
+			case CM8Bits(_): o.writeByte(3);
+			case CM15Bits: o.writeByte(4);
+			case CM24Bits: o.writeByte(5);
 			default: throw "assert";
 			}
 			o.writeUInt16(l.width);
 			o.writeUInt16(l.height);
+			if( cbits != null ) o.writeByte(cbits);
 			o.write(l.data);
+
 		case TBitsLossless2(l):
-			writeTIDExt(0x24,l.data.length + 7);
+			var cbits = switch( l.color ) { case CM8Bits(n): n; default: null; };
+			writeTIDExt(TagId.DefineBitsLossless2,l.data.length + ((cbits == null)?8:7));
 			o.writeUInt16(l.cid);
-			switch(l.bits) {
-			case 8: o.writeByte(3);
-			case 32: o.writeByte(5);
+			switch( l.color ) {
+			case CM8Bits(_): o.writeByte(3);
+			case CM32Bits: o.writeByte(5);
 			default: throw "assert";
 			}
 			o.writeUInt16(l.width);
 			o.writeUInt16(l.height);
+			if( cbits != null ) o.writeByte(cbits);
 			o.write(l.data);
+
+		case TBitsJPEG2(id, data):
+			writeTIDExt(TagId.DefineBitsJPEG2, data.length + 2);
+			o.writeUInt16(id);
+			o.write(data);
+
+		case TBitsJPEG3(id, data, mask):
+			writeTIDExt(TagId.DefineBitsJPEG3, data.length + mask.length + 6);
+			o.writeUInt16(id);
+			o.writeUInt30(data.length);
+			o.write(data);
+			o.write(mask);
+
+		case TSound(data):
+			writeSound(data);
+
 		}
 	}
 

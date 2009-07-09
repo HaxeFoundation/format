@@ -2,6 +2,9 @@
 	zip : added extra fields handling
 	zip : fixed .run was renamed to .execute in haXe 2.04
 	abc : fixed ODebugReg
+	swf : added BinaryData, JPEG and Sound tags
+	swf : fixed Lossless bitmap tags (8 bit colormodel)
+	mp3 : added (contributed by Robin Palatoi)
 
 2009-04-25: 1.12
 	swf : fixed TBackgroundColor write bug

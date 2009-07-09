@@ -29,6 +29,7 @@
  */
 package format.swf;
 import format.swf.Data;
+import format.swf.Constants;
 
 class Reader {
 
@@ -318,18 +319,62 @@ class Reader {
 	}
 
 	function readLossless(len,v2) {
+		var cid = i.readUInt16();
+		var bits = i.readByte();
 		return {
-			cid : i.readUInt16(),
-			bits : switch( i.readByte() ) {
-				case 3: 8;
-				case 4: 15;
-				case 5: if( v2 ) 32 else 24;
-				default: throw error();
-			},
+			cid : cid,
 			width : i.readUInt16(),
 			height : i.readUInt16(),
+			color : switch( bits ) {
+				case 3: CM8Bits(i.readByte());
+				case 4: CM15Bits;
+				case 5: if( v2 ) CM32Bits else CM24Bits;
+				default: throw error();
+			},
 			data : i.read(len - 7),
 		};
+	}
+
+	function readSound( len : Int ) {
+		var sid = i.readUInt16();
+		bits.reset();
+		var soundFormat = switch( bits.readBits(4) ) {
+			case 0: SFNativeEndianUncompressed;
+			case 1: SFADPCM;
+			case 2: SFMP3;
+			case 3: SFLittleEndianUncompressed;
+			case 4: SFNellymoser16k;
+			case 5: SFNellymoser8k;
+			case 6: SFNellymoser;
+			case 11: SFSpeex;
+			default: throw error();
+		};
+		var soundRate = switch( bits.readBits(2) ) {
+			case 0: SR5k;
+			case 1: SR11k;
+			case 2: SR22k;
+			case 3: SR44k;
+			default: throw error();
+		};
+		var is16bit = bits.read();
+		var isStereo = bits.read();
+		var soundSamples = i.readInt32(); // number of pairs in case of stereo
+		var sdata = switch (soundFormat) {
+			case SFMP3:
+				var seek = i.readInt16();
+				SDMp3(seek,i.read(len-9));
+			default:
+				SDOther(i.read(len - 7));
+		};
+		return TSound({
+			sid : sid,
+			format : soundFormat,
+			rate : soundRate,
+			is16bit : is16bit,
+			isStereo : isStereo,
+			samples : soundSamples,
+			data : sdata,
+		});
 	}
 
 	public function readTag() : SWFTag {
@@ -342,45 +387,58 @@ class Reader {
 			if( len < 63 ) ext = true;
 		}
 		return switch( id ) {
-		case 0x00:
+		case TagId.End:
 			null;
-		case 0x01:
+		case TagId.ShowFrame:
 			TShowFrame;
-		case 0x02:
+		case TagId.DefineShape:
 			readShape(len,1);
-		case 0x09:
-			TBackgroundColor(i.readUInt24());
-		case 0x14:
-			TBitsLossless(readLossless(len,false));
-		case 0x16:
+		case TagId.DefineShape2:
 			readShape(len,2);
-		case 0x1A:
-			TPlaceObject2(readPlaceObject(false));
-		case 0x1C:
-			TRemoveObject2(i.readUInt16());
-		case 0x20:
+		case TagId.DefineShape3:
 			readShape(len,3);
-		case 0x24:
+		case TagId.DefineShape4:
+			readShape(len,4);
+		case TagId.DefineMorphShape2:
+			readShape(len,5);
+		case TagId.SetBackgroundColor:
+			TBackgroundColor(i.readUInt24());
+		case TagId.DefineBitsLossless:
+			TBitsLossless(readLossless(len,false));
+		case TagId.DefineBitsLossless2:
 			TBitsLossless2(readLossless(len,true));
-		case 0x27:
+		case TagId.DefineBitsJPEG2:
+			var cid = i.readUInt16();
+			TBitsJPEG2(cid, i.read(len - 2));
+		case TagId.DefineBitsJPEG3:
+			var cid = i.readUInt16();
+			var dataSize = i.readUInt30();
+			var data = i.read(dataSize);
+			var mask = i.read(len - dataSize - 6);
+			TBitsJPEG3(cid, data, mask);
+		case TagId.PlaceObject2:
+			TPlaceObject2(readPlaceObject(false));
+		case TagId.PlaceObject3:
+			TPlaceObject3(readPlaceObject(true));
+		case TagId.RemoveObject2:
+			TRemoveObject2(i.readUInt16());
+		case TagId.DefineSprite:
 			var cid = i.readUInt16();
 			var fcount = i.readUInt16();
 			var tags = readTagList();
 			TClip(cid,fcount,tags);
-		case 0x2B:
+		case TagId.FrameLabel:
 			var label = readUTF8Bytes();
 			var anchor = if( len == label.length + 2 ) i.readByte() == 1 else false;
 			TFrameLabel(label.toString(),anchor);
-		case 0x3B:
+		case TagId.DoInitAction:
 			var cid = i.readUInt16();
 			TDoInitActions(cid,i.read(len-2));
-		case 0x45:
+		case TagId.FileAttributes:
 			TSandBox(i.readUInt30());
-		case 0x46:
-			TPlaceObject3(readPlaceObject(true));
-		case 0x48:
+		case TagId.RawABC:
 			TActionScript3(i.read(len),null);
-		case 0x4C:
+		case TagId.SymbolClass:
 			var sl = new Array();
 			for( n in 0...i.readUInt16() )
 				sl.push({
@@ -388,17 +446,19 @@ class Reader {
 					className : i.readUntil(0),
 				});
 			TSymbolClass(sl);
-		case 0x52:
+		case TagId.DoABC:
 			var infos = {
 				id : i.readUInt30(),
 				label : i.readUntil(0),
 			};
 			len -= 4 + infos.label.length + 1;
 			TActionScript3(i.read(len),infos);
-		case 0x53:
-			readShape(len,4);
-		case 0x54:
-			readShape(len,5);
+		case TagId.DefineBinaryData:
+			var id = i.readUInt16();
+			if( i.readUInt30() != 0 ) throw error();
+			TBinaryData(id, i.read(len - 6));
+		case TagId.DefineSound:
+			readSound(len);
 		default:
 			var data = i.read(len);
 			TUnknown(id,data);

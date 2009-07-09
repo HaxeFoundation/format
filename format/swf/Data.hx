@@ -52,6 +52,10 @@ enum SWFTag {
 	TSandBox( v : Int );
 	TBitsLossless( data : Lossless );
 	TBitsLossless2( data : Lossless );
+	TBitsJPEG2( id: Int, data: haxe.io.Bytes );
+	TBitsJPEG3( id: Int, data: haxe.io.Bytes, mask: haxe.io.Bytes );
+	TBinaryData( id : Int, data : haxe.io.Bytes );
+	TSound( data : Sound );
 	TUnknown( id : Int, data : haxe.io.Bytes );
 }
 
@@ -174,8 +178,56 @@ typedef GradientFilterData = {
 
 typedef Lossless = {
 	var cid : Int;
-	var bits : Int;
+	var color : ColorModel;
 	var width : Int;
 	var height : Int;
 	var data : haxe.io.Bytes;
 }
+
+enum ColorModel {
+	CM8Bits( ncolors : Int ); // Lossless2 contains ARGB palette
+	CM15Bits; // Lossless only
+	CM24Bits; // Lossless only
+	CM32Bits; // Lossless2 only
+}
+
+typedef Sound = {
+	var sid : Int;
+	var format : SoundFormat;
+	var rate : SoundRate;
+	var is16bit : Bool;
+	var isStereo : Bool;
+	var samples : haxe.Int32;
+	var data : SoundData;
+};
+
+enum SoundData {
+	SDMp3( seek : Int, data : haxe.io.Bytes );
+	SDOther( data : haxe.io.Bytes );
+}
+
+enum SoundFormat {
+   SFNativeEndianUncompressed;
+   SFADPCM;
+   SFMP3;
+   SFLittleEndianUncompressed;
+   SFNellymoser16k;
+   SFNellymoser8k;
+   SFNellymoser;
+   SFSpeex;
+}
+
+/**
+ * Sound sampling rate.
+ *
+ * - 5k is not allowed for MP3
+ * - Nellymoser and Speex ignore this option
+ */
+enum SoundRate {
+   SR5k;  // 5512 Hz
+   SR11k; // 11025 Hz
+   SR22k; // 22050 Hz
+   SR44k; // 44100 Hz
+}
+
+
