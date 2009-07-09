@@ -157,7 +157,7 @@ class Reader {
 			targs.push(readIndexOpt());
 		var dname = readIndexOpt();
 		var flags = i.readByte();
-		if( flags == 0 )
+		if( flags == 0 && dname == null )
 			return {
 				args : targs,
 				ret : tret,
