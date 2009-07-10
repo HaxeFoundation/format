@@ -75,11 +75,27 @@ class Tools {
 		return buf.toString();
 	}
 
+	public static function bin( b: haxe.io.Bytes, ?maxBytes : Int ) {
+		var buf = new StringBuf();
+		var cnt = (maxBytes == null) ? b.length : (maxBytes > b.length ? b.length : maxBytes);
+
+		for (i in 0...cnt) {
+			var v = b.get(i);
+			for (j in 0...8) {
+				buf.add(((v >> (7-j)) & 1 == 1) ? "1" : "0");
+				if (j == 3)
+					buf.add(" ");
+			}
+			buf.add("  ");
+		}
+		return buf.toString();
+	}
+
 	public static function dumpTag( t : SWFTag, ?max : Int ) {
 		var infos = switch( t ) {
 		case TShowFrame: [];
 		case TBackgroundColor(color): [StringTools.hex(color,6)];
-		case TShape(id,version,data): ["id",id,"version",version,"data",hex(data,max)];
+		case TShape(id,sdata): ["id",id]; // TODO write when TShape final
 		case TBinaryData(id,data): ["id",id,"data",hex(data,max)];
 		case TClip(id,frames,tags): ["id",id,"frames",frames];
 		case TPlaceObject2(po): [Std.string(po)];

@@ -346,19 +346,28 @@ class Writer {
 		case TShowFrame:
 			writeTID(TagId.ShowFrame,0);
 
-		case TShape(id,ver,data):
-			writeTID([
-				0,
-				TagId.DefineShape,
-				TagId.DefineShape2,
-				TagId.DefineShape3,
-				TagId.DefineShape4,
-				TagId.DefineMorphShape2
-				][ver],
-				data.length + 2
-			);
-			o.writeUInt16(id);
-			o.write(data);
+		case TShape(id, sdata):
+			switch (sdata) {
+			case SHDShape1(bounds, shapes):
+				// TODO
+			case SHDShape2(bounds, shapes):
+				// TODO
+			case SHDShape3(bounds, shapes):
+				// TODO
+			case SHDOther(ver, data):	
+				writeTID([
+					0,
+					TagId.DefineShape,
+					TagId.DefineShape2,
+					TagId.DefineShape3,
+					TagId.DefineShape4,
+					TagId.DefineMorphShape2
+					][ver],
+					data.length + 2
+				);
+				o.writeUInt16(id);
+				o.write(data);
+			}
 
 		case TBinaryData(id, data):
 			writeTID(TagId.DefineBinaryData, data.length + 6);

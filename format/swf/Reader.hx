@@ -35,13 +35,17 @@ class Reader {
 
 	var i : haxe.io.Input;
 	var bits : format.tools.BitsInput;
+
 	var version : Int;
+
+	var bitsRead : Int; // TODO not really used, maybe remove later
 
 	public function new(i) {
 		this.i = i;
 	}
 
-	inline function readFixed8() {
+	inline function readFixed8(?i : haxe.io.Input) {
+		if (i == null) i = this.i;
 		return i.readUInt16();
 	}
 
@@ -62,6 +66,7 @@ class Reader {
 	function readRect() {
 		bits.reset();
 		var nbits = bits.readBits(5);
+		bitsRead = 5 + 4*nbits;
 		return {
 			left : bits.readBits(nbits),
 			right : bits.readBits(nbits),
@@ -88,12 +93,22 @@ class Reader {
 		};
 	}
 
-	function readRGBA() : RGBA {
+	function readRGBA(?i : haxe.io.Input) : RGBA {
+		if (i == null) i = this.i;
 		return {
 			r : i.readByte(),
 			g : i.readByte(),
 			b : i.readByte(),
 			a : i.readByte(),
+		};
+	}
+	
+	function readRGB(?i : haxe.io.Input) : RGB {
+		if (i == null) i = this.i;
+		return {
+			r : i.readByte(),
+			g : i.readByte(),
+			b : i.readByte(),
 		};
 	}
 
@@ -116,6 +131,289 @@ class Reader {
 			mult : if( mult ) readCXAColor(nbits) else null,
 			add : if( add ) readCXAColor(nbits) else null,
 		};
+	}
+
+	function readGradient(ver : Int) : Gradient {
+		bits.reset();
+		var spread = switch(bits.readBits(2)) {
+			case 0: SMPad;
+			case 1: SMReflect;
+			case 2: SMRepeat;
+			case 3: SMReserved;
+		};
+
+		var interp = switch(bits.readBits(2)) {
+			case 0: IMNormalRGB;
+			case 1: IMLinearRGB;
+			case 2: IMReserved1;
+			case 3: IMReserved2;
+		};
+
+		var nGrad = bits.readBits(4);
+		var arr = new Array<GradRecord>();
+
+		for (c in 0...nGrad) {
+			var pos = i.readByte();
+			if (ver <= 2)
+				arr.push(GRRGB(pos, readRGB()));
+			else
+				arr.push(GRRGBA(pos, readRGBA()));
+		}
+
+		return {
+			spread: spread,
+			interpolate: interp,
+			data: arr
+		};
+	}
+
+	function getLineCap(t : Int) {
+		return switch(t) {
+			case 0: LCRound;
+			case 1: LCNone;
+			case 2: LCSquare;
+			default: throw error();
+		};
+	}
+	
+	function readLineStyles(ver : Int) : Array<LineStyle> {	
+
+		var cnt = i.readByte();
+		if (cnt == 0xFF) {
+			if (ver == 1)
+				throw error();
+			cnt = i.readUInt16();
+		}
+
+		var arr = new Array<LineStyle>();
+
+		for (c in 0...cnt) {
+			var width = i.readUInt16();
+
+			arr.push({
+				width: width,
+				data: if (ver <= 2) {
+					LSRGB(readRGB(i));
+				}
+				else if (ver == 3) {
+					LSRGBA(readRGBA(i));
+				}
+				else if (ver == 4) {
+					bits.reset();
+					var startCap = getLineCap(bits.readBits(2));
+					var _join = bits.readBits(2);
+					var _fill = bits.read();
+					var noHScale = bits.read();
+					var noVScale = bits.read();
+					var pixelHinting = bits.read();
+					
+					if (bits.readBits(5) != 0)
+						throw error();
+
+					var noClose = bits.read();
+					var endCap = getLineCap(bits.readBits(2));
+					
+					var join = switch (_join) {
+						case 0: LJRound;
+						case 1: LJBevel;
+						case 2: LJMiter(readFixed8(i));
+						default: throw error();
+					};
+
+					var fill = switch (_fill) {
+						case false: LS2FColor(readRGBA(i));
+						case true: LS2FStyle(readFillStyle(ver));
+					};
+
+					LS2({
+						startCap: startCap,
+						join: join,
+						fill: fill,
+						noHScale: noHScale,
+						noVScale: noVScale,
+						pixelHinting: pixelHinting,
+						noClose: noClose,
+						endCap: endCap
+					});
+				}
+				else throw error()
+			});
+		}
+
+		return arr;
+	}
+
+	function readFillStyle(ver : Int) : FillStyle {
+		var type = i.readByte();
+		
+		return switch( type ) {
+			case 0x00:
+				(ver <= 2) ? FSSolid(readRGB(i)) : FSSolidAlpha(readRGBA(i));
+			case 0x10, 0x12, 0x13:
+				var mat = readMatrix();
+				var grad = readGradient(ver);
+				switch (type) {
+				case 0x13:
+					FSFocalGradient(mat, {
+						focalPoint: readFixed8(i),
+						data: grad
+					});
+				case 0x10:
+					FSLinearGradient(mat, grad);
+				case 0x12:
+					FSRadialGradient(mat, grad);
+				default: throw error();
+				}
+			case 0x40, 0x41, 0x42, 0x43:
+				var cid = i.readUInt16();
+				var mat = readMatrix();
+				var isRepeat = (type == 0x40 || type == 0x42);
+				var isSmooth = (type == 0x40 || type == 0x41);
+				FSBitmap(cid, mat, isRepeat, isSmooth);
+				
+			default: throw error() + " code " + type;						
+		};
+	}
+	
+	function readFillStyles(ver : Int) : Array<FillStyle> {
+		var cnt = i.readByte();
+		if (cnt == 0xFF && ver > 1)
+			cnt = i.readUInt16();
+
+		var arr = new Array<FillStyle>();
+
+		for (c in 0...cnt) {
+			var fillStyle = readFillStyle(ver);
+			arr.push(fillStyle);
+		}
+		return arr;
+	}
+
+	function readShapeWithStyle(ver : Int) : ShapeWithStyleData {
+		var fillStyles = readFillStyles(ver);
+		var lineStyles = readLineStyles(ver);
+		return {
+			fillStyles: fillStyles,
+			lineStyles: lineStyles,
+			shapes: readShapeData(ver)
+		};
+	}
+
+	//
+	// reads a SHAPE field
+	//
+	function readShapeData(ver : Int) : Array<ShapeRecord> {
+		bits.reset();
+		var fillBits = bits.readBits(4);
+		var lineBits = bits.readBits(4);
+
+		var recs = new Array<ShapeRecord>();
+
+		do {
+			//bits.reset(); // Byte-align shape records
+			if (bits.read()) {
+				// Edge record
+				if (bits.read()) {
+					// Straight
+					trace("straight");
+					var nbits = bits.readBits(4) + 2;
+					var isGeneral = bits.read();
+					var isVertical = (!isGeneral) ? bits.read() : false;
+
+					var dx = (isGeneral || !isVertical)
+						? Tools.signExtend(bits.readBits(nbits), nbits)
+						: 0;
+					
+					var dy = (isGeneral || isVertical) 
+						? Tools.signExtend(bits.readBits(nbits), nbits)
+						: 0;
+
+					trace("  " + ((isGeneral) ? "G" : (isVertical ? "V" : "H")) + " " + dx + ", " + dy);
+					recs.push(SHREdge(dx, dy));
+				}
+				else {
+					// Curved
+					trace("curved");
+					var nbits = bits.readBits(4) + 2;
+					var cdx = Tools.signExtend(bits.readBits(nbits), nbits);
+					var cdy = Tools.signExtend(bits.readBits(nbits), nbits);
+					var adx = Tools.signExtend(bits.readBits(nbits), nbits);
+					var ady = Tools.signExtend(bits.readBits(nbits), nbits);
+					trace("   " + [cdx, cdy, adx, ady]);
+					recs.push(SHRCurvedEdge(cdx, cdy, adx, ady));
+				}
+			}
+			else {
+				trace("non-edge record");
+				var flags = bits.readBits(5);
+
+				if (flags == 0) {
+					trace("end");
+					// End record
+					recs.push(SHREnd);
+					break;
+				}
+				else {
+					// Change record
+					var cdata : ShapeChangeRec = {
+						moveTo : null,
+						fillStyle0 : null,
+						fillStyle1 : null,
+						lineStyle : null,
+						newStyles : null
+					};
+					if (flags & 1 != 0) {
+						trace(" move");
+						// Move 
+						var mbits = bits.readBits(5);
+						var dx = Tools.signExtend(bits.readBits(mbits), mbits);
+						var dy = Tools.signExtend(bits.readBits(mbits), mbits);
+						cdata.moveTo = {
+							dx: dx,
+							dy: dy
+						};
+						trace("  " + cdata.moveTo);
+					}
+					if (flags & 2 != 0) {
+						trace(" fill0");
+						cdata.fillStyle0 = { idx: bits.readBits(fillBits) }
+						trace("  " + cdata.fillStyle0);
+					}
+					if (flags & 4 != 0) {
+						trace(" fill1");
+						cdata.fillStyle1 = { idx: bits.readBits(fillBits) }
+						trace("  " + cdata.fillStyle1);
+					}
+					if (flags & 8 != 0) {
+						trace(" line");
+						cdata.lineStyle = { idx: bits.readBits(lineBits) }
+						trace("  " + cdata.lineStyle);
+					}
+					//
+					// WARN: Can Shape4 and above use the New state?
+					// doc mentions 2&3 only
+					//
+					if ((flags & 16 != 0)) {
+						trace(" new");
+						var fst = readFillStyles(ver);
+						trace("  read fills");
+						var lst = readLineStyles(ver);
+						trace("  read lines");
+						bits.reset();
+						fillBits = bits.readBits(4);
+						lineBits = bits.readBits(4);
+						cdata.newStyles = {
+							fillStyles: fst,
+							lineStyles: lst
+						}						
+					}
+					recs.push(SHRChange(cdata));
+				}
+			}
+
+		} while (true);
+
+		return recs;
 	}
 
 	function readClipEvents() : Array<ClipEvent> {
@@ -273,9 +571,22 @@ class Reader {
 		return a;
 	}
 
-	function readShape(len,ver) {
+	function readShape(len : Int, ver : Int) {
 		var id = i.readUInt16();
-		return TShape(id,ver,i.read(len - 2));
+
+		if (ver <= 3) {
+			var bounds = readRect();
+			var sws = readShapeWithStyle(ver);
+			// var remain = len - 2 - Math.ceil(bitsRead/8.0);
+			return TShape(id, switch (ver) {
+				case 1: SHDShape1(bounds, sws);
+				case 2: SHDShape2(bounds, sws);
+				case 3: SHDShape3(bounds, sws);
+				default: throw error();
+			});
+		}
+
+		return TShape(id, SHDOther(ver, i.read(len - 2)));
 	}
 
 	function readBlendMode() {

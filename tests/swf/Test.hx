@@ -89,8 +89,8 @@ class Test {
 
 	static function tagStr(t) {
 		return switch(t) {
-		case TShape(sid,version,data):
-			"Shape"+version+" #"+sid+" ["+data.length+"]";
+		case TShape(sid,sdata):
+			"ShapeX #"+sid+" []"; // TODO write later when fixed TShape
 		case TBinaryData(cid,data):
 			"BinaryData #"+cid+" ["+data.length+"]";
 		case TShowFrame:

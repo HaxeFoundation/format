@@ -39,7 +39,7 @@ typedef SWF = {
 
 enum SWFTag {
 	TShowFrame;
-	TShape( id : Int, version : Int, data : haxe.io.Bytes );
+	TShape( id : Int, data : ShapeData );
 	TBackgroundColor( color : Int );
 	TClip( id : Int, frames : Int, tags : Array<SWFTag> );
 	TPlaceObject2( po : PlaceObject );
@@ -96,6 +96,135 @@ class PlaceObject {
 	}
 }
 
+typedef Rect = {
+	var left : Int;
+	var right : Int;
+	var top : Int;
+	var bottom : Int;
+}
+
+enum ShapeData {
+	SHDShape1(bounds : Rect, shapes : ShapeWithStyleData);
+	SHDShape2(bounds : Rect, shapes : ShapeWithStyleData);
+	SHDShape3(bounds : Rect, shapes : ShapeWithStyleData);
+	SHDOther(ver : Int, data : haxe.io.Bytes);
+}
+
+// used by DefineShapeX
+typedef ShapeWithStyleData = {
+	var fillStyles : Array<FillStyle>;
+	var lineStyles : Array<LineStyle>;
+	var shapes : Array<ShapeRecord>;
+}
+
+enum ShapeRecord {
+	SHREnd;
+	SHRChange( data : ShapeChangeRec );
+	SHREdge( dx : Int, dy : Int);
+	SHRCurvedEdge( cdx : Int, cdy : Int, adx : Int, ady : Int );
+}
+
+typedef ShapeChangeRec = {
+	// each fields can be null
+	var moveTo : SCRMoveTo;	
+	var fillStyle0 : SCRIndex;
+	var fillStyle1 : SCRIndex;
+	var lineStyle : SCRIndex;
+	var newStyles : SCRNewStyles;
+}
+
+typedef SCRMoveTo = {
+	var dx : Int;
+	var dy : Int;
+}
+
+typedef SCRIndex = {
+	var idx : Int;
+}
+
+typedef SCRNewStyles = {
+	var fillStyles : Array<FillStyle>;
+	var lineStyles : Array<LineStyle>;
+}
+
+enum FillStyle {
+	FSSolid(rgb : RGB); // Shape1&2
+	FSSolidAlpha(rgb : RGBA); // Shape3 (&4?)
+	FSLinearGradient(mat : Matrix, grad : Gradient);
+	FSRadialGradient(mat : Matrix, grad : Gradient);
+	FSFocalGradient(mat : Matrix, grad : FocalGradient); // Shape4 only
+	FSBitmap(cid : Int, mat : Matrix, repeat : Bool, smooth : Bool);
+}
+
+typedef LineStyle = {
+	var width : Int;
+	var data : LineStyleData;
+}
+
+enum LineStyleData {
+	LSRGB(rgb : RGB); //Shape1&2
+	LSRGBA(rgba : RGBA); //Shape3
+	LS2(data : LS2Data); //Shape4
+}
+
+typedef LS2Data = {
+	var startCap : LineCapStyle;
+	var join : LineJoinStyle;
+	var fill : LS2Fill;
+	var noHScale : Bool;
+	var noVScale : Bool;
+	var pixelHinting : Bool;
+	var noClose : Bool;
+	var endCap : LineCapStyle;
+}
+
+enum LineCapStyle {
+	LCRound;
+	LCNone;
+	LCSquare;
+}
+
+enum LineJoinStyle {
+	LJRound;
+	LJBevel;
+	LJMiter(limitFactor : Fixed8);
+}
+
+enum LS2Fill {
+	LS2FColor( color : RGBA );
+	LS2FStyle( style : FillStyle );
+}
+
+enum GradRecord {
+	GRRGB(pos : Int, col : RGB); // Shape1&2
+	GRRGBA(pos : Int, col : RGBA); // Shape3 (&4?)
+}
+
+typedef Gradient = {
+	var spread : SpreadMode;
+	var interpolate : InterpolationMode;
+	var data : Array<GradRecord>;
+}
+
+typedef FocalGradient = {
+	var focalPoint : Fixed8;
+	var data : Gradient;
+}
+
+enum SpreadMode {
+	SMPad;
+	SMReflect;
+	SMRepeat;
+	SMReserved;
+}
+
+enum InterpolationMode {
+	IMNormalRGB;
+	IMLinearRGB;
+	IMReserved1;
+	IMReserved2;
+}
+
 typedef MatrixPart = {
 	var nbits : Int;
 	var x : Int;
@@ -113,6 +242,12 @@ typedef RGBA = {
 	var g : Int;
 	var b : Int;
 	var a : Int;
+}
+
+typedef RGB = {
+	var r : Int;
+	var g : Int;
+	var b : Int;
 }
 
 typedef CXA = {
@@ -177,8 +312,9 @@ typedef BlurFilterData = {
 	var passes : Int;
 }
 
+
 typedef GradientFilterData = {
-	var colors : Array<{ color : RGBA, position : Int }>;
+	var colors : Array<{position : Int, color : RGBA}>;
 	var data : FilterData;
 }
 
