@@ -48,12 +48,13 @@ enum SWFTag {
 	TFrameLabel( label : String, anchor : Bool );
 	TDoInitActions( id : Int, data : haxe.io.Bytes );
 	TActionScript3( data : haxe.io.Bytes, ?context : AS3Context );
-	TSymbolClass( symbols : Array<{ cid : Int, className : String }> );
+	TSymbolClass( symbols : Array<SymData> );
+	TExportAssets( symbols : Array<SymData> );
 	TSandBox( v : Int );
 	TBitsLossless( data : Lossless );
 	TBitsLossless2( data : Lossless );
-	TBitsJPEG2( id: Int, data: haxe.io.Bytes );
-	TBitsJPEG3( id: Int, data: haxe.io.Bytes, mask: haxe.io.Bytes );
+	TBitsJPEG( id : Int, data : JPEGData );
+	TJPEGTables( data : haxe.io.Bytes );
 	TBinaryData( id : Int, data : haxe.io.Bytes );
 	TSound( data : Sound );
 	TUnknown( id : Int, data : haxe.io.Bytes );
@@ -71,6 +72,11 @@ typedef SWFHeader = {
 typedef AS3Context = {
 	var id : Int;
 	var label : String;
+}
+
+typedef SymData = {
+	cid : Int, 
+	className : String 
 }
 
 class PlaceObject {
@@ -184,6 +190,13 @@ typedef Lossless = {
 	var data : haxe.io.Bytes;
 }
 
+
+enum JPEGData {
+	JDJPEG1( data : haxe.io.Bytes );
+	JDJPEG2( data : haxe.io.Bytes );
+	JDJPEG3( data : haxe.io.Bytes, mask : haxe.io.Bytes );
+}
+
 enum ColorModel {
 	CM8Bits( ncolors : Int ); // Lossless2 contains ARGB palette
 	CM15Bits; // Lossless only
@@ -203,6 +216,7 @@ typedef Sound = {
 
 enum SoundData {
 	SDMp3( seek : Int, data : haxe.io.Bytes );
+	SDRaw( data : haxe.io.Bytes );
 	SDOther( data : haxe.io.Bytes );
 }
 

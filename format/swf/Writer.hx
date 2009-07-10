@@ -285,9 +285,23 @@ class Writer {
 		o.writeUInt30(len);
 	}
 
+	function writeSymbols( sl : Array<SymData>, tagid : Int ) {
+		var len = 2;
+		for( s in sl )
+			len += 2 + s.className.length + 1;
+		writeTID(tagid,len);
+		o.writeUInt16(sl.length);
+		for( s in sl ) {
+			o.writeUInt16(s.cid);
+			o.writeString(s.className);
+			o.writeByte(0);
+		}
+	}
+
 	function writeSound( s : Sound ) {
 		var len = 7 + switch( s.data ) {
 			case SDMp3(_,data): data.length + 2;
+			case SDRaw(data): data.length;
 			case SDOther(data): data.length;
 		};
 		writeTIDExt(TagId.DefineSound, len);
@@ -315,6 +329,8 @@ class Writer {
 		switch( s.data ) {
 		case SDMp3(seek,data):
 			o.writeInt16(seek);
+			o.write(data);
+		case SDRaw(data):
 			o.write(data);
 		case SDOther(data):
 			o.write(data);
@@ -408,16 +424,9 @@ class Writer {
 			o.write(data);
 
 		case TSymbolClass(sl):
-			var len = 2;
-			for( s in sl )
-				len += 2 + s.className.length + 1;
-			writeTID(TagId.SymbolClass,len);
-			o.writeUInt16(sl.length);
-			for( s in sl ) {
-				o.writeUInt16(s.cid);
-				o.writeString(s.className);
-				o.writeByte(0);
-			}
+			writeSymbols(sl, TagId.SymbolClass);
+		case TExportAssets(sl):
+			writeSymbols(sl, TagId.ExportAssets);
 
 		case TSandBox(n):
 			writeTID(TagId.FileAttributes,4);
@@ -440,7 +449,7 @@ class Writer {
 
 		case TBitsLossless2(l):
 			var cbits = switch( l.color ) { case CM8Bits(n): n; default: null; };
-			writeTIDExt(TagId.DefineBitsLossless2,l.data.length + ((cbits == null)?8:7));
+			writeTIDExt(TagId.DefineBitsLossless2,l.data.length + ((cbits == null)?7:8));
 			o.writeUInt16(l.cid);
 			switch( l.color ) {
 			case CM8Bits(_): o.writeByte(3);
@@ -452,17 +461,27 @@ class Writer {
 			if( cbits != null ) o.writeByte(cbits);
 			o.write(l.data);
 
-		case TBitsJPEG2(id, data):
-			writeTIDExt(TagId.DefineBitsJPEG2, data.length + 2);
-			o.writeUInt16(id);
+		case TJPEGTables(data):
+			writeTIDExt(TagId.JPEGTables, data.length);
 			o.write(data);
 
-		case TBitsJPEG3(id, data, mask):
-			writeTIDExt(TagId.DefineBitsJPEG3, data.length + mask.length + 6);
-			o.writeUInt16(id);
-			o.writeUInt30(data.length);
-			o.write(data);
-			o.write(mask);
+		case TBitsJPEG(id, jdata):
+			switch (jdata) {
+			case JDJPEG1(data):
+				writeTIDExt(TagId.DefineBits, data.length + 2);
+				o.writeUInt16(id);
+				o.write(data);
+			case JDJPEG2(data):
+				writeTIDExt(TagId.DefineBitsJPEG2, data.length + 2);
+				o.writeUInt16(id);
+				o.write(data);
+			case JDJPEG3(data, mask):	
+				writeTIDExt(TagId.DefineBitsJPEG3, data.length + mask.length + 6);
+				o.writeUInt16(id);
+				o.writeUInt30(data.length);
+				o.write(data);
+				o.write(mask);
+			}
 
 		case TSound(data):
 			writeSound(data);

@@ -146,18 +146,31 @@ class Test {
 			for( s in sl )
 				str += "\n  #"+s.cid+" "+s.className;
 			str;
+		case TExportAssets(sl):	
+			var str = "Exports";
+			for( s in sl )
+				str += "\n  #"+s.cid+" "+s.className;
+			str;
+
 		case TBitsLossless2(l),TBitsLossless(l):
 			"BitsLossless [#"+l.cid+","+l.width+"x"+l.height+":"+l.color+","+l.data.length+" bytes]";
-		case TBitsJPEG2(id, data):
-			"BitsJPEG2 [#" + id + ", " + data.length + " bytes]";
-		case TBitsJPEG3(id, data, mask):
-			"BitsJPEG3 [#" + id + ", " + data.length + " bytes data, " + mask.length + " bytes mask]";
+		case TJPEGTables(data):
+			"JPEGTables [" + data.length + "]";
+		case TBitsJPEG(id, jdata):
+			"BitsJPEG [#" + id + ", " + 
+			switch(jdata) {
+			case JDJPEG1(data): "v1, data length: " + data.length;
+			case JDJPEG2(data): "v2, data length: " + data.length;
+			case JDJPEG3(data, mask): "v3, data length: " + data.length + ", mask length: " + mask.length;
+			}
 		case TSound(s):
 			var desc = switch( s.data ) {
 			case SDMp3(seek,data):
 				var i = new haxe.io.BytesInput(data);
 				var mp3 = new format.mp3.Reader(i).read();
 				(", frames: " + mp3.frames.length);
+			case SDRaw(data):
+				"";
 			default:
 				" (format not yet supported) ";
 			};

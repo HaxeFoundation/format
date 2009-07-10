@@ -335,6 +335,16 @@ class Reader {
 		};
 	}
 
+	function readSymbols() : Array<SymData> {
+		var sl = new Array<SymData>();
+		for( n in 0...i.readUInt16() )
+			sl.push({
+				cid : i.readUInt16(),
+				className : i.readUntil(0),
+			});
+		return sl;
+	}
+
 	function readSound( len : Int ) {
 		var sid = i.readUInt16();
 		bits.reset();
@@ -363,6 +373,8 @@ class Reader {
 			case SFMP3:
 				var seek = i.readInt16();
 				SDMp3(seek,i.read(len-9));
+			case SFLittleEndianUncompressed:
+				SDRaw(i.read(len - 7));
 			default:
 				SDOther(i.read(len - 7));
 		};
@@ -407,15 +419,20 @@ class Reader {
 			TBitsLossless(readLossless(len,false));
 		case TagId.DefineBitsLossless2:
 			TBitsLossless2(readLossless(len,true));
+		case TagId.JPEGTables:
+			TJPEGTables(i.read(len));
+		case TagId.DefineBits:
+			var cid = i.readUInt16();
+			TBitsJPEG(cid, JDJPEG1(i.read(len - 2)));
 		case TagId.DefineBitsJPEG2:
 			var cid = i.readUInt16();
-			TBitsJPEG2(cid, i.read(len - 2));
+			TBitsJPEG(cid, JDJPEG2(i.read(len - 2)));
 		case TagId.DefineBitsJPEG3:
 			var cid = i.readUInt16();
 			var dataSize = i.readUInt30();
 			var data = i.read(dataSize);
 			var mask = i.read(len - dataSize - 6);
-			TBitsJPEG3(cid, data, mask);
+			TBitsJPEG(cid, JDJPEG3(data, mask));
 		case TagId.PlaceObject2:
 			TPlaceObject2(readPlaceObject(false));
 		case TagId.PlaceObject3:
@@ -439,13 +456,9 @@ class Reader {
 		case TagId.RawABC:
 			TActionScript3(i.read(len),null);
 		case TagId.SymbolClass:
-			var sl = new Array();
-			for( n in 0...i.readUInt16() )
-				sl.push({
-					cid : i.readUInt16(),
-					className : i.readUntil(0),
-				});
-			TSymbolClass(sl);
+			TSymbolClass(readSymbols());
+		case TagId.ExportAssets:
+			TExportAssets(readSymbols());
 		case TagId.DoABC:
 			var infos = {
 				id : i.readUInt30(),

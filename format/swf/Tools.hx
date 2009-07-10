@@ -89,10 +89,16 @@ class Tools {
 		case TDoInitActions(id,data): ["id",id,"data",hex(data,max)];
 		case TActionScript3(data,context): ["context",context,"data",hex(data,max)];
 		case TSymbolClass(symbols): [Std.string(symbols)];
+		case TExportAssets(symbols): [Std.string(symbols)];
 		case TSandBox(v): [v];
 		case TBitsLossless(l),TBitsLossless2(l): ["id",l.cid,"color",l.color,"width",l.width,"height",l.height,"data",hex(l.data,max)];
-		case TBitsJPEG2(id, data): ["id", id, "data", hex(data,max)];
-		case TBitsJPEG3(id, data, mask): ["id", id, "data", hex(data,max), "mask", hex(mask,max)];
+		case TJPEGTables(data): ["data", hex(data,max)];
+		case TBitsJPEG(id, jdata): 
+			switch (jdata) {
+			case JDJPEG1(data): ["id", id, "ver", 1, "data", hex(data,max)];
+			case JDJPEG2(data): ["id", id, "ver", 2, "data", hex(data,max)];
+			case JDJPEG3(data, mask): ["id", id, "ver", 3, "data", hex(data,max), "mask", hex(mask,max)];
+			}
 		case TSound(data): ["sid", data.sid, "format", data.format, "rate", data.rate ];
 		case TUnknown(id,data): ["id",id,"data",hex(data,max)];
 		}

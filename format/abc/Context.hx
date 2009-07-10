@@ -233,7 +233,7 @@ class Context {
 		registers[i] = false;
 	}
 
-	public function beginClass( path : String ) {
+	public function beginClass( path : String, callsuper = false ) {
 		endClass();
 		var tpath = this.type(path);
 		beginFunction([],null);
@@ -242,6 +242,11 @@ class Context {
 		endFunction();
 		beginFunction([],null);
 		var cst = curFunction.f.type;
+		curFunction.f.maxStack=1;
+		if (callsuper) {
+			op(OThis);
+			op(OConstructSuper(0));
+		}
 		op(ORetVoid);
 		endFunction();
 		fieldSlot = 1;
@@ -277,6 +282,28 @@ class Context {
 		ops([
 			OGetGlobalScope,
 			OGetLex( this.type("Object") ),
+			OScope,
+			OGetLex( curClass.superclass ),
+			OClassDef( Idx(data.classes.length - 1) ),
+			OPopScope,
+			OInitProp( curClass.name ),
+		]);
+		curFunction = null;
+		curClass = null;
+	}
+
+	//
+	// This should be generalised/reworked,
+	// temporary solution
+	//
+ 	public function endSubClass() {
+		if( curClass == null )
+			return;
+		endFunction();
+		curFunction = init;
+		ops([
+			OGetGlobalScope,
+			OGetLex( curClass.superclass ),
 			OScope,
 			OGetLex( curClass.superclass ),
 			OClassDef( Idx(data.classes.length - 1) ),
