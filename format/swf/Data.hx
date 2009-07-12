@@ -40,6 +40,7 @@ typedef SWF = {
 enum SWFTag {
 	TShowFrame;
 	TShape( id : Int, data : ShapeData );
+	TMorphShape( id : Int, data : MorphShapeData );
 	TBackgroundColor( color : Int );
 	TClip( id : Int, frames : Int, tags : Array<SWFTag> );
 	TPlaceObject2( po : PlaceObject );
@@ -75,8 +76,8 @@ typedef AS3Context = {
 }
 
 typedef SymData = {
-	cid : Int, 
-	className : String 
+cid : Int, 
+		className : String 
 }
 
 class PlaceObject {
@@ -107,13 +108,88 @@ enum ShapeData {
 	SHDShape1(bounds : Rect, shapes : ShapeWithStyleData);
 	SHDShape2(bounds : Rect, shapes : ShapeWithStyleData);
 	SHDShape3(bounds : Rect, shapes : ShapeWithStyleData);
-	SHDOther(ver : Int, data : haxe.io.Bytes);
+	SHDShape4(data: Shape4Data);
+	//SHDOther(ver : Int, data : haxe.io.Bytes);
+}
+
+enum MorphShapeData {
+	MSDShape1(data: MorphShapeData1);
+	MSDShape2(data: MorphShapeData2);
+}
+
+typedef MorphShapeData1 = {
+	var startBounds: Rect;
+	var endBounds: Rect;
+	var fillStyles: Array<MorphFillStyle>;
+	var lineStyles: Array<Morph1LineStyle>;
+	var startEdges: ShapeWithStyleData;
+	var endEdges: ShapeWithStyleData;
+}
+
+typedef MorphShapeData2 = {
+	var startBounds: Rect;
+	var endBounds: Rect;
+	var startEdgeBounds: Rect;
+	var endEdgeBounds: Rect;
+	var useNonScalingStrokes: Bool;
+	var useScalingStrokes: Bool;
+	var fillStyles: Array<MorphFillStyle>;
+	var lineStyles: Array<Morph2LineStyle>;
+	var startEdges: ShapeWithStyleData;
+	var endEdges: ShapeWithStyleData;
+}
+
+enum MorphFillStyle {
+	MFSSolid(startColor: RGBA, endColor: RGBA);
+	MFSLinearGradient(startMatrix: Matrix, endMatrix: Matrix, gradients: Array<MorphGradient>);
+	MFSRadialGradient(startMatrix: Matrix, endMatrix: Matrix, gradients: Array<MorphGradient>);
+	MFSBitmap(cid: Int, startMatrix: Matrix, endMatrix: Matrix, repeat: Bool, smooth: Bool);
+}
+
+typedef Morph1LineStyle = {
+	var startWidth: Int;
+	var endWidth: Int;
+	var startColor: RGBA;
+	var endColor: RGBA;
+}
+
+enum Morph2LineStyle {
+	M2LSNoFill(startColor: RGBA, endColor: RGBA, data: Morph2LineStyleData);
+	M2LSFill(fill: MorphFillStyle, data: Morph2LineStyleData);
+}
+
+typedef Morph2LineStyleData = {
+	var startWidth: Int;
+	var endWidth: Int;
+	var startCapStyle: LineCapStyle;
+	var joinStyle: LineJoinStyle;
+	var noHScale : Bool;
+	var noVScale : Bool;
+	var pixelHinting : Bool;
+	var noClose : Bool;
+	var endCapStyle: LineCapStyle;
+}
+
+typedef MorphGradient = {
+	var startRatio: Int;
+	var startColor: RGBA;
+	var endRatio: Int;
+	var endColor: RGBA;
+}
+
+typedef Shape4Data = {
+	var shapeBounds: Rect;
+	var edgeBounds: Rect;
+	var useWinding: Bool;
+	var useNonScalingStroke: Bool;
+	var useScalingStroke: Bool;
+	var shapes: ShapeWithStyleData;
 }
 
 // used by DefineShapeX
 typedef ShapeWithStyleData = {
-	var fillStyles : Array<FillStyle>;
-	var lineStyles : Array<LineStyle>;
+	var fillStyles : Array<FillStyle>; // Can be null
+	var lineStyles : Array<LineStyle>; // Can be null
 	var shapes : Array<ShapeRecord>;
 }
 
@@ -125,7 +201,7 @@ enum ShapeRecord {
 }
 
 typedef ShapeChangeRec = {
-	// each fields can be null
+	// each field can be null
 	var moveTo : SCRMoveTo;	
 	var fillStyle0 : SCRIndex;
 	var fillStyle1 : SCRIndex;

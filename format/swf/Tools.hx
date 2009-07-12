@@ -61,6 +61,35 @@ class Tools {
 		return (i << 8) | Std.int((f-i)*256.0);
 	}
 
+	// All values are treated as unsigned! 
+	public inline static function minBits(values: Array<Int>): Int {
+		var max_bits: Int = 0;
+		for(x in values) {
+			// Make sure x is positive!
+			if(x < 0) x = -x;
+
+			// Compute most significant 1 bit
+			x |= (x >> 1);
+			x |= (x >> 2);
+			x |= (x >> 4);
+			x |= (x >> 8);
+			x |= (x >> 16);
+
+			// Compute ones count (equals the number of bits to represent original value)
+			x -= ((x >> 1) & 0x55555555);
+			x = (((x >> 2) & 0x33333333) + (x & 0x33333333));
+			x = (((x >> 4) + x) & 0x0f0f0f0f);
+			x += (x >> 8);
+			x += (x >> 16);
+			x &= 0x0000003f;
+
+			if(x > max_bits)
+				max_bits = x;
+		}
+
+		return max_bits;
+	}
+
 	public static function hex( b : haxe.io.Bytes, ?max : Int ) {
 		var hex = ["0".code,"1".code,"2".code,"3".code,"4".code,"5".code,"6".code,"7".code,"8".code,"9".code,"A".code,"B".code,"C".code,"D".code,"E".code,"F".code];
 		var count = if( max == null || b.length <= max ) b.length else max;
@@ -96,6 +125,7 @@ class Tools {
 		case TShowFrame: [];
 		case TBackgroundColor(color): [StringTools.hex(color,6)];
 		case TShape(id,sdata): ["id",id]; // TODO write when TShape final
+		case TMorphShape(id,data): ["id",id]; // TODO
 		case TBinaryData(id,data): ["id",id,"data",hex(data,max)];
 		case TClip(id,frames,tags): ["id",id,"frames",frames];
 		case TPlaceObject2(po): [Std.string(po)];

@@ -101,3 +101,14 @@ class TagId {
    public static inline var DefineFont4 = 0x5B;
 }
 
+class FillStyleTypeId {
+   public static inline var Solid = 0x00;
+   public static inline var LinearGradient = 0x10;
+   public static inline var RadialGradient = 0x12;
+   public static inline var FocalRadialGradient = 0x13;
+   public static inline var RepeatingBitmap = 0x40;
+   public static inline var ClippedBitmap = 0x41;
+   public static inline var NonSmoothedRepeatingBitmap = 0x42;
+   public static inline var NonSmoothedClippedBitmap = 0x43;
+}
+

@@ -216,7 +216,7 @@ class Reader {
 					var join = switch (_join) {
 						case 0: LJRound;
 						case 1: LJBevel;
-						case 2: LJMiter(readFixed8(i));
+						case 2: LJMiter(readFixed8());
 						default: throw error();
 					};
 
@@ -247,31 +247,41 @@ class Reader {
 		var type = i.readByte();
 		
 		return switch( type ) {
-			case 0x00:
+			case FillStyleTypeId.Solid:
 				(ver <= 2) ? FSSolid(readRGB(i)) : FSSolidAlpha(readRGBA(i));
-			case 0x10, 0x12, 0x13:
+			case
+				FillStyleTypeId.LinearGradient,
+				FillStyleTypeId.RadialGradient,
+				FillStyleTypeId.FocalRadialGradient:
+				
 				var mat = readMatrix();
 				var grad = readGradient(ver);
+
 				switch (type) {
-				case 0x13:
-					FSFocalGradient(mat, {
-						focalPoint: readFixed8(i),
-						data: grad
-					});
-				case 0x10:
-					FSLinearGradient(mat, grad);
-				case 0x12:
-					FSRadialGradient(mat, grad);
-				default: throw error();
+					case FillStyleTypeId.FocalRadialGradient:
+						FSFocalGradient(mat, {
+							focalPoint: readFixed8(i),
+							data: grad
+						});
+					case FillStyleTypeId.LinearGradient:
+						FSLinearGradient(mat, grad);
+					case FillStyleTypeId.RadialGradient:
+						FSRadialGradient(mat, grad);
+					default: throw error();
 				}
-			case 0x40, 0x41, 0x42, 0x43:
+			case 
+				FillStyleTypeId.RepeatingBitmap,
+				FillStyleTypeId.ClippedBitmap,
+				FillStyleTypeId.NonSmoothedRepeatingBitmap,
+				FillStyleTypeId.NonSmoothedClippedBitmap:
+				
 				var cid = i.readUInt16();
 				var mat = readMatrix();
-				var isRepeat = (type == 0x40 || type == 0x42);
-				var isSmooth = (type == 0x40 || type == 0x41);
+				var isRepeat = (type == FillStyleTypeId.RepeatingBitmap || type == FillStyleTypeId.NonSmoothedRepeatingBitmap);
+				var isSmooth = (type == FillStyleTypeId.RepeatingBitmap || type == FillStyleTypeId.ClippedBitmap);
 				FSBitmap(cid, mat, isRepeat, isSmooth);
 				
-			default: throw error() + " code " + type;						
+			default: throw error() + " code " + type;
 		};
 	}
 	
@@ -298,6 +308,15 @@ class Reader {
 			shapes: readShapeData(ver)
 		};
 	}
+	
+	function readShapeWithoutStyle(ver : Int) : ShapeWithStyleData {
+		return {
+			fillStyles: null,
+			lineStyles: null,
+			shapes: readShapeData(ver)
+		};
+	}
+
 
 	//
 	// reads a SHAPE field
@@ -586,7 +605,246 @@ class Reader {
 			});
 		}
 
-		return TShape(id, SHDOther(ver, i.read(len - 2)));
+		var shapeBounds = readRect();
+		var edgeBounds = readRect();
+		bits.readBits(5);
+		var useWinding = bits.read();
+		var useNonScalingStroke = bits.read();
+		var useScalingStroke = bits.read();
+		var shapes = readShapeWithStyle(ver);
+		
+		return TShape(id, SHDShape4({
+			shapeBounds: shapeBounds,
+			edgeBounds: edgeBounds,
+			useWinding: useWinding,
+			useNonScalingStroke: useNonScalingStroke,
+			useScalingStroke: useScalingStroke,
+			shapes: shapes
+		}));
+	}
+
+	function readMorphGradient(ver: Int) {
+		var sr = i.readByte();
+		var sc = readRGBA(i);
+		var er = i.readByte();
+		var ec = readRGBA(i);
+
+		return {
+			startRatio: sr,
+			startColor: sc,
+			endRatio: er,
+			endColor: ec
+		};
+	}
+
+	function readMorphGradients(ver: Int) {
+		var num = i.readByte();
+		if(num < 1 || num > 8)
+			throw "Invalid number of morph gradients ("+num+"). Should be in range 1..8!";
+
+		var grads = new Array<MorphGradient>();
+		for(i in 0...num) {
+			grads.push(readMorphGradient(ver));
+		}
+
+		return grads;
+	}
+
+	function readMorphFillStyle(ver: Int) {
+		var type = i.readByte();
+		
+		return switch( type ) {
+			case FillStyleTypeId.Solid:
+				var startColor = readRGBA(i);
+				var endColor = readRGBA(i);
+
+				return MFSSolid(startColor, endColor);
+			case
+				FillStyleTypeId.LinearGradient,
+				FillStyleTypeId.RadialGradient,
+				FillStyleTypeId.FocalRadialGradient:
+				
+				var startMatrix = readMatrix();
+				var endMatrix = readMatrix();
+				var grads = readMorphGradients(ver);
+
+				switch (type) {
+					case FillStyleTypeId.LinearGradient:
+						MFSLinearGradient(startMatrix, endMatrix, grads);
+					case FillStyleTypeId.RadialGradient:
+						MFSRadialGradient(startMatrix, endMatrix, grads);
+					default: throw error();
+				}
+			case 
+				FillStyleTypeId.RepeatingBitmap,
+				FillStyleTypeId.ClippedBitmap,
+				FillStyleTypeId.NonSmoothedRepeatingBitmap,
+				FillStyleTypeId.NonSmoothedClippedBitmap:
+				
+				var cid = i.readUInt16();
+				var startMatrix = readMatrix();
+				var endMatrix = readMatrix();
+				var isRepeat = (type == FillStyleTypeId.RepeatingBitmap || type == FillStyleTypeId.NonSmoothedRepeatingBitmap);
+				var isSmooth = (type == FillStyleTypeId.RepeatingBitmap || type == FillStyleTypeId.ClippedBitmap);
+				MFSBitmap(cid, startMatrix, endMatrix, isRepeat, isSmooth);
+				
+			default: throw error() + " code " + type;
+		};
+	}
+
+	function readMorphFillStyles(ver: Int) {
+		var len = i.readByte();
+		if(len == 0xff)
+			len = i.readUInt16();
+
+		var fill_styles = new Array<MorphFillStyle>();
+		for(i in 0...len) {
+			fill_styles.push(readMorphFillStyle(ver));
+		}
+
+		return fill_styles;
+	}
+
+	function readMorph1LineStyle() {
+		var sw = i.readUInt16();
+		var ew = i.readUInt16();
+		var sc = readRGBA(i);
+		var ec = readRGBA(i);
+
+		return {
+			startWidth: sw,
+			endWidth: ew,
+			startColor: sc,
+			endColor: ec
+		};
+	}
+
+	function readMorph2LineStyle() {
+		var startWidth = i.readUInt16();
+		var endWidth = i.readUInt16();
+		var startCapStyle = bits.readBits(2);
+		var joinStyle  = bits.readBits(2);
+		var hasFill = bits.read();
+		var noHScale = bits.read();
+		var noVScale = bits.read();
+		var pixelHinting = bits.read();
+		bits.readBits(5);
+		var noClose = bits.read();
+		var endCapStyle = bits.readBits(2);
+		bits.reset();
+
+		var morphData: Morph2LineStyleData = {
+			startWidth: startWidth,
+			endWidth: endWidth,
+			startCapStyle: switch(startCapStyle) {
+				case 0: LCRound;
+				case 1: LCNone;
+				case 2: LCSquare;
+			},
+			joinStyle: switch(joinStyle) {
+				case 0: LJRound;
+				case 1: LJBevel;
+				case 2: LJMiter(readFixed8(i));
+			},
+			noHScale: noHScale,
+			noVScale: noVScale,
+			pixelHinting: pixelHinting,
+			noClose: noClose,
+			endCapStyle: switch(endCapStyle) {
+				case 0: LCRound;
+				case 1: LCNone;
+				case 2: LCSquare;
+			}
+		};
+
+		if(hasFill)
+			return M2LSFill(readMorphFillStyle(2), morphData);
+
+		var startColor = readRGBA(i);
+		var endColor = readRGBA(i);
+		return M2LSNoFill(startColor, endColor, morphData);
+	}
+
+	function readMorph1LineStyles() {
+		var len = i.readByte();
+		if(len == 0xff)
+			len = i.readUInt16();
+
+		var styles = new Array<Morph1LineStyle>();
+
+		for(i in 0...len) {
+			styles.push(readMorph1LineStyle());
+		}
+
+		return styles;
+	}
+	
+	function readMorph2LineStyles() {
+		var len = i.readByte();
+		if(len == 0xff)
+			len = i.readUInt16();
+
+		var styles = new Array<Morph2LineStyle>();
+
+		for(i in 0...len) {
+			styles.push(readMorph2LineStyle());
+		}
+
+		return styles;
+	}
+
+	function readMorphShape(ver: Int) {
+		var id = i.readUInt16();
+
+		var startBounds = readRect();
+		var endBounds = readRect();
+		switch(ver) {
+			case 1:
+				i.readUInt30();
+				var fillStyles = readMorphFillStyles(ver);
+				var lineStyles = readMorph1LineStyles();
+				var startEdges = readShapeWithoutStyle(3); // Assume DefineShape3
+				bits.reset();
+				var endEdges = readShapeWithoutStyle(3);
+
+				return TMorphShape(id, MSDShape1({
+					startBounds: startBounds,
+					endBounds: endBounds,
+					fillStyles: fillStyles,
+					lineStyles: lineStyles,
+					startEdges: startEdges,
+					endEdges: endEdges
+				}));
+
+			case 2:
+				var startEdgeBounds = readRect();
+				var endEdgeBounds = readRect();
+				bits.readBits(6);
+				var useNonScalingStrokes = bits.read();
+				var useScalingStrokes = bits.read();
+				bits.reset();
+				i.readUInt30();
+				var fillStyles = readMorphFillStyles(ver);
+				var lineStyles = readMorph2LineStyles();
+				var startEdges = readShapeWithoutStyle(4); // Assume DefineShape4
+				bits.reset();
+				var endEdges = readShapeWithoutStyle(4);
+
+				return TMorphShape(id, MSDShape2({
+					startBounds: startBounds,
+					endBounds: endBounds,
+					startEdgeBounds: startEdgeBounds,
+					endEdgeBounds: endEdgeBounds,
+					useNonScalingStrokes: useNonScalingStrokes,
+					useScalingStrokes: useScalingStrokes,
+					fillStyles: fillStyles,
+					lineStyles: lineStyles,
+					startEdges: startEdges,
+					endEdges: endEdges
+				}));
+			
+			default: throw "Unsupported morph fill style version!";
+		}
 	}
 
 	function readBlendMode() {
@@ -642,7 +900,7 @@ class Reader {
 				case 5: if( v2 ) CM32Bits else CM24Bits;
 				default: throw error();
 			},
-			data : i.read(len - 7),
+			data : i.read(len - (if(bits == 3) 8 else 7)),
 		};
 	}
 
@@ -722,8 +980,10 @@ class Reader {
 			readShape(len,3);
 		case TagId.DefineShape4:
 			readShape(len,4);
+		case TagId.DefineMorphShape:
+			readMorphShape(1);
 		case TagId.DefineMorphShape2:
-			readShape(len,5);
+			readMorphShape(2);
 		case TagId.SetBackgroundColor:
 			TBackgroundColor(i.readUInt24());
 		case TagId.DefineBitsLossless:

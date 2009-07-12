@@ -99,6 +99,12 @@ class Writer {
 		o.writeUInt16(h.nframes);
 	}
 
+	function writeRGB( c : RGB ) {
+		o.writeByte(c.r);
+		o.writeByte(c.g);
+		o.writeByte(c.b);
+	}
+
 	function writeRGBA( c : RGBA ) {
 		o.writeByte(c.r);
 		o.writeByte(c.g);
@@ -337,6 +343,618 @@ class Writer {
 		};
 	}
 
+	function writeGradRecord(ver: Int, grad_record: GradRecord) {
+		switch(grad_record) {
+			case GRRGB(pos, col):
+				if(ver > 2)
+					throw "Shape versions higher than 2 require alpha channel in gradient control points!";
+				o.writeByte(pos);
+				writeRGB(col);
+
+			case GRRGBA(pos, col):
+				if(ver < 3)
+					throw "Shape versions lower than 3 don't support alpha channel in gradient control points!";
+				o.writeByte(pos);
+				writeRGBA(col);
+		}
+	}
+
+	function writeGradient(ver: Int, grad: Gradient) {
+		var spread_mode = switch(grad.spread) {
+			case SMPad: 		0;
+			case SMReflect: 	1;
+			case SMRepeat:		2;
+			case SMReserved:	3;
+		};
+		var interpolation_mode = switch(grad.interpolate) {
+			case IMNormalRGB:	0;
+			case IMLinearRGB:	1;
+			case IMReserved1:	2;
+			case IMReserved2:	3;
+		};
+		if(ver < 4 && (spread_mode != 0 || interpolation_mode != 0))
+			throw "Spread must be Pad and interpolation mode must be Normal RGB in gradient specification when shape version is lower than 4!";
+		
+		var num_records = grad.data.length;
+		
+		if(ver < 4) {
+			if(num_records > 8)
+				throw "Gradient supports at most 8 control points ("+num_records+" has bee given) when shape verison is lower than 4!";
+		} else if(num_records > 15)
+			throw "Gradient supports at most 15 control points ("+num_records+" has been given) at shape version 4!";
+
+		bits.writeBits(2, spread_mode);
+		bits.writeBits(2, interpolation_mode);
+		bits.flush();
+
+		for(grad_record in grad.data) {
+			writeGradRecord(ver, grad_record);
+		}
+	}
+
+	function writeFocalGradient(ver: Int, grad: FocalGradient) {
+		if(ver < 4)
+			throw "Focal gradient only supported in shape versions higher than 3!";
+
+		writeGradient(ver, grad.data);
+		writeFixed8(grad.focalPoint);
+	}
+
+	function writeFillStyle(ver: Int, fill_style: FillStyle) {
+		switch(fill_style) {
+			case FSSolid(rgb):
+				if(ver > 2)
+					throw "Fill styles with Shape versions higher than 2 reqire alhpa channel!";
+
+				o.writeByte(FillStyleTypeId.Solid);
+				writeRGB(rgb);
+
+			case FSSolidAlpha(rgba):
+				if(ver < 3)
+					throw "Fill styles with Shape versions lower than 3 doesn't support alhpa channel!";
+				
+				o.writeByte(FillStyleTypeId.Solid);
+				writeRGBA(rgba);
+			
+			case FSLinearGradient(mat, grad):
+				o.writeByte(FillStyleTypeId.LinearGradient);
+				writeMatrix(mat);
+				writeGradient(ver, grad);
+			
+			case FSRadialGradient(mat, grad):
+				o.writeByte(FillStyleTypeId.RadialGradient);
+				writeMatrix(mat);
+				writeGradient(ver, grad);
+
+			case FSFocalGradient(mat, grad):
+				if(ver > 3)
+					throw "Focal gradient fill style only supported with Shape versions higher than 3!";
+
+				o.writeByte(FillStyleTypeId.FocalRadialGradient);
+				writeMatrix(mat);
+				writeFocalGradient(ver, grad);
+
+			case FSBitmap(cid, mat, repeat, smooth):
+				o.writeByte( 
+					if(repeat) {
+						if(smooth)	FillStyleTypeId.RepeatingBitmap
+						else			FillStyleTypeId.NonSmoothedRepeatingBitmap;
+					} else {
+						if(smooth)	FillStyleTypeId.ClippedBitmap
+						else			FillStyleTypeId.NonSmoothedClippedBitmap;
+					}
+				);
+				o.writeUInt16(cid);
+				writeMatrix(mat);
+		}
+	}
+
+	function writeFillStyles(ver: Int, fill_styles: Array<FillStyle>) {
+		var num_styles = fill_styles.length;
+
+		if(num_styles > 254) {
+			if(ver >= 2) {
+				o.writeByte(0xff);
+				o.writeUInt16(num_styles);
+			} else
+				throw "Too much fill styles ("+num_styles+") for Shape version 1";
+		} else
+			o.writeByte(num_styles);
+
+		for(style in fill_styles) {
+			writeFillStyle(ver, style);
+		}
+	}
+
+	function writeLineStyle(ver: Int, line_style: LineStyle) {
+		o.writeUInt16(line_style.width);
+		switch(line_style.data) {
+			case LSRGB(rgb):
+				if(ver > 2)
+					throw "Line styles with Shape versions higher than 2 reqire alhpa channel!";
+					writeRGB(rgb);
+
+			case LSRGBA(rgba):
+					if(ver < 3)
+						throw "Line styles with Shape versions lower than 3 doesn't support alhpa channel!";
+					writeRGBA(rgba);
+
+			case LS2(data):
+				if(ver < 4)
+					throw "LineStyle version 2 only supported in shape versions higher than 3!";
+
+				bits.writeBits(2, switch(data.startCap) {
+					case LCRound:	0;
+					case LCNone:	1;
+					case LCSquare:	2;
+				});
+				
+				bits.writeBits(2, switch(data.join) {
+					case LJRound:					0;
+					case LJBevel:					1;
+					case LJMiter(limitFactor):	2;
+				});
+
+				bits.writeBit(switch(data.fill) {
+					case LS2FColor(color):	false;
+					case LS2FStyle(style):	true;
+				});
+
+				bits.writeBit(data.noHScale);
+				bits.writeBit(data.noVScale);
+				bits.writeBit(data.pixelHinting);
+				bits.writeBits(5, 0);
+				bits.writeBit(data.noClose);
+				
+				bits.writeBits(2, switch(data.endCap) {
+					case LCRound:	0;
+					case LCNone:	1;
+					case LCSquare:	2;
+				});
+
+				switch(data.join) {
+					case LJMiter(limitFactor):
+						writeFixed8(limitFactor);
+					default:
+				}
+
+				switch(data.fill) {
+					case LS2FColor(color):	writeRGBA(color);
+					case LS2FStyle(style):	writeFillStyle(ver, style);
+				}
+		} 
+	}
+	
+	function writeLineStyles(ver: Int, line_styles: Array<LineStyle>) {
+		var num_styles = line_styles.length;
+
+		if(num_styles > 254) {
+			if(ver >= 2) {
+				o.writeByte(0xff);
+				o.writeUInt16(num_styles);
+			} else
+				throw "Too much line styles ("+num_styles+") for Shape version 1";
+		} else
+			o.writeByte(num_styles);
+
+		for(style in line_styles) {
+			writeLineStyle(ver, style);
+		}
+	}
+
+	function writeShapeRecord(ver: Int, bitcount: {fill: Int, line: Int}, shape_record: ShapeRecord) {
+		switch(shape_record) {
+			case SHREnd:
+				bits.writeBit(false);
+				bits.writeBits(5, 0);
+
+			case SHRChange(data):
+				bits.writeBit(false);
+				if(data.newStyles != null) {
+					if(ver == 2 || ver == 3)
+						bits.writeBit(true);
+					else
+						throw "Defining new fill and line style arrays are only supported in shape version 2 and 3!";
+				} else
+					bits.writeBit(false);
+				bits.writeBit(ver == 2 || ver == 3);
+				bits.writeBit(data.lineStyle != null);
+				bits.writeBit(data.fillStyle1 != null);
+				bits.writeBit(data.fillStyle0 != null);
+				bits.writeBit(data.moveTo != null);
+
+				if(data.moveTo != null) {
+					var mb = Tools.minBits([data.moveTo.dx, data.moveTo.dy]) + 1;
+
+					bits.writeBits(5, mb);
+					bits.writeBits(mb, Tools.signExtend(data.moveTo.dx, mb));
+					bits.writeBits(mb, Tools.signExtend(data.moveTo.dy, mb));
+				}
+
+				if(data.fillStyle0 != null) {
+					bits.writeBits(bitcount.fill, data.fillStyle0.idx);
+				}
+				
+				if(data.fillStyle1 != null) {
+					bits.writeBits(bitcount.fill, data.fillStyle1.idx);
+				}
+				
+				if(data.lineStyle != null) {
+					bits.writeBits(bitcount.line, data.lineStyle.idx);
+				}
+
+				if(data.newStyles != null) {
+					writeFillStyles(ver, data.newStyles.fillStyles);
+					writeLineStyles(ver, data.newStyles.lineStyles);
+					bitcount.fill = Tools.minBits([data.newStyles.fillStyles.length]);
+					bitcount.line = Tools.minBits([data.newStyles.lineStyles.length]);
+					bits.writeBits(4, bitcount.fill);
+					bits.writeBits(4, bitcount.line);
+				}
+
+			case SHREdge(dx, dy):
+				bits.writeBit(true);
+				bits.writeBit(true);
+				
+				var mb = Tools.minBits([dx, dy]);
+				mb = if(mb < 2) 0 else mb - 2;
+				bits.writeBits(4, mb);
+				mb += 2;
+
+				var is_general = (dx != 0) && (dy != 0);
+				bits.writeBit(is_general);
+
+				if(!is_general) {
+					var is_vertical = (dx == 0);
+					bits.writeBit(is_vertical);
+					if(is_vertical)
+						bits.writeBits(mb, Tools.signExtend(dy, mb));
+					else
+						bits.writeBits(mb, Tools.signExtend(dx, mb));
+				} else {
+					bits.writeBits(mb, Tools.signExtend(dx, mb));
+					bits.writeBits(mb, Tools.signExtend(dy, mb));
+				}
+					
+			case SHRCurvedEdge(cdx, cdy, adx, ady):
+				bits.writeBit(true);
+				bits.writeBit(false);
+				
+				var mb = Tools.minBits([cdx, cdy, adx, ady]);
+				mb = if(mb < 2) 0 else mb - 2;
+				bits.writeBits(4, mb);
+				mb += 2;
+
+				bits.writeBits(mb, Tools.signExtend(cdx, mb));
+				bits.writeBits(mb, Tools.signExtend(cdy, mb));
+				bits.writeBits(mb, Tools.signExtend(adx, mb));
+				bits.writeBits(mb, Tools.signExtend(ady, mb));
+		}
+	}
+
+	function writeShapeWithStyle(ver: Int, data: ShapeWithStyleData) {
+		var bitcount: {
+			var fill: Int;
+			var line: Int;
+		};
+
+		if(data.fillStyles != null && data.lineStyles != null) {
+			writeFillStyles(ver, data.fillStyles);
+			writeLineStyles(ver, data.lineStyles);
+
+			bitcount = {
+				fill: Tools.minBits([data.fillStyles.length]),
+				line: Tools.minBits([data.lineStyles.length]),
+			};
+		} else {
+			bitcount = {
+				fill: 1,
+				line: 1,
+			};
+		}
+		bits.writeBits(4, bitcount.fill);
+		bits.writeBits(4, bitcount.line);
+		bits.flush();
+
+		for(shape_record in data.shapes) {
+			writeShapeRecord(ver, bitcount, shape_record);
+		}
+		bits.flush();
+	}
+	
+	public function writeShape(id: Int, data: ShapeData) {
+		var old_o = o;
+		var old_bits = bits;
+		var o = new haxe.io.BytesOutput();
+		var bits = new format.tools.BitsOutput(o);
+
+		o.writeUInt16(id);
+
+		switch(data) {
+			case SHDShape1(bounds, shapes):
+				writeRect(bounds);
+				writeShapeWithStyle(1, shapes);
+
+			case SHDShape2(bounds, shapes):
+				writeRect(bounds);
+				writeShapeWithStyle(2, shapes);
+
+			case SHDShape3(bounds, shapes):
+				writeRect(bounds);
+				writeShapeWithStyle(3, shapes);
+
+			case SHDShape4(data):
+				writeRect(data.shapeBounds);
+				writeRect(data.edgeBounds);
+				bits.writeBits(5, 0);
+				bits.writeBit(data.useWinding);
+				bits.writeBit(data.useNonScalingStroke);
+				bits.writeBit(data.useScalingStroke);
+				bits.flush();
+				writeShapeWithStyle(4, data.shapes);
+		}
+
+		bits.flush();
+		var shape_data = o.getBytes();
+		o = old_o;
+		bits = old_bits;
+
+		switch(data) {
+			case SHDShape1(bounds, shapes):
+				writeTID(TagId.DefineShape, shape_data.length);
+
+			case SHDShape2(bounds, shapes):
+				writeTID(TagId.DefineShape2, shape_data.length);
+
+			case SHDShape3(bounds, shapes):
+				writeTID(TagId.DefineShape3, shape_data.length);
+
+			case SHDShape4(data):
+				writeTID(TagId.DefineShape4, shape_data.length);
+		}
+
+		o.write(shape_data);
+	}
+
+	function writeMorphGradient(ver: Int, g: MorphGradient) {
+		o.writeByte(g.startRatio);
+		writeRGBA(g.startColor);
+		o.writeByte(g.endRatio);
+		writeRGBA(g.endColor);
+	}
+
+	function writeMorphGradients(ver: Int, gradients: Array<MorphGradient>) {
+		var num = gradients.length;
+		if(num < 1 || num > 8)
+			throw "Number of specified morph gradients ("+num+") must be in range 1..8";
+
+		for(grad in gradients) {
+			writeMorphGradient(ver, grad);
+		}
+	}
+
+	function writeMorphFillStyle(ver: Int, fill_style: MorphFillStyle) {
+		switch(fill_style) {
+			case MFSSolid(startColor, endColor):
+				o.writeByte(FillStyleTypeId.Solid);
+				writeRGBA(startColor);
+				writeRGBA(endColor);
+
+			case MFSLinearGradient(startMatrix, endMatrix, gradients):
+				o.writeByte(FillStyleTypeId.LinearGradient);
+				writeMatrix(startMatrix);
+				writeMatrix(endMatrix);
+				writeMorphGradients(ver, gradients);
+			
+			case MFSRadialGradient(startMatrix, endMatrix, gradients):
+				o.writeByte(FillStyleTypeId.LinearGradient);
+				writeMatrix(startMatrix);
+				writeMatrix(endMatrix);
+				writeMorphGradients(ver, gradients);
+
+			case MFSBitmap(cid, startMatrix, endMatrix, repeat, smooth):
+				o.writeByte( 
+					if(repeat) {
+						if(smooth)	FillStyleTypeId.RepeatingBitmap
+						else			FillStyleTypeId.NonSmoothedRepeatingBitmap;
+					} else {
+						if(smooth)	FillStyleTypeId.ClippedBitmap
+						else			FillStyleTypeId.NonSmoothedClippedBitmap;
+					}
+				);
+				o.writeUInt16(cid);
+				writeMatrix(startMatrix);
+				writeMatrix(endMatrix);
+		}
+	}
+
+	function writeMorphFillStyles(ver: Int, fill_styles: Array<MorphFillStyle>) {
+		var num_styles = fill_styles.length;
+
+		if(num_styles > 254) {
+			o.writeByte(0xff);
+			o.writeUInt16(num_styles);
+		} else
+			o.writeByte(num_styles);
+
+		for(style in fill_styles) {
+			writeMorphFillStyle(ver, style);
+		}
+	}
+
+	function writeMorph1LineStyle(s: Morph1LineStyle) {
+		o.writeUInt16(s.startWidth);
+		o.writeUInt16(s.endWidth);
+		writeRGBA(s.startColor);
+		writeRGBA(s.endColor);
+	}
+
+	function writeMorph1LineStyles(line_styles: Array<Morph1LineStyle>) {
+		var num_styles = line_styles.length;
+
+		if(num_styles > 254) {
+			o.writeByte(0xff);
+			o.writeUInt16(num_styles);
+		} else
+			o.writeByte(num_styles);
+
+		for(style in line_styles) {
+			writeMorph1LineStyle(style);
+		}
+	}
+
+	function writeMorph2LineStyle(style: Morph2LineStyle) {
+		var m2data: Morph2LineStyleData;
+
+		switch(style) {
+			case M2LSNoFill(startColor, endColor, data):
+				m2data = data;
+
+			case M2LSFill(fill, data):
+				m2data = data;
+		}
+
+		o.writeUInt16(m2data.startWidth);
+		o.writeUInt16(m2data.endWidth);
+		bits.writeBits(2, switch(m2data.startCapStyle) {
+			case LCRound:	0;
+			case LCNone:	1;
+			case LCSquare:	2;
+		});
+		
+		bits.writeBits(2, switch(m2data.joinStyle) {
+			case LJRound:					0;
+			case LJBevel:					1;
+			case LJMiter(limitFactor):	2;
+		});
+
+		switch(style) {
+			case M2LSNoFill(startColor, endColor, data):
+				bits.writeBit(false);
+
+			case M2LSFill(fill, data):
+				bits.writeBit(true);
+		}
+
+		bits.writeBit(m2data.noHScale);
+		bits.writeBit(m2data.noVScale);
+		bits.writeBit(m2data.pixelHinting);
+		bits.writeBits(5, 0);
+		bits.writeBit(m2data.noClose);
+		
+		bits.writeBits(2, switch(m2data.endCapStyle) {
+			case LCRound:	0;
+			case LCNone:	1;
+			case LCSquare:	2;
+		});
+
+		switch(m2data.joinStyle) {
+			case LJMiter(limitFactor):
+				writeFixed8(limitFactor);
+			default:
+		}
+
+		switch(style) {
+			case M2LSNoFill(startColor, endColor, data):
+				writeRGBA(startColor);
+				writeRGBA(endColor);
+
+			case M2LSFill(fill, data):
+				writeMorphFillStyle(2, fill);
+		}
+	}
+	
+	function writeMorph2LineStyles(line_styles: Array<Morph2LineStyle>) {
+		var num_styles = line_styles.length;
+
+		if(num_styles > 254) {
+			o.writeByte(0xff);
+			o.writeUInt16(num_styles);
+		} else
+			o.writeByte(num_styles);
+
+		for(style in line_styles) {
+			writeMorph2LineStyle(style);
+		}
+	}
+
+	public function writeMorphShape(id: Int, data: MorphShapeData) {
+		var old_o = o;
+		var old_bits = bits;
+		var o = new haxe.io.BytesOutput();
+		var bits = new format.tools.BitsOutput(o);
+
+		o.writeUInt16(id);
+
+		switch(data) {
+			case MSDShape1(sh1data):
+				writeRect(sh1data.startBounds);
+				writeRect(sh1data.endBounds);
+
+				var old_o = o;
+				var old_bits = bits;
+				var o = new haxe.io.BytesOutput();
+				var bits = new format.tools.BitsOutput(o);
+
+				writeMorphFillStyles(1, sh1data.fillStyles);
+				writeMorph1LineStyles(sh1data.lineStyles);
+				writeShapeWithStyle(3, sh1data.startEdges);
+				bits.flush();
+				
+				var part_data = o.getBytes();
+				o = old_o;
+				bits = old_bits;
+
+				o.writeUInt30(part_data.length);
+				o.write(part_data);
+				writeShapeWithStyle(3, sh1data.endEdges);
+
+			case MSDShape2(sh2data):
+				writeRect(sh2data.startBounds);
+				writeRect(sh2data.endBounds);
+				writeRect(sh2data.startEdgeBounds);
+				writeRect(sh2data.endEdgeBounds);
+				bits.writeBits(6, 0);
+				bits.writeBit(sh2data.useNonScalingStrokes);
+				bits.writeBit(sh2data.useScalingStrokes);
+				bits.flush();
+
+				var old_o = o;
+				var old_bits = bits;
+				var o = new haxe.io.BytesOutput();
+				var bits = new format.tools.BitsOutput(o);
+
+				writeMorphFillStyles(1, sh2data.fillStyles);
+				writeMorph2LineStyles(sh2data.lineStyles);
+				writeShapeWithStyle(4, sh2data.startEdges);
+				bits.flush();
+				
+				var part_data = o.getBytes();
+				o = old_o;
+				bits = old_bits;
+
+				o.writeUInt30(part_data.length);
+				o.write(part_data);
+				writeShapeWithStyle(4, sh2data.endEdges);
+		}
+
+		bits.flush();
+		var morph_shape_data = o.getBytes();
+		o = old_o;
+		bits = old_bits;
+
+		switch(data) {
+			case MSDShape1(sh1data):
+				writeTID(TagId.DefineMorphShape, morph_shape_data.length);
+			
+			case MSDShape2(sh2data):
+				writeTID(TagId.DefineMorphShape2, morph_shape_data.length);
+
+		}
+
+		o.write(morph_shape_data);
+	}
+
 	public function writeTag( t : SWFTag ) {
 		switch( t ) {
 		case TUnknown(id,data):
@@ -347,27 +965,10 @@ class Writer {
 			writeTID(TagId.ShowFrame,0);
 
 		case TShape(id, sdata):
-			switch (sdata) {
-			case SHDShape1(bounds, shapes):
-				// TODO
-			case SHDShape2(bounds, shapes):
-				// TODO
-			case SHDShape3(bounds, shapes):
-				// TODO
-			case SHDOther(ver, data):	
-				writeTID([
-					0,
-					TagId.DefineShape,
-					TagId.DefineShape2,
-					TagId.DefineShape3,
-					TagId.DefineShape4,
-					TagId.DefineMorphShape2
-					][ver],
-					data.length + 2
-				);
-				o.writeUInt16(id);
-				o.write(data);
-			}
+			writeShape(id, sdata);
+
+		case TMorphShape(id, data):
+			writeMorphShape(id, data);
 
 		case TBinaryData(id, data):
 			writeTID(TagId.DefineBinaryData, data.length + 6);
