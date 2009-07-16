@@ -50,14 +50,8 @@ class Writer {
 	}
 
 	function writeRect(r) {
-		var lr = (r.left > r.right) ? r.left : r.right;
-		var bt = (r.top > r.bottom) ? r.top : r.bottom;
-		var max = (lr > bt) ? lr : bt;
-		var nbits = 1; // sign
-		while( max > 0 ) {
-			max >>= 1;
-			nbits++;
-		}
+		var nbits = Tools.minBits([r.left, r.right, r.top, r.bottom]) + 1;
+		
 		bits.writeBits(5,nbits);
 		bits.writeBits(nbits,r.left);
 		bits.writeBits(nbits,r.right);
@@ -112,24 +106,41 @@ class Writer {
 		o.writeByte(c.a);
 	}
 
-	function writeMatrixPart( m : MatrixPart ) {
-		bits.writeBits(5,m.nbits);
-		bits.writeBits(m.nbits,m.x);
-		bits.writeBits(m.nbits,m.y);
-	}
-
 	function writeMatrix( m : Matrix ) {
 		if( m.scale != null ) {
 			bits.writeBit(true);
-			writeMatrixPart(m.scale);
+
+			var sx = Tools.toFixed16(m.scale.x);
+			var sy = Tools.toFixed16(m.scale.y);
+			var nbits = Tools.minBits([sx, sy]) + 1;
+
+			bits.writeBits(5, nbits);
+			bits.writeBits(nbits, sx);
+			bits.writeBits(nbits, sy);
+
 		} else
 			bits.writeBit(false);
+
 		if( m.rotate != null ) {
 			bits.writeBit(true);
-			writeMatrixPart(m.rotate);
+			
+			var rs0 = Tools.toFixed16(m.rotate.rs0);
+			var rs1 = Tools.toFixed16(m.rotate.rs1);
+			var nbits = Tools.minBits([rs0, rs1]) + 1;
+
+			bits.writeBits(5, nbits);
+			bits.writeBits(nbits, rs0);
+			bits.writeBits(nbits, rs1);
+
 		} else
 			bits.writeBit(false);
-		writeMatrixPart(m.translate);
+
+		var nbits = Tools.minBits([m.translate.x, m.translate.y]) + 1;
+
+		bits.writeBits(5, nbits);
+		bits.writeBits(nbits, m.translate.x);
+		bits.writeBits(nbits, m.translate.y);
+		
 		bits.flush();
 	}
 
@@ -557,7 +568,6 @@ class Writer {
 						throw "Defining new fill and line style arrays are only supported in shape version 2 and 3!";
 				} else
 					bits.writeBit(false);
-				bits.writeBit(ver == 2 || ver == 3);
 				bits.writeBit(data.lineStyle != null);
 				bits.writeBit(data.fillStyle1 != null);
 				bits.writeBit(data.fillStyle0 != null);
@@ -567,8 +577,8 @@ class Writer {
 					var mb = Tools.minBits([data.moveTo.dx, data.moveTo.dy]) + 1;
 
 					bits.writeBits(5, mb);
-					bits.writeBits(mb, Tools.signExtend(data.moveTo.dx, mb));
-					bits.writeBits(mb, Tools.signExtend(data.moveTo.dy, mb));
+					bits.writeBits(mb, data.moveTo.dx);
+					bits.writeBits(mb, data.moveTo.dy);
 				}
 
 				if(data.fillStyle0 != null) {
@@ -596,7 +606,7 @@ class Writer {
 				bits.writeBit(true);
 				bits.writeBit(true);
 				
-				var mb = Tools.minBits([dx, dy]);
+				var mb = Tools.minBits([dx, dy]) + 1;
 				mb = if(mb < 2) 0 else mb - 2;
 				bits.writeBits(4, mb);
 				mb += 2;
@@ -608,28 +618,47 @@ class Writer {
 					var is_vertical = (dx == 0);
 					bits.writeBit(is_vertical);
 					if(is_vertical)
-						bits.writeBits(mb, Tools.signExtend(dy, mb));
+						bits.writeBits(mb, dy);
 					else
-						bits.writeBits(mb, Tools.signExtend(dx, mb));
+						bits.writeBits(mb, dx);
 				} else {
-					bits.writeBits(mb, Tools.signExtend(dx, mb));
-					bits.writeBits(mb, Tools.signExtend(dy, mb));
+					bits.writeBits(mb, dx);
+					bits.writeBits(mb, dy);
 				}
 					
 			case SHRCurvedEdge(cdx, cdy, adx, ady):
 				bits.writeBit(true);
 				bits.writeBit(false);
 				
-				var mb = Tools.minBits([cdx, cdy, adx, ady]);
+				var mb = Tools.minBits([cdx, cdy, adx, ady]) + 1;
 				mb = if(mb < 2) 0 else mb - 2;
 				bits.writeBits(4, mb);
 				mb += 2;
 
-				bits.writeBits(mb, Tools.signExtend(cdx, mb));
-				bits.writeBits(mb, Tools.signExtend(cdy, mb));
-				bits.writeBits(mb, Tools.signExtend(adx, mb));
-				bits.writeBits(mb, Tools.signExtend(ady, mb));
+				bits.writeBits(mb, cdx);
+				bits.writeBits(mb, cdy);
+				bits.writeBits(mb, adx);
+				bits.writeBits(mb, ady);
 		}
+	}
+	
+	function writeShapeWithoutStyle(ver: Int, data: ShapeWithoutStyleData) {
+		var bitcount: {
+			var fill: Int;
+			var line: Int;
+		} = {
+			fill: 1,
+			line: 1
+		};
+		
+		bits.writeBits(4, bitcount.fill);
+		bits.writeBits(4, bitcount.line);
+		bits.flush();
+
+		for(shape_record in data.shapes) {
+			writeShapeRecord(ver, bitcount, shape_record);
+		}
+		bits.flush();
 	}
 
 	function writeShapeWithStyle(ver: Int, data: ShapeWithStyleData) {
@@ -638,20 +667,14 @@ class Writer {
 			var line: Int;
 		};
 
-		if(data.fillStyles != null && data.lineStyles != null) {
-			writeFillStyles(ver, data.fillStyles);
-			writeLineStyles(ver, data.lineStyles);
+		writeFillStyles(ver, data.fillStyles);
+		writeLineStyles(ver, data.lineStyles);
 
-			bitcount = {
-				fill: Tools.minBits([data.fillStyles.length]),
-				line: Tools.minBits([data.lineStyles.length]),
-			};
-		} else {
-			bitcount = {
-				fill: 1,
-				line: 1,
-			};
-		}
+		bitcount = {
+			fill: Tools.minBits([data.fillStyles.length]),
+			line: Tools.minBits([data.lineStyles.length]),
+		};
+		
 		bits.writeBits(4, bitcount.fill);
 		bits.writeBits(4, bitcount.line);
 		bits.flush();
@@ -663,17 +686,14 @@ class Writer {
 	}
 	
 	public function writeShape(id: Int, data: ShapeData) {
-		var old_o = o;
-		var old_bits = bits;
-		var o = new haxe.io.BytesOutput();
-		var bits = new format.tools.BitsOutput(o);
+		var old = openTMP();
 
 		o.writeUInt16(id);
 
 		switch(data) {
 			case SHDShape1(bounds, shapes):
 				writeRect(bounds);
-				writeShapeWithStyle(1, shapes);
+				writeShapeWithoutStyle(1, shapes);
 
 			case SHDShape2(bounds, shapes):
 				writeRect(bounds);
@@ -695,9 +715,7 @@ class Writer {
 		}
 
 		bits.flush();
-		var shape_data = o.getBytes();
-		o = old_o;
-		bits = old_bits;
+		var shape_data = closeTMP(old);
 
 		switch(data) {
 			case SHDShape1(bounds, shapes):
@@ -879,10 +897,7 @@ class Writer {
 	}
 
 	public function writeMorphShape(id: Int, data: MorphShapeData) {
-		var old_o = o;
-		var old_bits = bits;
-		var o = new haxe.io.BytesOutput();
-		var bits = new format.tools.BitsOutput(o);
+		var old = openTMP();
 
 		o.writeUInt16(id);
 
@@ -891,23 +906,18 @@ class Writer {
 				writeRect(sh1data.startBounds);
 				writeRect(sh1data.endBounds);
 
-				var old_o = o;
-				var old_bits = bits;
-				var o = new haxe.io.BytesOutput();
-				var bits = new format.tools.BitsOutput(o);
+				var old = openTMP();
 
 				writeMorphFillStyles(1, sh1data.fillStyles);
 				writeMorph1LineStyles(sh1data.lineStyles);
-				writeShapeWithStyle(3, sh1data.startEdges);
+				writeShapeWithoutStyle(3, sh1data.startEdges);
 				bits.flush();
 				
-				var part_data = o.getBytes();
-				o = old_o;
-				bits = old_bits;
+				var part_data = closeTMP(old);
 
 				o.writeUInt30(part_data.length);
 				o.write(part_data);
-				writeShapeWithStyle(3, sh1data.endEdges);
+				writeShapeWithoutStyle(3, sh1data.endEdges);
 
 			case MSDShape2(sh2data):
 				writeRect(sh2data.startBounds);
@@ -919,29 +929,22 @@ class Writer {
 				bits.writeBit(sh2data.useScalingStrokes);
 				bits.flush();
 
-				var old_o = o;
-				var old_bits = bits;
-				var o = new haxe.io.BytesOutput();
-				var bits = new format.tools.BitsOutput(o);
+				var old = openTMP();
 
 				writeMorphFillStyles(1, sh2data.fillStyles);
 				writeMorph2LineStyles(sh2data.lineStyles);
-				writeShapeWithStyle(4, sh2data.startEdges);
+				writeShapeWithoutStyle(4, sh2data.startEdges);
 				bits.flush();
 				
-				var part_data = o.getBytes();
-				o = old_o;
-				bits = old_bits;
+				var part_data = closeTMP(old);
 
 				o.writeUInt30(part_data.length);
 				o.write(part_data);
-				writeShapeWithStyle(4, sh2data.endEdges);
+				writeShapeWithoutStyle(4, sh2data.endEdges);
 		}
 
 		bits.flush();
-		var morph_shape_data = o.getBytes();
-		o = old_o;
-		bits = old_bits;
+		var morph_shape_data = closeTMP(old);
 
 		switch(data) {
 			case MSDShape1(sh1data):
@@ -953,6 +956,236 @@ class Writer {
 		}
 
 		o.write(morph_shape_data);
+	}
+
+	function writeFontGlyphs(glyphs: Array<ShapeWithoutStyleData>) {
+		var old = openTMP();
+
+		var offsets = new Array<Int>();
+		var offs: Int = 0;
+
+		for(shape in glyphs) {
+			offsets.push(offs);
+			
+			var old = openTMP();
+			writeShapeWithoutStyle(1, shape);
+			bits.flush();
+			var shape_data = closeTMP(old);
+
+			o.write(shape_data);
+			offs += shape_data.length;
+		}
+		
+		var glyph_data = closeTMP(old);
+
+		o.write(glyph_data);
+
+		return offsets;
+	}
+
+	function writeFont1(data: Font1Data) {
+		var old = openTMP();
+
+		var offset_table = writeFontGlyphs(data.glyphs);
+		
+		if(offset_table.length * 2 + offset_table[offset_table.length - 1] > 0xffff)
+			throw "Font version 1 only supports font sizes up to 64kB!";
+
+		bits.flush();
+		var shape_data = closeTMP(old);
+
+		var first_glyph_offset = offset_table.length * 2;
+		for(offset in offset_table) {
+			o.writeUInt16(first_glyph_offset + offset);
+		}
+
+		o.write(shape_data);
+	}
+
+	function writeFont2(hasWideChars: Bool, data: Font2Data) {
+		var glyphs = new Array<ShapeWithoutStyleData>();
+		var num_glyphs: Int = data.glyphs.length;
+		for(glyph in data.glyphs)
+			glyphs.push(glyph.shape);
+		
+		var old = openTMP();
+		var offset_table = writeFontGlyphs(glyphs);
+		bits.flush();
+		var shape_data = closeTMP(old);
+
+		// If CodeTableOffset doesn't fit into 16bits then use wide offsets (32bits)
+		var hasWideOffsets = offset_table.length * 2 + 2 + shape_data.length > 0xffff;
+
+		bits.writeBit(data.layout != null);
+		bits.writeBit(data.shiftJIS);
+		bits.writeBit(data.isSmall);
+		bits.writeBit(data.isANSI);
+		bits.writeBit(hasWideOffsets);
+		bits.writeBit(hasWideChars);
+		bits.writeBit(data.isItalic);
+		bits.writeBit(data.isBold);
+		bits.flush();
+		o.writeByte(switch(data.language) {
+			case LCNone: 0;
+			case LCLatin: 1;
+			case LCJapanese: 2;
+			case LCKorean: 3;
+			case LCSimplifiedChinese: 4;
+			case LCTraditionalChinese: 5;
+		});
+		o.writeByte(data.name.length);
+		o.writeString(data.name);
+		o.writeUInt16(num_glyphs);
+
+		if(hasWideOffsets) {
+			// OffsetTable size + CodeTabbleOffset field (32bit version)
+			var first_glyph_offset = num_glyphs * 4 + 4;
+			
+			for(offset in offset_table) {
+				o.writeUInt30(first_glyph_offset + offset);
+			}
+			o.writeUInt30(first_glyph_offset + shape_data.length);
+
+		} else {
+			// OffsetTable size + CodeTabbleOffset field (16bit version)
+			var first_glyph_offset = num_glyphs * 2 + 2;
+			
+			for(offset in offset_table) {
+				o.writeUInt16(first_glyph_offset + offset);
+			}
+			o.writeUInt16(first_glyph_offset + shape_data.length);
+		}
+
+		o.write(shape_data);
+
+		// CodeTable
+		if(hasWideChars) {
+			for(glyph in data.glyphs) {
+				o.writeUInt16(glyph.charCode);
+			}
+
+		} else {
+			for(glyph in data.glyphs)
+				o.writeByte(glyph.charCode);
+		}
+
+		if(data.layout != null) {
+			o.writeInt16(data.layout.ascent);
+			o.writeInt16(data.layout.descent);
+			o.writeInt16(data.layout.leading);
+
+			for(g in data.layout.glyphs)
+				o.writeInt16(g.advance);
+
+			for(g in data.layout.glyphs)
+				writeRect(g.bounds);
+
+			o.writeUInt16(data.layout.kerning.length);
+
+			if(hasWideChars) {
+				for(k in data.layout.kerning) {
+					o.writeUInt16(k.charCode1);
+					o.writeUInt16(k.charCode2);
+					o.writeInt16(k.adjust);
+				}
+			} else {
+				for(k in data.layout.kerning) {
+					o.writeByte(k.charCode1);
+					o.writeByte(k.charCode2);
+					o.writeInt16(k.adjust);
+				}
+
+			}
+		}
+	}
+
+	public function writeFont(id: Int, data: FontData) {
+		var old = openTMP();
+
+		o.writeUInt16(id);
+
+		switch(data) {
+			case FDFont1(data):
+				writeFont1(data);
+
+			case FDFont2(hasWideChars, data):
+				writeFont2(hasWideChars, data);
+
+			case FDFont3(data):
+				writeFont2(true, data);
+		}
+
+		bits.flush();
+		var font_data = closeTMP(old);
+
+		switch(data) {
+			case FDFont1(data):
+				writeTID(TagId.DefineFont, font_data.length);
+				
+			case FDFont2(hasWideChars, data):
+				writeTID(TagId.DefineFont2, font_data.length);
+
+			case FDFont3(data):
+				writeTID(TagId.DefineFont3, font_data.length);
+		}
+
+		o.write(font_data);
+	}
+
+	public function writeFontInfo(id: Int, data: FontInfoData) {
+		switch(data) {
+			case FIDFont1(shiftJIS, isANSI, hasWideCodes, data):
+				var data_length = if(hasWideCodes)
+					4 + data.name.length + data.codeTable.length * 2
+				else
+					4 + data.name.length + data.codeTable.length;
+
+				writeTID(TagId.DefineFontInfo, data_length);
+				o.writeUInt16(id);
+				o.writeByte(data.name.length);
+				o.writeString(data.name);
+				bits.writeBits(2, 0);
+				bits.writeBit(data.isSmall);
+				bits.writeBit(shiftJIS);
+				bits.writeBit(isANSI);
+				bits.writeBit(data.isItalic);
+				bits.writeBit(data.isBold);
+				bits.writeBit(hasWideCodes);
+
+				if(hasWideCodes) {
+					for(code in data.codeTable)
+						o.writeUInt16(code);
+
+				} else {
+					for(code in data.codeTable)
+						o.writeByte(code);
+				}
+
+			case FIDFont2(language, data):
+				writeTID(TagId.DefineFontInfo, 5 + data.name.length + data.codeTable.length * 2);
+				o.writeUInt16(id);
+				o.writeByte(data.name.length);
+				o.writeString(data.name);
+				bits.writeBits(2, 0);
+				bits.writeBit(data.isSmall);
+				bits.writeBit(false);
+				bits.writeBit(false);
+				bits.writeBit(data.isItalic);
+				bits.writeBit(data.isBold);
+				bits.writeBit(true);
+
+				o.writeByte(switch(language) {
+					case LCNone: 0;
+					case LCLatin: 1;
+					case LCJapanese: 2;
+					case LCKorean: 3;
+					case LCSimplifiedChinese: 4;
+					case LCTraditionalChinese: 5;
+				});
+
+				for(code in data.codeTable)
+					o.writeUInt16(code);
+		}
 	}
 
 	public function writeTag( t : SWFTag ) {
@@ -969,6 +1202,12 @@ class Writer {
 
 		case TMorphShape(id, data):
 			writeMorphShape(id, data);
+
+		case TFont(id, data):
+			writeFont(id, data);
+		
+		case TFontInfo(id, data):
+			writeFontInfo(id, data);
 
 		case TBinaryData(id, data):
 			writeTID(TagId.DefineBinaryData, data.length + 6);

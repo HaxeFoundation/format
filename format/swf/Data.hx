@@ -41,6 +41,8 @@ enum SWFTag {
 	TShowFrame;
 	TShape( id : Int, data : ShapeData );
 	TMorphShape( id : Int, data : MorphShapeData );
+	TFont( id : Int, data: FontData);
+	TFontInfo( id : Int, data: FontInfoData);
 	TBackgroundColor( color : Int );
 	TClip( id : Int, frames : Int, tags : Array<SWFTag> );
 	TPlaceObject2( po : PlaceObject );
@@ -76,8 +78,8 @@ typedef AS3Context = {
 }
 
 typedef SymData = {
-cid : Int, 
-		className : String 
+	cid : Int, 
+	className : String 
 }
 
 class PlaceObject {
@@ -122,8 +124,8 @@ typedef MorphShapeData1 = {
 	var endBounds: Rect;
 	var fillStyles: Array<MorphFillStyle>;
 	var lineStyles: Array<Morph1LineStyle>;
-	var startEdges: ShapeWithStyleData;
-	var endEdges: ShapeWithStyleData;
+	var startEdges: ShapeWithoutStyleData;
+	var endEdges: ShapeWithoutStyleData;
 }
 
 typedef MorphShapeData2 = {
@@ -135,8 +137,8 @@ typedef MorphShapeData2 = {
 	var useScalingStrokes: Bool;
 	var fillStyles: Array<MorphFillStyle>;
 	var lineStyles: Array<Morph2LineStyle>;
-	var startEdges: ShapeWithStyleData;
-	var endEdges: ShapeWithStyleData;
+	var startEdges: ShapeWithoutStyleData;
+	var endEdges: ShapeWithoutStyleData;
 }
 
 enum MorphFillStyle {
@@ -186,10 +188,15 @@ typedef Shape4Data = {
 	var shapes: ShapeWithStyleData;
 }
 
+// used by DefineFont
+typedef ShapeWithoutStyleData = {
+	var shapes : Array<ShapeRecord>;
+}
+
 // used by DefineShapeX
 typedef ShapeWithStyleData = {
-	var fillStyles : Array<FillStyle>; // Can be null
-	var lineStyles : Array<LineStyle>; // Can be null
+	var fillStyles : Array<FillStyle>;
+	var lineStyles : Array<LineStyle>;
 	var shapes : Array<ShapeRecord>;
 }
 
@@ -201,12 +208,11 @@ enum ShapeRecord {
 }
 
 typedef ShapeChangeRec = {
-	// each field can be null
-	var moveTo : SCRMoveTo;	
-	var fillStyle0 : SCRIndex;
-	var fillStyle1 : SCRIndex;
-	var lineStyle : SCRIndex;
-	var newStyles : SCRNewStyles;
+	var moveTo : Null<SCRMoveTo>;
+	var fillStyle0 : Null<SCRIndex>;
+	var fillStyle1 : Null<SCRIndex>;
+	var lineStyle : Null<SCRIndex>;
+	var newStyles : Null<SCRNewStyles>;
 }
 
 typedef SCRMoveTo = {
@@ -246,7 +252,7 @@ enum LineStyleData {
 typedef LS2Data = {
 	var startCap : LineCapStyle;
 	var join : LineJoinStyle;
-	var fill : LS2Fill;
+	var fill : Null<LS2Fill>;
 	var noHScale : Bool;
 	var noVScale : Bool;
 	var pixelHinting : Bool;
@@ -307,10 +313,25 @@ typedef MatrixPart = {
 	var y : Int;
 }
 
+typedef MatrixPartScale = {
+	var x: Float;
+	var y: Float;
+}
+
+typedef MatrixPartRotateSkew = {
+	var rs0: Float;
+	var rs1: Float;
+}
+
+typedef MatrixPartTranslate = {
+	var x: Int;
+	var y: Int;
+}
+
 typedef Matrix = {
-	var scale : Null<MatrixPart>;
-	var rotate : Null<MatrixPart>;
-	var translate : MatrixPart;
+	var scale : Null<MatrixPartScale>;
+	var rotate : Null<MatrixPartRotateSkew>;
+	var translate : MatrixPartTranslate;
 }
 
 typedef RGBA = {
@@ -456,4 +477,70 @@ enum SoundRate {
    SR44k; // 44100 Hz
 }
 
+enum FontData {
+	FDFont1(data: Font1Data);
+	FDFont2(hasWideChars: Bool, data: Font2Data);
+	FDFont3(data: Font2Data);
+}
 
+enum FontInfoData {
+	FIDFont1(shiftJIS: Bool, isANSI: Bool, hasWideCodes: Bool, data: FIData);
+	FIDFont2(language: LangCode, data: FIData);
+}
+
+typedef FIData = {
+	var name: String;
+	var isSmall: Bool;
+	var isItalic: Bool;
+	var isBold: Bool;
+	var codeTable: Array<Int>;
+}
+
+enum LangCode {
+	LCNone;
+	LCLatin;
+	LCJapanese;
+	LCKorean;
+	LCSimplifiedChinese;
+	LCTraditionalChinese;
+}
+
+typedef Font1Data = {
+	var glyphs: Array<ShapeWithoutStyleData>;
+}
+
+typedef Font2GlyphData = {
+	var charCode: Int;
+	var shape: ShapeWithoutStyleData;
+}
+
+typedef Font2Data = {
+	var shiftJIS: Bool;
+	var isSmall: Bool;
+	var isANSI: Bool;
+	var isItalic: Bool;
+	var isBold: Bool;
+	var language: LangCode;
+	var name: String;
+	var glyphs: Array<Font2GlyphData>;
+	var layout: Null<FontLayoutData>;
+}
+
+typedef FontKerningData = {
+	var charCode1: Int;
+	var charCode2: Int;
+	var adjust: Int;
+}
+
+typedef FontLayoutGlyphData = {
+	var advance: Int;
+	var bounds: Rect;
+}
+
+typedef FontLayoutData = {
+	var ascent: Int;
+	var descent: Int;
+	var leading: Int;
+	var glyphs: Array<FontLayoutGlyphData>;
+	var kerning: Array<FontKerningData>;
+}

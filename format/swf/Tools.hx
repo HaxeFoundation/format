@@ -52,13 +52,21 @@ class Tools {
 	public inline static function floatFixed8( i : Int ) {
 		return (i >> 8) + (i & 0xFF) / 256.0;
 	}
-
+	
 	public inline static function toFixed8( f : Float ) {
 		var i = Std.int(f);
 		if( ((i>0)?i:-i) >= 128 )
 			throw haxe.io.Error.Overflow;
 		if( i < 0 ) i = 256-i;
 		return (i << 8) | Std.int((f-i)*256.0);
+	}
+	
+	public inline static function toFixed16( f : Float ) {
+		var i = Std.int(f);
+		if( ((i>0)?i:-i) >= 32768 )
+			throw haxe.io.Error.Overflow;
+		if( i < 0 ) i = 65536-i;
+		return (i << 16) | Std.int((f-i)*65536.0);
 	}
 
 	// All values are treated as unsigned! 
@@ -126,6 +134,8 @@ class Tools {
 		case TBackgroundColor(color): [StringTools.hex(color,6)];
 		case TShape(id,sdata): ["id",id]; // TODO write when TShape final
 		case TMorphShape(id,data): ["id",id]; // TODO
+		case TFont(id,data): ["id",id]; // TODO
+		case TFontInfo(id,data): ["id",id]; // TODO
 		case TBinaryData(id,data): ["id",id,"data",hex(data,max)];
 		case TClip(id,frames,tags): ["id",id,"frames",frames];
 		case TPlaceObject2(po): [Std.string(po)];

@@ -86,10 +86,34 @@ class Reader {
 
 	function readMatrix() : Matrix {
 		bits.reset();
+
+		var scale: MatrixPartScale = null;
+		if(bits.read()) {
+			// Scale part
+			var nbits = bits.readBits(5);
+			scale.x = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+			scale.y = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+		}
+		
+		var rotate: MatrixPartRotateSkew = null;
+		if(bits.read()) {
+			// Rotate part
+			var nbits = bits.readBits(5);
+			rotate.rs0 = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+			rotate.rs1 = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+		}
+		
+		// Translate part (always present)
+		var nbits = bits.readBits(5);
+		var translate: MatrixPartTranslate = {
+			x: Tools.signExtend(bits.readBits(nbits), nbits),
+			y: Tools.signExtend(bits.readBits(nbits), nbits)
+		};
+			
 		return {
-			scale : if( bits.read() ) readMatrixPart() else null,
-			rotate : if( bits.read() ) readMatrixPart() else null,
-			translate : readMatrixPart(),
+			scale : scale,
+			rotate : rotate,
+			translate : translate
 		};
 	}
 
@@ -309,10 +333,8 @@ class Reader {
 		};
 	}
 	
-	function readShapeWithoutStyle(ver : Int) : ShapeWithStyleData {
+	function readShapeWithoutStyle(ver : Int) : ShapeWithoutStyleData {
 		return {
-			fillStyles: null,
-			lineStyles: null,
 			shapes: readShapeData(ver)
 		};
 	}
@@ -334,7 +356,6 @@ class Reader {
 				// Edge record
 				if (bits.read()) {
 					// Straight
-					trace("straight");
 					var nbits = bits.readBits(4) + 2;
 					var isGeneral = bits.read();
 					var isVertical = (!isGeneral) ? bits.read() : false;
@@ -347,27 +368,22 @@ class Reader {
 						? Tools.signExtend(bits.readBits(nbits), nbits)
 						: 0;
 
-					trace("  " + ((isGeneral) ? "G" : (isVertical ? "V" : "H")) + " " + dx + ", " + dy);
 					recs.push(SHREdge(dx, dy));
 				}
 				else {
 					// Curved
-					trace("curved");
 					var nbits = bits.readBits(4) + 2;
 					var cdx = Tools.signExtend(bits.readBits(nbits), nbits);
 					var cdy = Tools.signExtend(bits.readBits(nbits), nbits);
 					var adx = Tools.signExtend(bits.readBits(nbits), nbits);
 					var ady = Tools.signExtend(bits.readBits(nbits), nbits);
-					trace("   " + [cdx, cdy, adx, ady]);
 					recs.push(SHRCurvedEdge(cdx, cdy, adx, ady));
 				}
 			}
 			else {
-				trace("non-edge record");
 				var flags = bits.readBits(5);
 
 				if (flags == 0) {
-					trace("end");
 					// End record
 					recs.push(SHREnd);
 					break;
@@ -382,7 +398,6 @@ class Reader {
 						newStyles : null
 					};
 					if (flags & 1 != 0) {
-						trace(" move");
 						// Move 
 						var mbits = bits.readBits(5);
 						var dx = Tools.signExtend(bits.readBits(mbits), mbits);
@@ -391,33 +406,23 @@ class Reader {
 							dx: dx,
 							dy: dy
 						};
-						trace("  " + cdata.moveTo);
 					}
 					if (flags & 2 != 0) {
-						trace(" fill0");
 						cdata.fillStyle0 = { idx: bits.readBits(fillBits) }
-						trace("  " + cdata.fillStyle0);
 					}
 					if (flags & 4 != 0) {
-						trace(" fill1");
 						cdata.fillStyle1 = { idx: bits.readBits(fillBits) }
-						trace("  " + cdata.fillStyle1);
 					}
 					if (flags & 8 != 0) {
-						trace(" line");
 						cdata.lineStyle = { idx: bits.readBits(lineBits) }
-						trace("  " + cdata.lineStyle);
 					}
 					//
 					// WARN: Can Shape4 and above use the New state?
 					// doc mentions 2&3 only
 					//
 					if ((flags & 16 != 0)) {
-						trace(" new");
 						var fst = readFillStyles(ver);
-						trace("  read fills");
 						var lst = readLineStyles(ver);
-						trace("  read lines");
 						bits.reset();
 						fillBits = bits.readBits(4);
 						lineBits = bits.readBits(4);
@@ -722,6 +727,7 @@ class Reader {
 	function readMorph2LineStyle() {
 		var startWidth = i.readUInt16();
 		var endWidth = i.readUInt16();
+		bits.reset();
 		var startCapStyle = bits.readBits(2);
 		var joinStyle  = bits.readBits(2);
 		var hasFill = bits.read();
@@ -819,6 +825,7 @@ class Reader {
 			case 2:
 				var startEdgeBounds = readRect();
 				var endEdgeBounds = readRect();
+				bits.reset();
 				bits.readBits(6);
 				var useNonScalingStrokes = bits.read();
 				var useScalingStrokes = bits.read();
@@ -958,6 +965,227 @@ class Reader {
 		});
 	}
 
+	function readLanguage() {
+		return switch(i.readByte()) {
+			case 0: LangCode.LCNone;
+			case 1: LCLatin;
+			case 2: LCJapanese;
+			case 3: LCKorean;
+			case 4: LCSimplifiedChinese;
+			case 5: LCTraditionalChinese;
+			default: throw "Unknown language code!";
+		}
+	}
+
+	function readGlyphs(len: Int, offsets: Array<Int>) {
+		var shape_data = i.read(len);
+		
+		var glyphs = new Array<ShapeWithoutStyleData>();
+		if(offsets.length == 0)
+			return glyphs;
+
+		for(offs in offsets) {
+			//trace(offs);
+			var old_i = i;
+			var old_bits = bits;
+			i = new haxe.io.BytesInput(shape_data, offs);
+			bits = new format.tools.BitsInput(i);
+
+			glyphs.push(readShapeWithoutStyle(1));
+
+			i = old_i;
+			bits = old_bits;
+		}
+
+		return glyphs;
+	}
+
+	function readKerningRecord(hasWideCodes: Bool) {
+		return {
+			charCode1: if(hasWideCodes) i.readUInt16() else i.readByte(),
+			charCode2: if(hasWideCodes) i.readUInt16() else i.readByte(),
+			adjust: i.readInt16()
+		};
+	}
+
+	function readFont1Data(len: Int) {
+		var offs1 = i.readUInt16();
+		var num_glyphs = offs1 >> 1;
+
+		var offset_table = new Array<Int>();
+
+		offset_table.push(0);
+		for(j in 1...num_glyphs)
+			offset_table.push(i.readUInt16() - offs1);
+
+		return FDFont1({
+			glyphs: readGlyphs(len - 2 - num_glyphs * 2, offset_table)
+		});
+	}
+
+	function readFont2Data(ver: Int) {
+		bits.reset();
+		var hasLayout = bits.read();
+		var shiftJIS = bits.read();
+		var isSmall = bits.read();
+		var isANSI = bits.read();
+		var hasWideOffsets = bits.read();
+		var hasWideCodes = bits.read();
+		var isItalic = bits.read();
+		var isBold = bits.read();
+
+		var language = readLanguage();
+		var name = i.readString(i.readByte());
+		var num_glyphs = i.readUInt16();
+
+		var offset_table = new Array<Int>();
+		var shape_data_length: Int = 0;
+		if(hasWideOffsets) {
+			var first_glyph_offset = num_glyphs * 4 + 4;
+
+			for(j in 0...num_glyphs)
+				offset_table.push(i.readUInt30() - first_glyph_offset);
+
+			var code_table_offset = i.readUInt30();
+			shape_data_length = code_table_offset - first_glyph_offset;
+		
+		} else {
+			var first_glyph_offset = num_glyphs * 2 + 2;
+			for(j in 0...num_glyphs) {
+				var offs = i.readUInt16();
+				offset_table.push(offs - first_glyph_offset);
+			}
+			
+			var code_table_offset = i.readUInt16();
+			shape_data_length = code_table_offset - first_glyph_offset;
+		}
+
+		var glyph_shapes = readGlyphs(shape_data_length, offset_table);
+		var glyphs = new Array<Font2GlyphData>();
+
+		if(hasWideCodes) {
+			for(j in 0...num_glyphs)
+				glyphs.push({
+					charCode: i.readUInt16(),
+					shape: glyph_shapes[j]
+				});
+
+		} else {
+			for(j in 0...num_glyphs)
+				glyphs.push({
+					charCode: i.readByte(),
+					shape: glyph_shapes[j]
+				});
+		}
+
+		var layout: Null<FontLayoutData> = null;
+		if(hasLayout) {
+			var ascent = i.readInt16();
+			var descent = i.readInt16();
+			var leading = i.readInt16();
+			
+			var advance_table = new Array<Int>();
+			for(j in 0...num_glyphs)
+				advance_table.push(i.readInt16());
+
+			var glyph_layout = new Array<FontLayoutGlyphData>();
+			for(j in 0...num_glyphs) {
+				var bounds = readRect();
+
+				glyph_layout.push({
+					advance: advance_table[j],
+					bounds: bounds
+				});
+			}
+
+			var num_kerning = i.readUInt16();
+			var kerning = new Array<FontKerningData>();
+			for(i in 0...num_kerning)
+				kerning.push(readKerningRecord(hasWideCodes));
+
+			layout = {
+				ascent: ascent,
+				descent: descent,
+				leading: leading,
+				glyphs: glyph_layout,
+				kerning: kerning
+			};
+		}
+
+		var f2data: Font2Data = {
+			shiftJIS: shiftJIS,
+			isSmall: isSmall,
+			isANSI: isANSI,
+			isItalic: isItalic,
+			isBold: isBold,
+			language: language,
+			name: name,
+			glyphs: glyphs,
+			layout: layout
+		};
+
+		return switch(ver) {
+			case 2: FDFont2(hasWideCodes, f2data);
+			case 3: FDFont3(f2data);
+		};
+	}
+
+	function readFont(len: Int, ver: Int) {
+		var cid = i.readUInt16();
+
+		return TFont(cid, switch(ver) {
+			case 1:
+				readFont1Data(len);
+
+			case 2:
+				readFont2Data(ver);
+
+			case 3:
+				readFont2Data(ver);
+		});
+	}
+
+	function readFontInfo(len:Int, ver: Int) {
+		var cid = i.readUInt16();
+		var name = i.readString(i.readByte());
+
+		bits.reset();
+		bits.readBits(2);
+		var isSmall = bits.read();
+		var shiftJIS = bits.read();
+		var isANSI = bits.read();
+		var isItalic = bits.read();
+		var isBold = bits.read();
+		var hasWideCodes = bits.read();
+		var language = if(ver == 2) readLanguage() else LangCode.LCNone;
+
+		var num_glyphs = len - 4 - name.length;
+		var code_table = new Array<Int>();
+		
+		if(hasWideCodes) {
+			num_glyphs >>= 1;
+			for(j in 0...num_glyphs)
+				code_table.push(i.readUInt16());
+
+		} else { 
+			for(j in 0...num_glyphs)
+				code_table.push(i.readByte());
+		}
+
+		var fi_data: FIData = {
+			name: name,
+			isSmall: isSmall,
+			isItalic: isItalic,
+			isBold: isBold,
+			codeTable: code_table
+		};
+
+		return TFontInfo(cid, switch(ver) {
+			case 1: FIDFont1(shiftJIS, isANSI, hasWideCodes, fi_data);
+			case 2: FIDFont2(language, fi_data);
+		});
+	}
+
 	public function readTag() : SWFTag {
 		var h = i.readUInt16();
 		var id = h >> 6;
@@ -984,6 +1212,18 @@ class Reader {
 			readMorphShape(1);
 		case TagId.DefineMorphShape2:
 			readMorphShape(2);
+		
+		case TagId.DefineFont:
+			readFont(len, 1);
+		case TagId.DefineFont2:
+			readFont(len, 2);
+		case TagId.DefineFont3:
+			readFont(len, 3);
+		case TagId.DefineFontInfo:
+			readFontInfo(len, 1);
+		case TagId.DefineFontInfo2:
+			readFontInfo(len, 2);
+		
 		case TagId.SetBackgroundColor:
 			TBackgroundColor(i.readUInt24());
 		case TagId.DefineBitsLossless:
