@@ -993,7 +993,6 @@ class Reader {
 			return glyphs;
 
 		for(offs in offsets) {
-			//trace(offs);
 			var old_i = i;
 			var old_bits = bits;
 			i = new haxe.io.BytesInput(shape_data, offs);

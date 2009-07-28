@@ -396,6 +396,7 @@ class Writer {
 
 		bits.writeBits(2, spread_mode);
 		bits.writeBits(2, interpolation_mode);
+		bits.writeBits(4, num_records);
 		bits.flush();
 
 		for(grad_record in grad.data) {
@@ -462,6 +463,8 @@ class Writer {
 
 	function writeFillStyles(ver: Int, fill_styles: Array<FillStyle>) {
 		var num_styles = fill_styles.length;
+
+		bits.flush();
 
 		if(num_styles > 254) {
 			if(ver >= 2) {
@@ -539,6 +542,8 @@ class Writer {
 	function writeLineStyles(ver: Int, line_styles: Array<LineStyle>) {
 		var num_styles = line_styles.length;
 
+		bits.flush();
+
 		if(num_styles > 254) {
 			if(ver >= 2) {
 				o.writeByte(0xff);
@@ -553,7 +558,7 @@ class Writer {
 		}
 	}
 
-	function writeShapeRecord(ver: Int, bitcount: {fill: Int, line: Int}, shape_record: ShapeRecord) {
+	function writeShapeRecord(ver: Int, style_info: StyleInfo, shape_record: ShapeRecord) {
 		switch(shape_record) {
 			case SHREnd:
 				bits.writeBit(false);
@@ -582,24 +587,28 @@ class Writer {
 				}
 
 				if(data.fillStyle0 != null) {
-					bits.writeBits(bitcount.fill, data.fillStyle0.idx);
+					bits.writeBits(style_info.fillBits, data.fillStyle0.idx);
 				}
 				
 				if(data.fillStyle1 != null) {
-					bits.writeBits(bitcount.fill, data.fillStyle1.idx);
+					bits.writeBits(style_info.fillBits, data.fillStyle1.idx);
 				}
 				
 				if(data.lineStyle != null) {
-					bits.writeBits(bitcount.line, data.lineStyle.idx);
+					bits.writeBits(style_info.lineBits, data.lineStyle.idx);
 				}
 
 				if(data.newStyles != null) {
 					writeFillStyles(ver, data.newStyles.fillStyles);
 					writeLineStyles(ver, data.newStyles.lineStyles);
-					bitcount.fill = Tools.minBits([data.newStyles.fillStyles.length]);
-					bitcount.line = Tools.minBits([data.newStyles.lineStyles.length]);
-					bits.writeBits(4, bitcount.fill);
-					bits.writeBits(4, bitcount.line);
+					
+					style_info.numFillStyles += data.newStyles.fillStyles.length;
+					style_info.numLineStyles += data.newStyles.lineStyles.length;
+					style_info.fillBits = Tools.minBits([style_info.numFillStyles]);
+					style_info.lineBits = Tools.minBits([style_info.numLineStyles]);
+					
+					bits.writeBits(4, style_info.fillBits);
+					bits.writeBits(4, style_info.lineBits);
 				}
 
 			case SHREdge(dx, dy):
@@ -643,44 +652,40 @@ class Writer {
 	}
 	
 	function writeShapeWithoutStyle(ver: Int, data: ShapeWithoutStyleData) {
-		var bitcount: {
-			var fill: Int;
-			var line: Int;
-		} = {
-			fill: 1,
-			line: 1
+		var style_info: StyleInfo = {
+			numFillStyles: 0,
+			fillBits: 1,
+			numLineStyles: 0,
+			lineBits: 1
 		};
 		
-		bits.writeBits(4, bitcount.fill);
-		bits.writeBits(4, bitcount.line);
+		bits.writeBits(4, style_info.fillBits);
+		bits.writeBits(4, style_info.lineBits);
 		bits.flush();
 
 		for(shape_record in data.shapes) {
-			writeShapeRecord(ver, bitcount, shape_record);
+			writeShapeRecord(ver, style_info, shape_record);
 		}
 		bits.flush();
 	}
 
 	function writeShapeWithStyle(ver: Int, data: ShapeWithStyleData) {
-		var bitcount: {
-			var fill: Int;
-			var line: Int;
-		};
-
 		writeFillStyles(ver, data.fillStyles);
 		writeLineStyles(ver, data.lineStyles);
 
-		bitcount = {
-			fill: Tools.minBits([data.fillStyles.length]),
-			line: Tools.minBits([data.lineStyles.length]),
+		var style_info: StyleInfo = {
+			numFillStyles: data.fillStyles.length,
+			fillBits: Tools.minBits([data.fillStyles.length]),
+			numLineStyles: data.lineStyles.length,
+			lineBits: Tools.minBits([data.lineStyles.length]),
 		};
 		
-		bits.writeBits(4, bitcount.fill);
-		bits.writeBits(4, bitcount.line);
+		bits.writeBits(4, style_info.fillBits);
+		bits.writeBits(4, style_info.lineBits);
 		bits.flush();
 
 		for(shape_record in data.shapes) {
-			writeShapeRecord(ver, bitcount, shape_record);
+			writeShapeRecord(ver, style_info, shape_record);
 		}
 		bits.flush();
 	}
@@ -693,7 +698,7 @@ class Writer {
 		switch(data) {
 			case SHDShape1(bounds, shapes):
 				writeRect(bounds);
-				writeShapeWithoutStyle(1, shapes);
+				writeShapeWithStyle(1, shapes);
 
 			case SHDShape2(bounds, shapes):
 				writeRect(bounds);
@@ -789,6 +794,8 @@ class Writer {
 	function writeMorphFillStyles(ver: Int, fill_styles: Array<MorphFillStyle>) {
 		var num_styles = fill_styles.length;
 
+		bits.flush();
+
 		if(num_styles > 254) {
 			o.writeByte(0xff);
 			o.writeUInt16(num_styles);
@@ -809,6 +816,8 @@ class Writer {
 
 	function writeMorph1LineStyles(line_styles: Array<Morph1LineStyle>) {
 		var num_styles = line_styles.length;
+
+		bits.flush();
 
 		if(num_styles > 254) {
 			o.writeByte(0xff);
@@ -884,6 +893,8 @@ class Writer {
 	
 	function writeMorph2LineStyles(line_styles: Array<Morph2LineStyle>) {
 		var num_styles = line_styles.length;
+
+		bits.flush();
 
 		if(num_styles > 254) {
 			o.writeByte(0xff);

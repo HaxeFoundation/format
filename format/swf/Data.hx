@@ -544,3 +544,11 @@ typedef FontLayoutData = {
 	var glyphs: Array<FontLayoutGlyphData>;
 	var kerning: Array<FontKerningData>;
 }
+
+// Used internally by Writer.writeShapeXXX methods
+typedef StyleInfo = {
+	var numFillStyles: Int;
+	var fillBits: Int;
+	var numLineStyles: Int;
+	var lineBits: Int;
+}
