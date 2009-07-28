@@ -91,16 +91,24 @@ class Reader {
 		if(bits.read()) {
 			// Scale part
 			var nbits = bits.readBits(5);
-			scale.x = Tools.floatFixedBits(bits.readBits(nbits), nbits);
-			scale.y = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+			var _x = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+			var _y = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+			scale = {
+				x: _x,
+				y: _y
+			}
 		}
 		
 		var rotate: MatrixPartRotateSkew = null;
 		if(bits.read()) {
 			// Rotate part
 			var nbits = bits.readBits(5);
-			rotate.rs0 = Tools.floatFixedBits(bits.readBits(nbits), nbits);
-			rotate.rs1 = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+			var _rs0 = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+			var _rs1 = Tools.floatFixedBits(bits.readBits(nbits), nbits);
+			rotate = {
+				rs0: _rs0,
+				rs1: _rs1
+			}
 		}
 		
 		// Translate part (always present)
