@@ -66,12 +66,11 @@ class Reader {
 	function readRect() {
 		bits.reset();
 		var nbits = bits.readBits(5);
-		bitsRead = 5 + 4*nbits;
 		return {
-			left : bits.readBits(nbits),
-			right : bits.readBits(nbits),
-			top : bits.readBits(nbits),
-			bottom : bits.readBits(nbits),
+			left : Tools.signExtend(bits.readBits(nbits), nbits),
+			right : Tools.signExtend(bits.readBits(nbits), nbits),
+			top : Tools.signExtend(bits.readBits(nbits), nbits),
+			bottom : Tools.signExtend(bits.readBits(nbits), nbits),
 		};
 	}
 

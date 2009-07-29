@@ -107,6 +107,7 @@ class Writer {
 	}
 
 	function writeMatrix( m : Matrix ) {
+		bits.flush();
 		if( m.scale != null ) {
 			bits.writeBit(true);
 
