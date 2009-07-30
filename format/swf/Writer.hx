@@ -31,6 +31,17 @@ package format.swf;
 import format.swf.Data;
 import format.swf.Constants;
 
+/*
+ *	Used during shape writing to keep track of the number of actual fill and line styles
+ *	and the minimum number of bits required for indexing.
+*/
+typedef ShapeStyleInfo = {
+	var numFillStyles: Int;
+	var fillBits: Int;
+	var numLineStyles: Int;
+	var lineBits: Int;
+}
+
 class Writer {
 
 	var output : haxe.io.Output;
@@ -471,7 +482,9 @@ class Writer {
 			if(ver >= 2) {
 				o.writeByte(0xff);
 				o.writeUInt16(num_styles);
-			} else
+			} else if(num_styles == 255)
+				o.writeByte(255);
+			else
 				throw "Too much fill styles ("+num_styles+") for Shape version 1";
 		} else
 			o.writeByte(num_styles);
@@ -549,7 +562,9 @@ class Writer {
 			if(ver >= 2) {
 				o.writeByte(0xff);
 				o.writeUInt16(num_styles);
-			} else
+			} else if(num_styles == 255)
+				o.writeByte(255);
+			else
 				throw "Too much line styles ("+num_styles+") for Shape version 1";
 		} else
 			o.writeByte(num_styles);
@@ -559,7 +574,7 @@ class Writer {
 		}
 	}
 
-	function writeShapeRecord(ver: Int, style_info: StyleInfo, shape_record: ShapeRecord) {
+	function writeShapeRecord(ver: Int, style_info: ShapeStyleInfo, shape_record: ShapeRecord) {
 		switch(shape_record) {
 			case SHREnd:
 				bits.writeBit(false);
@@ -653,7 +668,7 @@ class Writer {
 	}
 	
 	function writeShapeWithoutStyle(ver: Int, data: ShapeWithoutStyleData) {
-		var style_info: StyleInfo = {
+		var style_info: ShapeStyleInfo = {
 			numFillStyles: 0,
 			fillBits: 1,
 			numLineStyles: 0,
@@ -664,8 +679,8 @@ class Writer {
 		bits.writeBits(4, style_info.lineBits);
 		bits.flush();
 
-		for(shape_record in data.shapes) {
-			writeShapeRecord(ver, style_info, shape_record);
+		for(shr in data.shapeRecords) {
+			writeShapeRecord(ver, style_info, shr);
 		}
 		bits.flush();
 	}
@@ -674,7 +689,7 @@ class Writer {
 		writeFillStyles(ver, data.fillStyles);
 		writeLineStyles(ver, data.lineStyles);
 
-		var style_info: StyleInfo = {
+		var style_info: ShapeStyleInfo = {
 			numFillStyles: data.fillStyles.length,
 			fillBits: Tools.minBits([data.fillStyles.length]),
 			numLineStyles: data.lineStyles.length,
@@ -685,8 +700,8 @@ class Writer {
 		bits.writeBits(4, style_info.lineBits);
 		bits.flush();
 
-		for(shape_record in data.shapes) {
-			writeShapeRecord(ver, style_info, shape_record);
+		for(shr in data.shapeRecords) {
+			writeShapeRecord(ver, style_info, shr);
 		}
 		bits.flush();
 	}

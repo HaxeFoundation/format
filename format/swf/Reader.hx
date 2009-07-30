@@ -336,13 +336,13 @@ class Reader {
 		return {
 			fillStyles: fillStyles,
 			lineStyles: lineStyles,
-			shapes: readShapeData(ver)
+			shapeRecords: readShapeRecords(ver)
 		};
 	}
 	
 	function readShapeWithoutStyle(ver : Int) : ShapeWithoutStyleData {
 		return {
-			shapes: readShapeData(ver)
+			shapeRecords: readShapeRecords(ver)
 		};
 	}
 
@@ -350,7 +350,7 @@ class Reader {
 	//
 	// reads a SHAPE field
 	//
-	function readShapeData(ver : Int) : Array<ShapeRecord> {
+	function readShapeRecords(ver : Int) : Array<ShapeRecord> {
 		bits.reset();
 		var fillBits = bits.readBits(4);
 		var lineBits = bits.readBits(4);

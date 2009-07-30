@@ -190,14 +190,14 @@ typedef Shape4Data = {
 
 // used by DefineFont
 typedef ShapeWithoutStyleData = {
-	var shapes : Array<ShapeRecord>;
+	var shapeRecords : Array<ShapeRecord>;
 }
 
 // used by DefineShapeX
 typedef ShapeWithStyleData = {
 	var fillStyles : Array<FillStyle>;
 	var lineStyles : Array<LineStyle>;
-	var shapes : Array<ShapeRecord>;
+	var shapeRecords : Array<ShapeRecord>;
 }
 
 enum ShapeRecord {
@@ -545,10 +545,3 @@ typedef FontLayoutData = {
 	var kerning: Array<FontKerningData>;
 }
 
-// Used internally by Writer.writeShapeXXX methods
-typedef StyleInfo = {
-	var numFillStyles: Int;
-	var fillBits: Int;
-	var numLineStyles: Int;
-	var lineBits: Int;
-}
