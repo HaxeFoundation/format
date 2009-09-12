@@ -146,7 +146,13 @@ class Tools {
 		case TActionScript3(data,context): ["context",context,"data",hex(data,max)];
 		case TSymbolClass(symbols): [Std.string(symbols)];
 		case TExportAssets(symbols): [Std.string(symbols)];
-		case TSandBox(v): [v];
+	   case TSandBox(useDirectBlit, useGpu, hasMeta, useAs3, useNetwork): [
+         "directBlit", useDirectBlit,
+         "gpu", useGpu,
+         "meta/symbols", hasMeta,
+         "as3", useAs3,
+         "net", useNetwork
+      ];
 		case TBitsLossless(l),TBitsLossless2(l): ["id",l.cid,"color",l.color,"width",l.width,"height",l.height,"data",hex(l.data,max)];
 		case TJPEGTables(data): ["data", hex(data,max)];
 		case TBitsJPEG(id, jdata): 

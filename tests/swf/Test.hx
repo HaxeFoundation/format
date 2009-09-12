@@ -139,8 +139,13 @@ class Test {
 			if( bytes.compare(data) != 0 )
 				throw "ERROR";
 			str;
-		case TSandBox(n):
-			"Sandbox 0x"+StringTools.hex(n);
+	   case TSandBox(useDirectBlit, useGpu, hasMeta, useAs3, useNetwork):
+			"Sandbox " + 
+         (useDirectBlit ? " directBlit" : "") +
+         (useGpu ? " gpu" : "") +
+         (hasMeta ? " meta/symbold" : "") +
+         (useAs3 ? " as3" : "") +
+         (useNetwork ? " network" : "");
 		case TSymbolClass(sl):
 			var str = "Symbols";
 			for( s in sl )
@@ -175,6 +180,9 @@ class Test {
 				" (format not yet supported) ";
 			};
 			"Sound [#"+s.sid+","+s.format+","+s.rate+desc+"]";
+
+      default:
+         "<Implement!>";
 		};
 	}
 

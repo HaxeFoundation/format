@@ -53,7 +53,7 @@ enum SWFTag {
 	TActionScript3( data : haxe.io.Bytes, ?context : AS3Context );
 	TSymbolClass( symbols : Array<SymData> );
 	TExportAssets( symbols : Array<SymData> );
-	TSandBox( v : Int );
+	TSandBox( useDirectBlit : Bool, useGpu : Bool, hasMeta: Bool, useAs3: Bool, useNetwork: Bool);
 	TBitsLossless( data : Lossless );
 	TBitsLossless2( data : Lossless );
 	TBitsJPEG( id : Int, data : JPEGData );

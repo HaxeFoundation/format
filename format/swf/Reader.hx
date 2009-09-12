@@ -1201,19 +1201,7 @@ class Reader {
 			len = i.readUInt30();
 			if( len < 63 ) ext = true;
 		}
-		 
-		// It's safer to read the whole tag than to rely on
-		// reading every data. For example swfc from swftools
-		// creates SetBackgroundColor tag with a length of 5
-		// (I don't know why) but the reader reads only 3 bytes
-		// and gets confused afer that.
-		// -- KukkerMan
-		var old_i = i;
-		var old_bits = bits;
-		i = new haxe.io.BytesInput(i.read(len));
-		bits = new format.tools.BitsInput(i);
-
-		var tag = switch( id ) {
+		return switch( id ) {
 		case TagId.End:
 			null;
 		case TagId.ShowFrame:
@@ -1281,7 +1269,16 @@ class Reader {
 			var cid = i.readUInt16();
 			TDoInitActions(cid,i.read(len-2));
 		case TagId.FileAttributes:
-			TSandBox(i.readUInt30());
+         bits.reset();
+         bits.read();
+         var useDirectBlit = bits.read();
+         var useGpu = bits.read();
+         var hasMeta = bits.read();
+         var useAs3 = bits.read();
+         bits.readBits(2);
+         var useNetwork = bits.read();
+         bits.readBits(24);
+			TSandBox(useDirectBlit, useGpu, hasMeta, useAs3, useNetwork);
 		case TagId.RawABC:
 			TActionScript3(i.read(len),null);
 		case TagId.SymbolClass:
@@ -1304,12 +1301,7 @@ class Reader {
 		default:
 			var data = i.read(len);
 			TUnknown(id,data);
-		};
-
-		i = old_i;
-		bits = old_bits;
-
-		return tag;
+		}
 	}
 
 	public function read() : SWF {

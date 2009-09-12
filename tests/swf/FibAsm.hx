@@ -81,7 +81,7 @@ class FibAsm {
 			compressed : false,
 		};
 		var tags = [
-			TSandBox(25),
+			TSandBox(false, false, true, true, false),
 			TActionScript3(abc),
 			TShowFrame,
 		];

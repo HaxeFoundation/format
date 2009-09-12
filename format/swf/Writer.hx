@@ -1304,9 +1304,17 @@ class Writer {
 		case TExportAssets(sl):
 			writeSymbols(sl, TagId.ExportAssets);
 
-		case TSandBox(n):
+		case TSandBox(useDirectBlit, useGpu, hasMeta, useAs3, useNetwork):
 			writeTID(TagId.FileAttributes,4);
-			o.writeUInt30(n);
+         bits.writeBit(false);
+         bits.writeBit(useDirectBlit);
+         bits.writeBit(useGpu);
+         bits.writeBit(hasMeta);
+         bits.writeBit(useAs3);
+         bits.writeBits(2, 0);
+         bits.writeBit(useNetwork);
+         bits.writeBits(24, 0);
+         bits.flush();
 
 		case TBitsLossless(l):
 			var cbits = switch( l.color ) { case CM8Bits(n): n; default: null; };
