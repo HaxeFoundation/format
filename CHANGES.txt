@@ -1,3 +1,6 @@
+2009-??-??: 1.14
+	png : added
+
 2009-09-11: 1.13
 	zip : added extra fields handling
 	zip : fixed .run was renamed to .execute in haXe 2.04

@@ -37,6 +37,11 @@ import format.pdf.Filter;
 import format.pdf.Reader;
 //import format.pdf.Writer;
 
+import format.png.Data;
+import format.png.Reader;
+import format.png.Tools;
+import format.png.Writer;
+
 import format.swf.Constants;
 import format.swf.Data;
 import format.swf.Reader;
@@ -51,6 +56,18 @@ import format.zip.Data;
 import format.zip.Reader;
 import format.zip.Tools;
 import format.zip.Writer;
+
+import format.tools.Adler32;
+import format.tools.ArcFour;
+import format.tools.BitsInput;
+import format.tools.BitsOutput;
+import format.tools.CRC32;
+import format.tools.Deflate;
+import format.tools.Huffman;
+import format.tools.IO;
+import format.tools.Inflate;
+import format.tools.InflateImpl;
+import format.tools.MD5;
 
 class All {
 

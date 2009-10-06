@@ -1,0 +1,10 @@
+﻿<haxe selected="0">
+  <output name="hxpng" mode="neko" out="hxpng.n" class="Test" lib="" cmd="run.bat" main="True" debug="False">-cp ../..</output>
+  <files path="/">
+    <file path="..\..\format\png\Data.hx" />
+    <file path="..\..\format\png\Reader.hx" />
+    <file path="Test.hx" />
+    <file path="..\..\format\png\Tools.hx" />
+    <file path="..\..\format\png\Writer.hx" />
+  </files>
+</haxe>

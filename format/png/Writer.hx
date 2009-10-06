@@ -1,7 +1,7 @@
 /*
  * format - haXe File Formats
  *
- * Copyright (c) 2008, The haXe Project Contributors
+ * Copyright (c) 2008-2009, The haXe Project Contributors
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -24,58 +24,59 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.tools;
-import haxe.Int32;
+package format.png;
+import format.png.Data;
 
-class CRC32 {
+class Writer {
 
-	static inline var POLYNOM = Int32.make(0xEDB8, 0x8320);
-	var crc : haxe.Int32;
+	var o : haxe.io.Output;
 
-	public function new() {
-		crc = Int32.make(0xFFFF,0xFFFF);
+	public function new(o) {
+		this.o = o;
+		o.bigEndian = true;
 	}
 
-	public function run( b : haxe.io.Bytes ) {
-		var crc = crc;
-		var polynom = POLYNOM;
-		for( i in 0...b.length ) {
-			var tmp = Int32.and( Int32.xor(crc,cast b.get(i)), cast 0xFF );
-			for( j in 0...8 ) {
-				if( Int32.and(tmp,cast 1) == cast 1 )
-					tmp = Int32.xor(Int32.ushr(tmp,1),polynom);
-				else
-					tmp = Int32.ushr(tmp,1);
+	public function write( png : Data ) {
+		for( b in [137,80,78,71,13,10,26,10] )
+			o.writeByte(b);
+		for( c in png )
+			switch( c ) {
+			case CHeader(h):
+				var b = new haxe.io.BytesOutput();
+				b.bigEndian = true;
+				b.writeUInt30(h.width);
+				b.writeUInt30(h.height);
+				b.writeByte(h.colbits);
+				b.writeByte(switch( h.color ) {
+					case ColGrey(alpha): alpha ? 4 : 0;
+					case ColTrue(alpha): alpha ? 6 : 2;
+					case ColIndexed: 3;
+				});
+				b.writeByte(0);
+				b.writeByte(0);
+				b.writeByte(h.interlaced ? 1 : 0);
+				writeChunk("IHDR",b.getBytes());
+			case CEnd:
+				writeChunk("IEND",haxe.io.Bytes.alloc(0));
+			case CData(d):
+				writeChunk("IDAT",d);
+			case CPalette(b):
+				writeChunk("PLTE",b);
+			case CUnknown(id,data):
+				writeChunk(id,data);
 			}
-			crc = Int32.xor(Int32.ushr(crc,8), tmp);
-		}
-		this.crc = crc;
 	}
 
-	public function byte( b : Int ) {
-		var polynom = POLYNOM;
-		var tmp = Int32.and( Int32.xor(crc,cast b), cast 0xFF );
-		for( j in 0...8 ) {
-			if( Int32.and(tmp,cast 1) == cast 1 )
-				tmp = Int32.xor(Int32.ushr(tmp,1),polynom);
-			else
-				tmp = Int32.ushr(tmp,1);
-		}
-		crc = Int32.xor(Int32.ushr(crc,8), tmp);
+	function writeChunk( id : String, data : haxe.io.Bytes ) {
+		o.writeUInt30(data.length);
+		o.writeString(id);
+		o.write(data);
+		// compute CRC
+		var crc = new format.tools.CRC32();
+		for( i in 0...4 )
+			crc.byte(id.charCodeAt(i));
+		crc.run(data);
+		o.writeInt32(crc.get());
 	}
 
-	public function get() {
-		return Int32.xor(crc, Int32.make(0xFFFF,0xFFFF));
-	}
-
-	/*
-	 *  Function computes CRC32 code of a given string.
-	 *  Warning: returns Int32 as result uses all 32 bits
-	 *  UTF - 8 coding is not supported
-	 */
-	public static function encode( b : haxe.io.Bytes ) : Int32 {
-		var c = new CRC32();
-		c.run(b);
-		return c.get();
-	}
 }

@@ -1,7 +1,7 @@
 /*
  * format - haXe File Formats
  *
- * Copyright (c) 2008, The haXe Project Contributors
+ * Copyright (c) 2008-2009, The haXe Project Contributors
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -24,58 +24,28 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.tools;
-import haxe.Int32;
+package format.png;
 
-class CRC32 {
-
-	static inline var POLYNOM = Int32.make(0xEDB8, 0x8320);
-	var crc : haxe.Int32;
-
-	public function new() {
-		crc = Int32.make(0xFFFF,0xFFFF);
-	}
-
-	public function run( b : haxe.io.Bytes ) {
-		var crc = crc;
-		var polynom = POLYNOM;
-		for( i in 0...b.length ) {
-			var tmp = Int32.and( Int32.xor(crc,cast b.get(i)), cast 0xFF );
-			for( j in 0...8 ) {
-				if( Int32.and(tmp,cast 1) == cast 1 )
-					tmp = Int32.xor(Int32.ushr(tmp,1),polynom);
-				else
-					tmp = Int32.ushr(tmp,1);
-			}
-			crc = Int32.xor(Int32.ushr(crc,8), tmp);
-		}
-		this.crc = crc;
-	}
-
-	public function byte( b : Int ) {
-		var polynom = POLYNOM;
-		var tmp = Int32.and( Int32.xor(crc,cast b), cast 0xFF );
-		for( j in 0...8 ) {
-			if( Int32.and(tmp,cast 1) == cast 1 )
-				tmp = Int32.xor(Int32.ushr(tmp,1),polynom);
-			else
-				tmp = Int32.ushr(tmp,1);
-		}
-		crc = Int32.xor(Int32.ushr(crc,8), tmp);
-	}
-
-	public function get() {
-		return Int32.xor(crc, Int32.make(0xFFFF,0xFFFF));
-	}
-
-	/*
-	 *  Function computes CRC32 code of a given string.
-	 *  Warning: returns Int32 as result uses all 32 bits
-	 *  UTF - 8 coding is not supported
-	 */
-	public static function encode( b : haxe.io.Bytes ) : Int32 {
-		var c = new CRC32();
-		c.run(b);
-		return c.get();
-	}
+enum Color {
+	ColGrey( alpha : Bool ) ; // 1|2|4|8|16 without alpha , 8|16 with alpha
+	ColTrue( alpha : Bool ); // 8|16
+	ColIndexed; // 1|2|4|8
 }
+
+typedef Header = {
+	var width : Int;
+	var height : Int;
+	var colbits : Int;
+	var color : Color;
+	var interlaced : Bool;
+}
+
+enum Chunk {
+	CEnd;
+	CHeader( h : Header );
+	CData( b : haxe.io.Bytes );
+	CPalette( b : haxe.io.Bytes );
+	CUnknown( id : String, data : haxe.io.Bytes );
+}
+
+typedef Data = List<Chunk>;
