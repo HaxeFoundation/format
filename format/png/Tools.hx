@@ -115,8 +115,29 @@ class Tools {
 		l.add(CEnd);
 		return l;
 	}
+	
+	public static function build32BE( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
+		// translate ARGB to RGBA and add filter byte
+		var w = 0, r = 0;
+		for( y in 0...height ) {
+			rgba.set(w++,0); // no filter for this scanline
+			for( x in 0...width ) {
+				rgba.set(w++,data.get(r+1)); // r
+				rgba.set(w++,data.get(r+2)); // g
+				rgba.set(w++,data.get(r+3)); // b
+				rgba.set(w++,data.get(r)); // a
+				r += 4;
+			}
+		}
+		var l = new List();
+		l.add(CHeader({ width : width, height : height, colbits : 8, color : ColTrue(true), interlaced : false }));
+		l.add(CData(format.tools.Deflate.run(rgba)));
+		l.add(CEnd);
+		return l;
+	}	
 
-	public static function build32( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+	public static function build32LE( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
 		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
 		// translate ARGB to RGBA and add filter byte
 		var w = 0, r = 0;
