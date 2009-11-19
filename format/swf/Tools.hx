@@ -84,7 +84,7 @@ class Tools {
 			x |= (x >> 16);
 
 			// Compute ones count (equals the number of bits to represent original value)
-			x -= ((x >> 1) & 0x55555555);
+			x -= ((x >> 1) & 0x15555555);
 			x = (((x >> 2) & 0x33333333) + (x & 0x33333333));
 			x = (((x >> 4) + x) & 0x0f0f0f0f);
 			x += (x >> 8);
