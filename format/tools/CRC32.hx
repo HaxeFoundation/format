@@ -36,13 +36,21 @@ class CRC32 {
 		crc = Int32.make(0xFFFF,0xFFFF);
 	}
 
+	inline function i32(i:Int) : Int32 {
+		#if neko
+		return cast i;
+		#else
+		return Int32.ofInt(i);
+		#end
+	}
+
 	public function run( b : haxe.io.Bytes ) {
 		var crc = crc;
 		var polynom = POLYNOM;
 		for( i in 0...b.length ) {
-			var tmp = Int32.and( Int32.xor(crc,cast b.get(i)), cast 0xFF );
+			var tmp = Int32.and( Int32.xor(crc,i32(b.get(i))), i32(0xFF) );
 			for( j in 0...8 ) {
-				if( Int32.and(tmp,cast 1) == cast 1 )
+				if( Int32.and(tmp,i32(1)) == i32(1) )
 					tmp = Int32.xor(Int32.ushr(tmp,1),polynom);
 				else
 					tmp = Int32.ushr(tmp,1);
@@ -54,9 +62,9 @@ class CRC32 {
 
 	public function byte( b : Int ) {
 		var polynom = POLYNOM;
-		var tmp = Int32.and( Int32.xor(crc,cast b), cast 0xFF );
+		var tmp = Int32.and( Int32.xor(crc,i32(b)), i32(0xFF) );
 		for( j in 0...8 ) {
-			if( Int32.and(tmp,cast 1) == cast 1 )
+			if( Int32.and(tmp,i32(1)) == i32(1) )
 				tmp = Int32.xor(Int32.ushr(tmp,1),polynom);
 			else
 				tmp = Int32.ushr(tmp,1);
