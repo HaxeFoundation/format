@@ -71,31 +71,30 @@ class Tools {
 
 	// All values are treated as unsigned! 
 	public inline static function minBits(values: Array<Int>): Int {
-		var max_bits: Int = 0;
-		for(x in values) {
-			// Make sure x is positive!
-			if(x < 0) x = -x;
+      // Accumulate bits in x
+      var x: Int = 0;
+      for(v in values) {
+			// Make sure v is positive!
+         if(v < 0) v = -v;
+         x |= v;
+      }
+      
+      // Compute most significant 1 bit
+      x |= (x >> 1);
+      x |= (x >> 2);
+      x |= (x >> 4);
+      x |= (x >> 8);
+      x |= (x >> 16);
 
-			// Compute most significant 1 bit
-			x |= (x >> 1);
-			x |= (x >> 2);
-			x |= (x >> 4);
-			x |= (x >> 8);
-			x |= (x >> 16);
+      // Compute ones count (equals the number of bits to represent original value)
+      x -= ((x >> 1) & 0x15555555);
+      x = (((x >> 2) & 0x33333333) + (x & 0x33333333));
+      x = (((x >> 4) + x) & 0x0f0f0f0f);
+      x += (x >> 8);
+      x += (x >> 16);
+      x &= 0x0000003f;
 
-			// Compute ones count (equals the number of bits to represent original value)
-			x -= ((x >> 1) & 0x15555555);
-			x = (((x >> 2) & 0x33333333) + (x & 0x33333333));
-			x = (((x >> 4) + x) & 0x0f0f0f0f);
-			x += (x >> 8);
-			x += (x >> 16);
-			x &= 0x0000003f;
-
-			if(x > max_bits)
-				max_bits = x;
-		}
-
-		return max_bits;
+		return x;
 	}
 
 	public static function hex( b : haxe.io.Bytes, ?max : Int ) {
