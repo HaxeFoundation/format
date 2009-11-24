@@ -29,25 +29,61 @@ import haxe.Int32;
 
 class CRC32 {
 
-	/*
-	 *  Function computes CRC32 code of a given string.
-	 *  Warning: returns Int32 as result uses all 32 bits
-	 *  UTF - 8 coding is not supported
-	 */
-	public static function encode( b : haxe.io.Bytes ) : Int32 {
-		var init = Int32.make(0xFFFF, 0xFFFF);
-		var polynom = Int32.make(0xEDB8, 0x8320);
-		var crc = init;
+	static inline var POLYNOM = Int32.make(0xEDB8, 0x8320);
+	var crc : haxe.Int32;
+
+	public function new() {
+		crc = Int32.make(0xFFFF,0xFFFF);
+	}
+
+	inline function i32(i:Int) : Int32 {
+		#if neko
+		return cast i;
+		#else
+		return Int32.ofInt(i);
+		#end
+	}
+
+	public function run( b : haxe.io.Bytes ) {
+		var crc = crc;
+		var polynom = POLYNOM;
 		for( i in 0...b.length ) {
-			var tmp = Int32.and( Int32.xor(crc,cast b.get(i)), cast 0xFF );
+			var tmp = Int32.and( Int32.xor(crc,i32(b.get(i))), i32(0xFF) );
 			for( j in 0...8 ) {
-				if( Int32.and(tmp,cast 1) == cast 1 )
+				if( Int32.and(tmp,i32(1)) == i32(1) )
 					tmp = Int32.xor(Int32.ushr(tmp,1),polynom);
 				else
 					tmp = Int32.ushr(tmp,1);
 			}
 			crc = Int32.xor(Int32.ushr(crc,8), tmp);
 		}
-		return Int32.xor(crc, init);
+		this.crc = crc;
+	}
+
+	public function byte( b : Int ) {
+		var polynom = POLYNOM;
+		var tmp = Int32.and( Int32.xor(crc,i32(b)), i32(0xFF) );
+		for( j in 0...8 ) {
+			if( Int32.and(tmp,i32(1)) == i32(1) )
+				tmp = Int32.xor(Int32.ushr(tmp,1),polynom);
+			else
+				tmp = Int32.ushr(tmp,1);
+		}
+		crc = Int32.xor(Int32.ushr(crc,8), tmp);
+	}
+
+	public function get() {
+		return Int32.xor(crc, Int32.make(0xFFFF,0xFFFF));
+	}
+
+	/*
+	 *  Function computes CRC32 code of a given string.
+	 *  Warning: returns Int32 as result uses all 32 bits
+	 *  UTF - 8 coding is not supported
+	 */
+	public static function encode( b : haxe.io.Bytes ) : Int32 {
+		var c = new CRC32();
+		c.run(b);
+		return c.get();
 	}
 }

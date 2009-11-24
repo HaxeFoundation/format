@@ -1,5 +1,16 @@
 <project name="format" url="http://code.google.com/p/hxformat" license="BSD">
     <user name="ncannasse"/>
+    <tag v="cross"/>
+	<tag v="abc"/>
+	<tag v="amf"/>
+	<tag v="flv"/>
+    <tag v="gz"/>
+	<tag v="mp3"/>
+	<tag v="pbj"/>
+	<tag v="pdf"/>
+	<tag v="swf"/>
+	<tag v="tar"/>
+	<tag v="zip"/>
     <description>A haXe Library for supporting different file formats.</description>
-    <version name="1.12">See CHANGES.txt</version>
+    <version name="1.14">See CHANGES.txt</version>
 </project>

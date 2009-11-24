@@ -1,4 +1,11 @@
-2009-??-??: 1.13
+2009-??-??: 1.15
+	swf : fixed TBackgroundColor (use bigEndian r/w)
+	tools : fixed CRC32 with -cpp
+	
+2009-10-24: 1.14
+	png : added
+
+2009-09-11: 1.13
 	zip : added extra fields handling
 	zip : fixed .run was renamed to .execute in haXe 2.04
 	abc : fixed ODebugReg
@@ -8,7 +15,7 @@
 
 2009-04-25: 1.12
 	swf : fixed TBackgroundColor write bug
-	
+
 2009-04-21: 1.11
 	abc : added missing flash10 + alchemy opcodes
 

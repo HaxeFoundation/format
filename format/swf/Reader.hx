@@ -1231,7 +1231,10 @@ class Reader {
 			readFontInfo(len, 2);
 		
 		case TagId.SetBackgroundColor:
-			TBackgroundColor(i.readUInt24());
+			i.bigEndian = true;
+			var color = i.readUInt24();
+			i.bigEndian = false;
+			TBackgroundColor(color);
 		case TagId.DefineBitsLossless:
 			TBitsLossless(readLossless(len,false));
 		case TagId.DefineBitsLossless2:
