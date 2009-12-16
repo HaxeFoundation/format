@@ -1212,7 +1212,6 @@ class Reader {
       var old_bits = bits;
       i = new haxe.io.BytesInput(i.read(len));
       bits = new format.tools.BitsInput(i);
-      trace("Tag ID: " + id + " Length: " + len);
 
 		var tag = switch( id ) {
 		case TagId.End:
