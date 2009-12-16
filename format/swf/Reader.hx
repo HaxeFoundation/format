@@ -577,7 +577,7 @@ class Reader {
 		}
 		bits = new format.tools.BitsInput(i);
 		var r = readRect();
-		if( r.left != 0 || r.top != 0 || r.right % 20 != 0 || r.bottom % 20 != 0 )
+      if( (r.right - r.left) % 20 != 0 || (r.bottom - r.top) % 20 != 0)
 			throw error();
 		var fps = readFixed8();
 		var nframes = i.readUInt16();
@@ -1201,7 +1201,20 @@ class Reader {
 			len = i.readUInt30();
 			if( len < 63 ) ext = true;
 		}
-		return switch( id ) {
+      
+      // It's safer to read the whole tag than to rely on
+      // reading every data. For example swfc from swftools
+      // creates SetBackgroundColor tag with a length of 5
+      // (I don't know why) but the reader reads only 3 bytes
+      // and gets confused afer that.
+      // -- KukkerMan
+      var old_i = i;
+      var old_bits = bits;
+      i = new haxe.io.BytesInput(i.read(len));
+      bits = new format.tools.BitsInput(i);
+      trace("Tag ID: " + id + " Length: " + len);
+
+		var tag = switch( id ) {
 		case TagId.End:
 			null;
 		case TagId.ShowFrame:
@@ -1305,6 +1318,11 @@ class Reader {
 			var data = i.read(len);
 			TUnknown(id,data);
 		}
+      
+      i = old_i;
+      bits = old_bits;
+
+      return tag;
 	}
 
 	public function read() : SWF {
