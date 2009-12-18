@@ -115,7 +115,7 @@ enum MethodKind {
 
 enum FieldKind {
 	FVar( ?type : Null<IName>, ?value : Value, ?const : Bool );
-	FMethod( type : Index<MethodType>, k : MethodKind, ?isOverride : Bool, ?isFinal : Bool );
+	FMethod( type : Index<MethodType>, k : MethodKind, ?isFinal : Bool, ?isOverride : Bool );
 	FClass( c : Index<ClassDef> );
 	FFunction( f : Index<MethodType> );
 }
