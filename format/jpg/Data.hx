@@ -27,16 +27,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-
 package format.jpg;
 
 typedef Data = {
-	var header : Header;
-	var pixels : haxe.io.Bytes;
-}
-
-typedef Header = {
 	var width : Int;
 	var height : Int;
-	var quality : Int;
+	var quality : Float;
+	var pixels : haxe.io.Bytes;
 }

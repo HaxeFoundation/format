@@ -26,7 +26,6 @@ import format.gz.Reader;
 
 import format.jpg.Data;
 //import format.jpg.Reader;
-import format.jpg.Tools;
 import format.jpg.Writer;
 
 import format.mp3.Constants;
@@ -75,6 +74,7 @@ import format.tools.CRC32;
 import format.tools.Deflate;
 import format.tools.Huffman;
 import format.tools.IO;
+import format.tools.Image;
 import format.tools.Inflate;
 import format.tools.InflateImpl;
 import format.tools.MD5;
