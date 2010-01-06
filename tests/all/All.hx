@@ -10,6 +10,11 @@ import format.amf.Tools;
 import format.amf.Value;
 import format.amf.Writer;
 
+import format.bmp.Data;
+import format.bmp.Reader;
+import format.bmp.Tools;
+import format.bmp.Writer;
+
 import format.flv.Data;
 import format.flv.Reader;
 import format.flv.Tools;
@@ -18,6 +23,11 @@ import format.flv.Writer;
 import format.gz.Data;
 import format.gz.Reader;
 //import format.gz.Writer;
+
+import format.jpg.Data;
+//import format.jpg.Reader;
+import format.jpg.Tools;
+import format.jpg.Writer;
 
 import format.mp3.Constants;
 import format.mp3.Data;

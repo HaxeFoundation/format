@@ -16,7 +16,6 @@
 -main All
 -debug
 -cp ../..
--swf-version 10
 
 --next
 # JS
@@ -30,3 +29,11 @@
 -php php
 -main All
 -cp ../..
+
+--next
+# Flash10
+-swf9 all10.swf
+-main All
+-debug
+-cp ../..
+-swf-version 10
