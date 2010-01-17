@@ -583,10 +583,10 @@ class Writer {
 			case SHRChange(data):
 				bits.writeBit(false);
 				if(data.newStyles != null) {
-					if(ver == 2 || ver == 3)
+					if(ver > 1)
 						bits.writeBit(true);
 					else
-						throw "Defining new fill and line style arrays are only supported in shape version 2 and 3!";
+						throw "Defining new fill and line style arrays are only supported in shape versions higher than 1!";
 				} else
 					bits.writeBit(false);
 				bits.writeBit(data.lineStyle != null);
