@@ -93,7 +93,12 @@ class Tools {
 		case TBitsLossless(l),TBitsLossless2(l): ["id",l.cid,"color",l.color,"width",l.width,"height",l.height,"data",hex(l.data,max)];
 		case TBitsJPEG2(id, data): ["id", id, "data", hex(data,max)];
 		case TBitsJPEG3(id, data, mask): ["id", id, "data", hex(data,max), "mask", hex(mask,max)];
-		case TSound(data): ["sid", data.sid, "format", data.format, "rate", data.rate ];
+		case TSound(s):
+			var data = switch( s.data ) {
+				case SDMp3(seek,data): "seek="+seek+":"+hex(data,max);
+				case SDOther(data): hex(data,max);
+			};
+			["sid", s.sid, "format", s.format, "rate", s.rate, "16bit", s.is16bit, "stereo", s.isStereo, "samples", s.samples, "data", data ];
 		case TUnknown(id,data): ["id",id,"data",hex(data,max)];
 		}
 		var b = new StringBuf();
