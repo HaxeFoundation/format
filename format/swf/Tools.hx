@@ -109,7 +109,7 @@ class Tools {
 			if( infos.length == 0 )
 				break;
 			b.add(":");
-			b.add(infos.shift());
+			b.add(Std.string(infos.shift()));
 			if( infos.length == 0 )
 				break;
 			b.add(",");
