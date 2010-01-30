@@ -331,7 +331,7 @@ class Reader {
 				case 5: if( v2 ) CM32Bits else CM24Bits;
 				default: throw error();
 			},
-			data : i.read(len - 7),
+			data : i.read(len - ((bits==3)?8:7)),
 		};
 	}
 

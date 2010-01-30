@@ -3,6 +3,7 @@
 	tools : fixed CRC32 with -cpp
 	jpg : added (contributed by Robert Sköld)
 	bmp : added (contributed by Robert Sköld)
+	swf : fixed readLossless with 8bits bitmaps
 	
 2009-10-24: 1.14
 	png : added
