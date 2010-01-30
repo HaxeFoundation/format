@@ -154,7 +154,7 @@ class Writer {
 			o.writeUInt30(e.data.length);
 			o.write(e.data);
 		}
-		o.writeUInt16(0);
+		o.writeUInt30(0);
 	}
 
 	function writeFilterFlags(f:FilterFlags,top) {
