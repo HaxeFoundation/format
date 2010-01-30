@@ -427,7 +427,7 @@ class Writer {
 
 		case TBitsLossless(l):
 			var cbits = switch( l.color ) { case CM8Bits(n): n; default: null; };
-			writeTIDExt(TagId.DefineBitsLossless,l.data.length + ((cbits == null)?8:7));
+			writeTIDExt(TagId.DefineBitsLossless,l.data.length + ((cbits != null)?8:7));
 			o.writeUInt16(l.cid);
 			switch( l.color ) {
 			case CM8Bits(_): o.writeByte(3);
@@ -442,7 +442,7 @@ class Writer {
 
 		case TBitsLossless2(l):
 			var cbits = switch( l.color ) { case CM8Bits(n): n; default: null; };
-			writeTIDExt(TagId.DefineBitsLossless2,l.data.length + ((cbits == null)?8:7));
+			writeTIDExt(TagId.DefineBitsLossless2,l.data.length + ((cbits != null)?8:7));
 			o.writeUInt16(l.cid);
 			switch( l.color ) {
 			case CM8Bits(_): o.writeByte(3);
