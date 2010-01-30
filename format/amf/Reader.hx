@@ -36,6 +36,20 @@ class Reader {
 		i.bigEndian = true;
 	}
 
+	function readObject() {
+		var h = new Hash();
+		while( true ) {
+			var c1 = i.readByte();
+			var c2 = i.readByte();
+			var name = i.readString((c1 << 8) | c2);
+			var k = i.readByte();
+			if( k == 0x09 )
+				break;
+			h.set(name,readWithCode(k));
+		}
+		return h;
+	}
+
 	public function readWithCode( id ) {
 		var i = this.i;
 		return switch( id ) {
@@ -52,19 +66,9 @@ class Reader {
 		case 0x02:
 			AString( i.readString(i.readUInt16()) );
 		case 0x03,0x08:
-			var h = new Hash();
 			var ismixed = (id == 0x08);
 			var size = if( ismixed ) i.readUInt30() else null;
-			while( true ) {
-				var c1 = i.readByte();
-				var c2 = i.readByte();
-				var name = i.readString((c1 << 8) | c2);
-				var k = i.readByte();
-				if( k == 0x09 )
-					break;
-				h.set(name,readWithCode(k));
-			}
-			AObject(h,size);
+			AObject(readObject(),size);
 		case 0x05:
 			ANull;
 		case 0x06:
