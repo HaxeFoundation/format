@@ -31,6 +31,8 @@ class Inflate {
 	public static function run( bytes : haxe.io.Bytes ) {
 		#if neko
 		return neko.zip.Uncompress.run(bytes);
+		#elseif cpp
+		return cpp.zip.Uncompress.run(bytes);
 		#elseif flash9
 		var b = new flash.utils.ByteArray();
 		b.writeBytes(bytes.getData(),0,bytes.length);

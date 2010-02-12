@@ -4,7 +4,9 @@
 	jpg : added (contributed by Robert Sköld)
 	bmp : added (contributed by Robert Sköld)
 	swf : fixed readLossless with 8bits bitmaps
-	
+	swf : fixed issue when rect is not rounded
+	tools : added Inflate/Deflate support for cpp
+
 2009-10-24: 1.14
 	png : added
 

@@ -36,6 +36,8 @@ class Deflate {
 		var data = bytes.getData();
 		data.compress();
 		return haxe.io.Bytes.ofData(data);
+		#elseif cpp
+		return cpp.zip.Compress.run(b,9);
 		#else
 		throw "Deflate is not supported on this platform";
 		return null;
