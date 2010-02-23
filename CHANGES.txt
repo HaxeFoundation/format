@@ -1,4 +1,4 @@
-2009-??-??: 1.15
+2010-02-23: 1.15
 	swf : fixed TBackgroundColor (use bigEndian r/w)
 	tools : fixed CRC32 with -cpp
 	jpg : added (contributed by Robert Sköld)
