@@ -1,3 +1,6 @@
+2010-??-??: 1.16
+	flv : readHeader fixes
+
 2010-02-23: 1.15
 	swf : fixed TBackgroundColor (use bigEndian r/w)
 	tools : fixed CRC32 with -cpp

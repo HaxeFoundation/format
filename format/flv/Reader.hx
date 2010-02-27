@@ -55,9 +55,9 @@ class Reader {
 		if( prev != 0 )
 			throw "Invalid prev "+prev;
 		return {
-			hasAudio : (flags & 1) != 1,
-			hasVideo : (flags & 4) != 1,
-			hasMeta : (flags & 8) != 1,
+			hasAudio : (flags & 1) != 0,
+			hasVideo : (flags & 4) != 0,
+			hasMeta : (flags & 8) != 0,
 		};
 	}
 
