@@ -86,13 +86,6 @@ class Reader {
 			throw "Invalid Zip Data";
 		var version = i.readUInt16();
 		var flags = i.readUInt16();
-		if( (flags & 8) != 0 ) {
-			// TODO : it is needed to directly read the compressed
-			// data streamed from the input (needs additional neko apis)
-			// then, we can set "compressed" to false, and then follows
-			// 12 bytes with real crc, csize and usize
-			throw "Zip format compressed size stored after compressed data is currently not supported";
-		}
 		var utf8 = flags & 0x800 != 0;
 		if( (flags & 0xF7F7) != 0 )
 			throw "Unsupported flags "+flags;
@@ -110,13 +103,16 @@ class Reader {
 		var fields = readExtraFields(elen);
 		if( utf8 )
 			fields.push(FUtf8);
+		var data = null;
+		if( (flags & 8) != 0 )
+			csize = -1;
 		return {
 			fileName : fname,
 			fileSize : usize,
 			fileTime : mtime,
 			compressed : compressed,
 			dataSize : csize,
-			data : null,
+			data : data,
 			crc32 : crc32,
 			extraFields : fields,
 		};
@@ -128,11 +124,56 @@ class Reader {
 
 	public function read() : Data {
 		var l = new List();
+		var buf = null;
+		var tmp = null;
 		while( true ) {
 			var e = readEntryHeader();
 			if( e == null )
 				break;
-			e.data = i.read(e.dataSize);
+			if( e.dataSize < 0 ) {
+				// enter progressive mode : we use a different input which has
+				// a temporary buffer, this is necessary since we have to uncompress
+				// progressively, and after that we might have pending readed data
+				// that needs to be processed
+				var bufSize = 65536;
+				if( buf == null ) {
+					buf = new format.tools.BufferInput(i, haxe.io.Bytes.alloc(bufSize));
+					tmp = haxe.io.Bytes.alloc(bufSize);
+					i = buf;
+				}
+				var out = new haxe.io.BytesBuffer();
+				#if neko
+				var z = new neko.zip.Uncompress(-15);
+				z.setFlushMode(neko.zip.Flush.SYNC);
+				while( true ) {
+					if( buf.available == 0 )
+						buf.refill();
+					var p = bufSize - buf.available;
+					if( p != buf.pos ) {
+						// because of lack of "srcLen" in zip api, we need to always be stuck to the buffer end
+						buf.buf.blit(p, buf.buf, buf.pos, buf.available);
+						buf.pos = p;
+					}
+					var r = z.execute(buf.buf, buf.pos, tmp, 0);
+					out.addBytes(tmp, 0, r.write);
+					buf.pos += r.read;
+					buf.available -= r.read;
+					if( r.done ) break;
+				}
+				#else
+				throw "Progressive zip reading is not supported on this platform";
+				#end
+				e.data = out.getBytes();
+				e.crc32 = i.readInt32();
+				if( haxe.Int32.compare(e.crc32,haxe.Int32.ofInt(0x08074b50)) == 0 )
+					e.crc32 = i.readInt32();
+				e.dataSize = i.readUInt30();
+				e.fileSize = i.readUInt30();
+				// set data to uncompressed
+				e.dataSize = e.fileSize;
+				e.compressed = false;
+			} else
+				e.data = i.read(e.dataSize);
 			l.add(e);
 		}
 		return l;
