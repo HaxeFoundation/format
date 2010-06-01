@@ -29,6 +29,7 @@ package format.zip;
 enum ExtraField {
 	FUnknown( tag : Int, bytes : haxe.io.Bytes );
 	FInfoZipUnicodePath( name : String, crc : haxe.Int32 );
+	FUtf8;
 }
 
 typedef Entry =  {

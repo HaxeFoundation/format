@@ -1,5 +1,6 @@
 2010-??-??: 1.16
 	flv : readHeader fixes
+	zip : added utf8 bit support
 
 2010-02-23: 1.15
 	swf : fixed TBackgroundColor (use bigEndian r/w)

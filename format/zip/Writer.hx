@@ -66,9 +66,15 @@ class Writer {
 
 	public function writeEntryHeader( f : Entry ) {
 		var o = this.o;
+		var flags = 0;
+		for( e in f.extraFields )
+			switch( e ) {
+			case FUtf8: flags |= 0x800;
+			default:
+			}
 		o.writeUInt30(0x04034B50);
 		o.writeUInt16(0x0014); // version
-		o.writeUInt16(0); // flags
+		o.writeUInt16(flags); // flags
 		if( f.data == null ) {
 			f.fileSize = 0;
 			f.dataSize = 0;
@@ -104,6 +110,8 @@ class Writer {
 				e.writeUInt16(tag);
 				e.writeUInt16(bytes.length);
 				e.write(bytes);
+			case FUtf8:
+				// nothing
 			}
 		var ebytes = e.getBytes();
 		o.writeUInt16(ebytes.length);

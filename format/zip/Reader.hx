@@ -93,7 +93,8 @@ class Reader {
 			// 12 bytes with real crc, csize and usize
 			throw "Zip format compressed size stored after compressed data is currently not supported";
 		}
-		if( (flags & 0xFFF7) != 0 )
+		var utf8 = flags & 0x800 != 0;
+		if( (flags & 0xF7F7) != 0 )
 			throw "Unsupported flags "+flags;
 		var compression = i.readUInt16();
 		var compressed = (compression != 0);
@@ -107,6 +108,8 @@ class Reader {
 		var elen = i.readInt16();
 		var fname = i.readString(fnamelen);
 		var fields = readExtraFields(elen);
+		if( utf8 )
+			fields.push(FUtf8);
 		return {
 			fileName : fname,
 			fileSize : usize,
