@@ -131,6 +131,7 @@ class Reader {
 			if( e == null )
 				break;
 			if( e.dataSize < 0 ) {
+				#if neko
 				// enter progressive mode : we use a different input which has
 				// a temporary buffer, this is necessary since we have to uncompress
 				// progressively, and after that we might have pending readed data
@@ -142,7 +143,6 @@ class Reader {
 					i = buf;
 				}
 				var out = new haxe.io.BytesBuffer();
-				#if neko
 				var z = new neko.zip.Uncompress(-15);
 				z.setFlushMode(neko.zip.Flush.SYNC);
 				while( true ) {
@@ -160,10 +160,21 @@ class Reader {
 					buf.available -= r.read;
 					if( r.done ) break;
 				}
-				#else
-				throw "Progressive zip reading is not supported on this platform";
-				#end
 				e.data = out.getBytes();
+				#else
+				var bufSize = 65536;
+				if( tmp == null )
+					tmp = haxe.io.Bytes.alloc(bufSize);
+				var out = new haxe.io.BytesBuffer();
+				var z = new format.tools.InflateImpl(i, false);
+				while( true ) {
+					var n = z.readBytes(tmp, 0, bufSize);
+					out.addBytes(tmp, 0, n);
+					if( n < bufSize )
+						break;
+				}
+				e.data = out.getBytes();
+				#end
 				e.crc32 = i.readInt32();
 				if( haxe.Int32.compare(e.crc32,haxe.Int32.ofInt(0x08074b50)) == 0 )
 					e.crc32 = i.readInt32();
