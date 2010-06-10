@@ -166,7 +166,7 @@ class Reader {
 				if( tmp == null )
 					tmp = haxe.io.Bytes.alloc(bufSize);
 				var out = new haxe.io.BytesBuffer();
-				var z = new format.tools.InflateImpl(i, false);
+				var z = new format.tools.InflateImpl(i, false, false);
 				while( true ) {
 					var n = z.readBytes(tmp, 0, bufSize);
 					out.addBytes(tmp, 0, n);

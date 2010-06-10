@@ -40,14 +40,14 @@ private class Window {
 	public var pos : Int;
 	var crc : Adler32;
 
-	public function new() {
+	public function new(hasCrc) {
 		buffer = haxe.io.Bytes.alloc(BUFSIZE);
 		pos = 0;
-		crc = new Adler32();
+		if( hasCrc ) crc = new Adler32();
 	}
 
 	public function slide() {
-		crc.update(buffer,0,SIZE);
+		if( crc != null ) crc.update(buffer,0,SIZE);
 		var b = haxe.io.Bytes.alloc(BUFSIZE);
 		pos -= SIZE;
 		b.blit(0,buffer,SIZE,pos);
@@ -75,7 +75,7 @@ private class Window {
 	}
 
 	public function checksum() {
-		crc.update(buffer,0,pos);
+		if( crc != null ) crc.update(buffer,0,pos);
 		return crc;
 	}
 
@@ -118,7 +118,7 @@ class InflateImpl {
 
 	static var FIXED_HUFFMAN = null;
 
-	public function new( i, ?header = true ) {
+	public function new( i, ?header = true, ?crc = true ) {
 		final = false;
 		htools = new HuffTools();
 		huffman = buildFixedHuffman();
@@ -135,7 +135,7 @@ class InflateImpl {
 		lengths = new Array();
 		for( i in 0...19 )
 			lengths.push(-1);
-		window = new Window();
+		window = new Window(crc);
 	}
 
 	function buildFixedHuffman() {
@@ -272,6 +272,10 @@ class InflateImpl {
 			return true;
 		case Crc:
 			var calc = window.checksum();
+			if( calc == null ) {
+				state = Done;
+				return true;
+			}
 			var crc = Adler32.read(input);
 			if( !calc.equals(crc) ) throw "Invalid CRC";
 			state = Done;
