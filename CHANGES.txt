@@ -1,4 +1,4 @@
-2010-??-??: 1.16
+2010-06-10: 1.16
 	flv : readHeader fixes
 	zip : added utf8 bit support
 	zip : added progressive read support
