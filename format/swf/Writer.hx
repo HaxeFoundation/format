@@ -392,6 +392,10 @@ class Writer {
 			o.write(bytes);
 			o.writeUInt16(0); // end-tag
 
+		case TDoActions(data):
+			writeTID(TagId.DoAction,data.length);
+			o.write(data);
+			
 		case TDoInitActions(id,data):
 			writeTID(TagId.DoInitAction,data.length + 2);
 			o.writeUInt16(id);

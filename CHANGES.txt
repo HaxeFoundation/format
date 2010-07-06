@@ -1,3 +1,6 @@
+2010-??-??: 1.17
+	swf : added TDoActions
+
 2010-06-10: 1.16
 	flv : readHeader fixes
 	zip : added utf8 bit support

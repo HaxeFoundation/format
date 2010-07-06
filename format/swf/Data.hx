@@ -41,6 +41,7 @@ enum SWFTag {
 	TShowFrame;
 	TShape( id : Int, version : Int, data : haxe.io.Bytes );
 	TBackgroundColor( color : Int );
+	TDoActions( data : haxe.io.Bytes );
 	TClip( id : Int, frames : Int, tags : Array<SWFTag> );
 	TPlaceObject2( po : PlaceObject );
 	TPlaceObject3( po : PlaceObject );

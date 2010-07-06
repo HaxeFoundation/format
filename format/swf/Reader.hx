@@ -434,6 +434,8 @@ class Reader {
 			var label = readUTF8Bytes();
 			var anchor = if( len == label.length + 2 ) i.readByte() == 1 else false;
 			TFrameLabel(label.toString(),anchor);
+		case TagId.DoAction:
+			TDoActions(i.read(len));
 		case TagId.DoInitAction:
 			var cid = i.readUInt16();
 			TDoInitActions(cid,i.read(len-2));
