@@ -99,6 +99,7 @@ class Tools {
 				case SDOther(data): hex(data,max);
 			};
 			["sid", s.sid, "format", s.format, "rate", s.rate, "16bit", s.is16bit, "stereo", s.isStereo, "samples", s.samples, "data", data ];
+		case TDoActions(data) : ["data",hex(data,max)];
 		case TUnknown(id,data): ["id",id,"data",hex(data,max)];
 		}
 		var b = new StringBuf();

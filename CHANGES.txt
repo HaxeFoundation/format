@@ -1,5 +1,6 @@
 2010-??-??: 1.17
 	swf : added TDoActions
+	swf : header.fps is now a Float (instead of Fixed8)
 
 2010-06-10: 1.16
 	flv : readHeader fixes

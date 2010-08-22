@@ -95,7 +95,8 @@ class Writer {
 		o = new haxe.io.BytesOutput();
 		bits = new format.tools.BitsOutput(o);
 		writeRect({ left : 0, top : 0, right : h.width * 20, bottom : h.height * 20 });
-		writeFixed8(h.fps);
+		o.writeByte(Std.int(h.fps) & 0x7F);
+		o.writeByte(Std.int(h.fps * 256.0) & 0xFF);
 		o.writeUInt16(h.nframes);
 	}
 
@@ -395,7 +396,7 @@ class Writer {
 		case TDoActions(data):
 			writeTID(TagId.DoAction,data.length);
 			o.write(data);
-			
+
 		case TDoInitActions(id,data):
 			writeTID(TagId.DoInitAction,data.length + 2);
 			o.writeUInt16(id);

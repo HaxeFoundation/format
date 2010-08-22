@@ -65,7 +65,7 @@ typedef SWFHeader = {
 	var compressed : Bool;
 	var width : Int;
 	var height : Int;
-	var fps : Fixed8;
+	var fps : Float;
 	var nframes : Int;
 }
 
