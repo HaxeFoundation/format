@@ -250,8 +250,8 @@ class Reader {
 		var r = readRect();
 		if( r.left != 0 || r.top != 0 )
 			throw error();
-		var fps : Float = i.readByte();
-		fps += i.readByte() / 256.0;
+		var fps = i.readByte() / 256.0;
+		fps += i.readByte();
 		var nframes = i.readUInt16();
 		return {
 			version : version,

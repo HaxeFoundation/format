@@ -95,8 +95,8 @@ class Writer {
 		o = new haxe.io.BytesOutput();
 		bits = new format.tools.BitsOutput(o);
 		writeRect({ left : 0, top : 0, right : h.width * 20, bottom : h.height * 20 });
-		o.writeByte(Std.int(h.fps) & 0x7F);
 		o.writeByte(Std.int(h.fps * 256.0) & 0xFF);
+		o.writeByte(Std.int(h.fps) & 0x7F);
 		o.writeUInt16(h.nframes);
 	}
 
