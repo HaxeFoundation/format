@@ -276,7 +276,7 @@ class Context {
 		curFunction = init;
 		ops([
 			OGetGlobalScope,
-			OGetLex( this.type("Object") ),
+			OGetLex( curClass.superclass ),
 			OScope,
 			OGetLex( curClass.superclass ),
 			OClassDef( Idx(data.classes.length - 1) ),
