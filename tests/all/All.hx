@@ -10,6 +10,9 @@ import format.amf.Tools;
 import format.amf.Value;
 import format.amf.Writer;
 
+import format.as1.Data;
+import format.as1.Reader;
+
 import format.bmp.Data;
 import format.bmp.Reader;
 import format.bmp.Tools;

@@ -2,6 +2,7 @@
 	swf : added TDoActions, TExport
 	swf : header.fps is now a Float (instead of Fixed8)
 	abc : fixed superclass redefinition, always call superconstructor
+	as1 : added Data and Reader
 
 2010-06-10: 1.16
 	flv : readHeader fixes
