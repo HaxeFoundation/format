@@ -85,7 +85,14 @@ class Tools {
 		case TPlaceObject2(po): [Std.string(po)];
 		case TPlaceObject3(po): [Std.string(po)];
 		case TRemoveObject2(d): ["depth",d];
-		case TFrameLabel(label,anchor): ["label",label,"anchor",anchor];
+		case TFrameLabel(label, anchor): ["label", label, "anchor", anchor];
+		case TExport(el) :
+			var a = new Array<Dynamic>();
+			for( e in el ) {
+				a.push(e.name);
+				a.push(e.cid);
+			}
+			a;
 		case TDoInitActions(id,data): ["id",id,"data",hex(data,max)];
 		case TActionScript3(data,context): ["context",context,"data",hex(data,max)];
 		case TSymbolClass(symbols): [Std.string(symbols)];

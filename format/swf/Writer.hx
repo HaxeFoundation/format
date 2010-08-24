@@ -382,6 +382,23 @@ class Writer {
 			o.writeByte(0);
 			if( anchor ) o.writeByte(1);
 
+		case TExport(exports):
+			var size = 2;
+			var bytes = new Array();
+			for( e in exports ) {
+				var b = haxe.io.Bytes.ofString(e.name);
+				bytes.push(b);
+				size += 2 + b.length + 1;
+			}
+			writeTID(TagId.ExportAssets, size);
+			o.writeUInt16(exports.length);
+			var pos = 0;
+			for( e in exports ) {
+				o.writeUInt16(e.cid);
+				o.write(bytes[pos++]);
+				o.writeByte(0);
+			}
+			
 		case TClip(id,frames,tags):
 			var t = openTMP();
 			for( t in tags )

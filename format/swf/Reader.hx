@@ -434,7 +434,15 @@ class Reader {
 		case TagId.FrameLabel:
 			var label = readUTF8Bytes();
 			var anchor = if( len == label.length + 2 ) i.readByte() == 1 else false;
-			TFrameLabel(label.toString(),anchor);
+			TFrameLabel(label.toString(), anchor);
+		case TagId.ExportAssets:
+			var exports = new Array();
+			for( n in 0...i.readUInt16() ) {
+				var cid = i.readUInt16();
+				var name = readUTF8Bytes().toString();
+				exports.push( { cid : cid, name : name } );
+			}
+			TExport(exports);
 		case TagId.DoAction:
 			TDoActions(i.read(len));
 		case TagId.DoInitAction:
