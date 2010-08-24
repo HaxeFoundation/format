@@ -301,6 +301,12 @@ class Context {
 		});
 		return curFunction.f;
 	}
+	
+	public function beginConstructor(args) {
+		beginFunction(args, null);
+		curClass.constructor = curFunction.f.type;
+		return curFunction.f;
+	}
 
 	public function endMethod() {
 		endFunction();
