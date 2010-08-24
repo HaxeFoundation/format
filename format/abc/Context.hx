@@ -242,6 +242,9 @@ class Context {
 		endFunction();
 		beginFunction([],null);
 		var cst = curFunction.f.type;
+		curFunction.f.maxStack = 1;
+		op(OThis);
+		op(OConstructSuper(0));
 		op(ORetVoid);
 		endFunction();
 		fieldSlot = 1;

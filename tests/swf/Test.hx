@@ -162,6 +162,8 @@ class Test {
 				" (format not yet supported) ";
 			};
 			"Sound [#"+s.sid+","+s.format+","+s.rate+desc+"]";
+		default:
+			format.swf.Tools.dumpTag(t);
 		};
 	}
 

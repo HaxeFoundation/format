@@ -77,7 +77,7 @@ class FibAsm {
 			width : 400,
 			height : 300,
 			nframes : 1,
-			fps : format.swf.Tools.toFixed8(30.0),
+			fps : 30.0,
 			compressed : false,
 		};
 		var tags = [
