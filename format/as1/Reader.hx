@@ -30,11 +30,13 @@ import format.as1.Data;
 class Reader {
 
 	var i : haxe.io.Input;
-	
+	var tmp : haxe.io.Bytes;
+
 	public function new(i) {
 		this.i = i;
+		tmp = haxe.io.Bytes.alloc(8);
 	}
-	
+
 	public function read() : AS1 {
 		var actions = new Array();
 		while( true ) {
@@ -45,11 +47,11 @@ class Reader {
 		}
 		return actions;
 	}
-	
+
 	inline function readString() {
 		return readUTF8String();
 	}
-	
+
 	function readUTF8String() {
 		var b = new haxe.io.BytesBuffer();
 		while( true ) {
@@ -59,7 +61,19 @@ class Reader {
 		}
 		return b.getBytes().toString();
 	}
-	
+
+	function readDouble() {
+		tmp.set(4, i.readByte());
+		tmp.set(5, i.readByte());
+		tmp.set(6, i.readByte());
+		tmp.set(7, i.readByte());
+		tmp.set(0, i.readByte());
+		tmp.set(1, i.readByte());
+		tmp.set(2, i.readByte());
+		tmp.set(3, i.readByte());
+		return new haxe.io.BytesInput(tmp).readDouble();
+	}
+
 	function parsePushItems( data : haxe.io.Bytes ) {
 		var items = new Array();
 		var old = i;
@@ -73,12 +87,12 @@ class Reader {
 			}
 			items.push(switch(code) {
 			case 0: PString(readString());
-			case 1: PFloat(i.readDouble());
+			case 1: PFloat(i.readFloat());
 			case 2: PNull;
 			case 3: PUndefined;
 			case 4: PReg(i.readByte());
 			case 5: PBool(i.readByte() != 0);
-			case 6: PDouble(i.readDouble());
+			case 6: PDouble(readDouble());
 			case 7: PInt(i.readInt32());
 			case 8: PStack(i.readByte());
 			case 9: PStack2(i.readUInt16());
@@ -88,7 +102,7 @@ class Reader {
 		i = old;
 		return items;
 	}
-	
+
 	function readAction() {
 		var id = i.readByte();
 		var len = (id >= 0x80) ? i.readUInt16() : 0;
@@ -266,5 +280,5 @@ class Reader {
 				AUnknown(id, i.read(len));
 		}
 	}
-	
+
 }
