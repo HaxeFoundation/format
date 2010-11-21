@@ -37,6 +37,11 @@ import format.mp3.Reader;
 import format.mp3.Tools;
 import format.mp3.Writer;
 
+import format.neko.Data;
+import format.neko.Reader;
+//import format.neko.Writer;
+import format.neko.VM;
+
 import format.pbj.Data;
 import format.pbj.Reader;
 import format.pbj.Tools;
