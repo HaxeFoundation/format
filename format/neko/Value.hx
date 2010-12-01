@@ -49,7 +49,7 @@ class ValueObject {
 	}
 }
 
-class ValueAbstract {
+interface ValueAbstract {
 }
 
 enum ValueFunction {

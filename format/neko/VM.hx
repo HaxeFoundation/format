@@ -33,8 +33,9 @@ class VM {
 
 	// globals
 	var opcodes : Array<Opcode>;
+	var builtins : Builtins;
 	var hfields : IntHash<String>;
-	var builtins : IntHash<Value>;
+	var hbuiltins : IntHash<Value>;
 	var hloader : Int;
 	var hexports : Int;
 
@@ -47,15 +48,15 @@ class VM {
 	var module : Module;
 
 	public function new() {
-		builtins = new IntHash();
+		hbuiltins = new IntHash();
 		hfields = new IntHash();
 		opcodes = [];
 		stack = new haxe.FastList<Value>();
 		for( f in Type.getEnumConstructs(Opcode) )
 			opcodes.push(Type.createEnum(Opcode, f));
-		var bl = new Builtins().table;
-		for( b in bl.keys() )
-			builtins.set(hash(b), bl.get(b));
+		builtins = new Builtins(this);
+		for( b in builtins.table.keys() )
+			hbuiltins.set(hash(b), builtins.table.get(b));
 		hloader = hash("loader");
 		hexports = hash("exports");
 	}
@@ -65,6 +66,32 @@ class VM {
 		for( i in 0...s.length )
 			h = 223 * h + s.charCodeAt(i);
 		return h;
+	}
+	
+	public function hashField( f : String ) {
+		var fid = hash(f);
+		var f2 = hfields.get(fid);
+		if( f2 != null ) {
+			if( f2 == f ) return fid;
+			throw "Hashing conflicts between '" + f + "' and '" + f2 + "'";
+		}
+		hfields.set(fid, f);
+		return fid;
+	}
+		
+	public function abstract<T>( b : Value, t : Class<T> ) : T {
+		switch( b ) {
+		case VAbstract(v):
+			if( Std.is(v, t) )
+				return cast v;
+		default:
+		}
+		exc(VString("Invalid call"));
+		return null;
+	}
+	
+	public function valueToString( v : Value ) {
+		return builtins._string(v);
 	}
 
 	function exc( v : Value ) {
@@ -83,12 +110,15 @@ class VM {
 		var me = this;
 		return VFunction(VFunVar(function(_) { me.exc(VString("Failed to load primitive " + prim + ":" + nargs)); return null; } ));
 	}
+	
+	public function defaultLoader() {
+		var loader = new ValueObject(null);
+		loader.fields.set(hash("loadprim"), VFunction(VFun2(loadPrim)));
+		return loader;
+	}
 
 	public function load( m : Data, ?loader : ValueObject ) {
-		if( loader == null ) {
-			loader = new ValueObject(null);
-			loader.fields.set(hash("loadprim"), VFunction(VFun2(loadPrim)));
-		}
+		if( loader == null ) loader = defaultLoader();
 		this.module = new Module(m, loader);
 		var me = this, mod = module;
 		for( i in 0...m.globals.length )
@@ -135,26 +165,36 @@ class VM {
 			});
 			case GlobalDebug(debug): module.debug = debug; VNull;
 			};
-		for( f in m.fields ) {
-			var fid = hash(f);
-			var f2 = hfields.get(fid);
-			if( f2 != null && f2 != f )
-				throw "Hashing conflicts between '" + f + "' and '" + f2 + "'";
-			hfields.set(fid, f);
-		}
+		for( f in m.fields )
+			hashField(f);
 		vthis = VNull;
 		env = [];
-		return loop(0);
+		loop(0);
+		return this.module;
 	}
 
 	function error( pc : Int, msg : String ) {
 		pc--;
-		throw VString("@"+StringTools.hex(pc)+" : "+msg);
+		var pos;
+		if( pc < 0 )
+			pos = "C Function";
+		else if( module.debug != null ) {
+			var p = module.debug[pc];
+			pos = p.file+"("+p.line+")";
+		} else
+			pos = "@" + StringTools.hex(pc);
+		throw VString(pos+" : "+msg);
 	}
 
 	function fieldName( fid : Int ) {
 		var name = hfields.get(fid);
 		return (name == null) ? "?" + fid : name;
+	}
+	
+	public function call( vthis : Value, vfun : Value, args : Array<Value> ) : Value {
+		for( a in args )
+			stack.add(a);
+		return mcall(0, vthis, vfun, args.length );
 	}
 
 	function fcall( m : Module, pc : Int) {
@@ -165,7 +205,7 @@ class VM {
 		return acc;
 	}
 
-	function call( pc : Int, obj : Value, f : Value, nargs : Int ) {
+	function mcall( pc : Int, obj : Value, f : Value, nargs : Int ) {
 		var ret = null;
 		var old = vthis;
 		vthis = obj;
@@ -220,6 +260,10 @@ class VM {
 		return ret;
 	}
 
+	function compare( pc : Int, a : Value, b : Value ) {
+		return builtins._compare(a, b);
+	}
+	
 	function loop( pc : Int ) {
 		var acc = VNull;
 		var code = module.code.code;
@@ -237,7 +281,18 @@ class VM {
 				acc = vthis;
 			case OAccInt:
 				acc = VInt(code[pc++]);
-// case OAccStack:
+			case OAccStack:
+				var idx = code[pc++];
+				var head = stack.head;
+				while( idx > 0 ) {
+					head = head.next;
+					idx--;
+				}
+				acc = head.elt;
+			case OAccStack0:
+				acc = stack.head.elt;
+			case OAccStack1:
+				acc = stack.head.next.elt;
 			case OAccGlobal:
 				acc = module.gtable[code[pc++]];
 // case OAccEnv:
@@ -259,7 +314,7 @@ class VM {
 // case OAccArray:
 // case OAccIndex:
 			case OAccBuiltin:
-				acc = builtins.get(code[pc++]);
+				acc = hbuiltins.get(code[pc++]);
 				if( acc == null )
 					switch( code[pc - 1] ) {
 					case hloader: acc = VObject(module.loader);
@@ -267,7 +322,14 @@ class VM {
 					default:
 						error(pc - 1, "Builtin not found : " + fieldName(code[pc - 1]));
 					}
-// case OSetStack:
+			case OSetStack:
+				var idx = code[pc++];
+				var head = stack.head;
+				while( idx > 0 ) {
+					head = head.next;
+					idx--;
+				}
+				head.elt = acc;
 			case OSetGlobal:
 				module.gtable[code[pc++]] = acc;
 // case OSetEnv:
@@ -285,19 +347,47 @@ class VM {
 			case OPop:
 				for( i in 0...code[pc++] )
 					stack.pop();
+			case OTailCall:
+				var v = code[pc];
+				var nstack = v >> 3;
+				var nargs = v & 7;
+				var head = stack.head;
+				while( nstack-- > 0 )
+					head = head.next;
+				if( nargs == 0 )
+					stack.head = head;
+				else {
+					var args = stack.head;
+					for( i in 0...nargs - 1 )
+						args = args.next;
+					args.next = head;
+				}
+				acc = mcall(pc, vthis, acc, nargs);
+				pc++;
 			case OCall:
-				acc = call(pc, vthis, acc, code[pc]);
+				acc = mcall(pc, vthis, acc, code[pc]);
 				pc++;
 			case OObjCall:
-				acc = call(pc, stack.pop(), acc, code[pc]);
+				acc = mcall(pc, stack.pop(), acc, code[pc]);
 				pc++;
 			case OJump:
 				pc += code[pc] - 1;
-// case OJumpIf:
-// case OJumpIfNot:
+			case OJumpIf:
+				switch( acc ) {
+				case VBool(a): if( a ) pc += code[pc] - 2;
+				default:
+				}
+				pc++;
+			case OJumpIfNot:
+				switch( acc ) {
+				case VBool(a): if( !a ) pc += code[pc] - 2;
+				default: pc += code[pc] - 2;
+				}
+				pc++;
 // case OTrap:
 // case OEndTrap:
-// case ORet:
+			case ORet:
+				return acc;
 // case OMakeEnv:
 // case OMakeArray:
 // case OBool:
@@ -340,14 +430,27 @@ class VM {
 // case OOr:
 // case OAnd:
 // case OXor:
-// case OEq:
-// case ONeq:
-// case OGt:
-// case OGte:
-// case OLt:
-// case OLte:
+			case OEq:
+				var c = compare(pc, stack.pop(), acc);
+				acc = VBool(c == 0 && c != Builtins.CINVALID);
+			case ONeq:
+				var c = compare(pc, stack.pop(), acc);
+				acc = VBool(c != 0 && c != Builtins.CINVALID);
+			case OGt:
+				var c = compare(pc, stack.pop(), acc);
+				acc = VBool(c > 0 && c != Builtins.CINVALID);
+			case OGte:
+				var c = compare(pc, stack.pop(), acc);
+				acc = VBool(c >= 0 && c != Builtins.CINVALID);
+			case OLt:
+				var c = compare(pc, stack.pop(), acc);
+				acc = VBool(c < 0 && c != Builtins.CINVALID);
+			case OLte:
+				var c = compare(pc, stack.pop(), acc);
+				acc = VBool(c <= 0 && c != Builtins.CINVALID);
 // case ONot:
-// case OTypeOf:
+			case OTypeOf:
+				acc = builtins.typeof(acc);
 // case OCompare:
 // case OHash:
 			case ONew:
@@ -358,14 +461,9 @@ class VM {
 				}
 // case OJumpTable:
 // case OApply:
-			case OAccStack0:
-				acc = stack.head.elt;
-			case OAccStack1:
-				acc = stack.head.next.elt;
 // case OAccIndex0:
 // case OAccIndex1:
 // case OPhysCompare:
-// case OTailCall:
 			default:
 				throw "TODO:" + opcodes[code[pc - 1]];
 			}
