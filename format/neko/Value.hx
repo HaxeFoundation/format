@@ -38,6 +38,8 @@ enum Value {
 	VArray( a : Array<Value> );
 	VFunction( f : ValueFunction );
 	VAbstract( v : ValueAbstract );
+	VProxy( o : Dynamic );
+	VProxyFunction( f : Dynamic );
 }
 
 class ValueObject {

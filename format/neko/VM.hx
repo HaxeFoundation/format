@@ -63,9 +63,19 @@ class VM {
 
 	function hash( s : String ) {
 		var h = 0;
+		#if neko
 		for( i in 0...s.length )
 			h = 223 * h + s.charCodeAt(i);
 		return h;
+		#else
+		for( i in 0...s.length )
+			h = (((223 * h) >> 1) + s.charCodeAt(i)) << 1;
+		return h >> 1;
+		#end
+	}
+	
+	public dynamic function doPrint( s : String ) {
+		haxe.Log.trace(s, cast {});
 	}
 	
 	public function hashField( f : String ) {
@@ -231,14 +241,14 @@ class VM {
 				var a = stack.pop();
 				ret = f(a,b,c);
 			case VFun4(f):
-				if( nargs != 3 ) error(pc, "Invalid call");
+				if( nargs != 4 ) error(pc, "Invalid call");
 				var d = stack.pop();
 				var c = stack.pop();
 				var b = stack.pop();
 				var a = stack.pop();
 				ret = f(a,b,c,d);
 			case VFun5(f):
-				if( nargs != 3 ) error(pc, "Invalid call");
+				if( nargs != 5 ) error(pc, "Invalid call");
 				var e = stack.pop();
 				var d = stack.pop();
 				var c = stack.pop();
@@ -251,6 +261,11 @@ class VM {
 					args.push(stack.pop());
 				ret = f(args);
 			}
+		case VProxyFunction(f):
+			var args = [];
+			for( i in 0...nargs )
+				args.unshift(unwrap(stack.pop()));
+			ret = wrap(Reflect.callMethod(switch( obj ) { case VProxy(o): o; default: null; }, f, args));
 		default:
 			error(pc, "Invalid call");
 		}
@@ -260,8 +275,101 @@ class VM {
 		return ret;
 	}
 
-	function compare( pc : Int, a : Value, b : Value ) {
+	inline function compare( pc : Int, a : Value, b : Value ) {
 		return builtins._compare(a, b);
+	}
+	
+	inline function accIndex( pc : Int, acc : Value, index : Int ) {
+		switch( acc ) {
+		case VArray(a):
+			acc = a[index];
+			if( acc == null ) acc = VNull;
+		case VObject(o):
+			throw "TODO";
+		default:
+			error(pc, "Invalid array access");
+		}
+		return acc;
+	}
+	
+	public function wrap( v : Dynamic ) {
+		return switch( Type.typeof(v) ) {
+			case TNull: VNull;
+			case TInt: VInt(v);
+			case TFloat: VFloat(v);
+			case TBool: VBool(v);
+			case TFunction: VProxyFunction(v);
+			case TObject, TClass(_), TEnum(_): VProxy(v);
+			case TUnknown:
+				#if neko
+				untyped switch( __dollar__typeof(v) ) {
+				case __dollar__tstring: VString(new String(v));
+				case __dollar__tarray: VArray(Array.new1(v, __dollar__asize(v)));
+				default: null;
+				}
+				#else
+				null;
+				#end
+		};
+	}
+	
+	public function unwrap( v : Value ) : Dynamic {
+		switch(v) {
+		case VNull: return null;
+		case VInt(i): return i;
+		case VFloat(f): return f;
+		case VString(s): return s;
+		case VProxy(o): return o;
+		case VBool(b): return b;
+		case VAbstract(v): return v;
+		case VProxyFunction(f): return f;
+		case VArray(a):
+			var a2 = [];
+			for( x in a )
+				a2.push(unwrap(x));
+			return a2;
+		case VObject(o):
+			var a = { };
+			for( f in o.fields.keys() )
+				Reflect.setField(a, fieldName(f), unwrap(o.fields.get(f)));
+			return a;
+		case VFunction(f):
+			var me = this;
+			switch(f) {
+			case VFun0(f): return function() return me.unwrap(f());
+			case VFun1(f): return function(x) return me.unwrap(f(me.wrap(x)));
+			case VFun2(f): return function(x,y) return me.unwrap(f(me.wrap(x),me.wrap(y)));
+			case VFun3(f): return function(x,y,z) return me.unwrap(f(me.wrap(x),me.wrap(y),me.wrap(z)));
+			case VFun4(f): return function(x,y,z,w) return me.unwrap(f(me.wrap(x),me.wrap(y),me.wrap(z),me.wrap(w)));
+			case VFun5(f): return function(x,y,z,w,k) return me.unwrap(f(me.wrap(x),me.wrap(y),me.wrap(z),me.wrap(w),me.wrap(k)));
+			case VFunVar(f): return Reflect.makeVarArgs(function(args) {
+					var args2 = new Array();
+					for( x in args ) args2.push(me.wrap(x));
+					return me.unwrap(f(args2));
+				});
+			}
+		}
+	}
+
+	public function getField( v : Value, fid : Int ) {
+		switch( v ) {
+		case VObject(o):
+			while( true ) {
+				v = o.fields.get(fid);
+				if( v != null ) break;
+				o = o.proto;
+				if( o == null ) {
+					v = VNull;
+					break;
+				}
+			}
+		case VProxy(o):
+			var f : Dynamic = try Reflect.field(o, fieldName(fid)) catch( e : Dynamic ) null;
+			v = wrap(f);
+		default:
+			v = null;
+		}
+		return v;
 	}
 	
 	function loop( pc : Int ) {
@@ -270,6 +378,8 @@ class VM {
 		var opcodes = opcodes;
 		while( true ) {
 			var op = opcodes[code[pc++]];
+			//var dbg = module.debug[pc];
+			//if( dbg != null ) trace(dbg.file + "(" + dbg.line + ") " + op+ " " +Lambda.count(stack));
 			switch( op ) {
 			case OAccNull:
 				acc = VNull;
@@ -284,7 +394,7 @@ class VM {
 			case OAccStack:
 				var idx = code[pc++];
 				var head = stack.head;
-				while( idx > 0 ) {
+				while( idx > -2 ) {
 					head = head.next;
 					idx--;
 				}
@@ -297,22 +407,29 @@ class VM {
 				acc = module.gtable[code[pc++]];
 // case OAccEnv:
 			case OAccField:
-				switch( acc ) {
-				case VObject(o):
-					while( true ) {
-						acc = o.fields.get(code[pc]);
-						if( acc != null ) break;
-						o = o.proto;
-						if( o == null ) {
-							acc = VNull;
-							break;
-						}
+				acc = getField(acc, code[pc]);
+				if( acc == null ) error(pc, "Invalid field access : " + fieldName(code[pc]));
+				pc++;
+			case OAccArray:
+				var arr = stack.pop();
+				switch( arr ) {
+				case VArray(a):
+					switch( acc ) {
+					case VInt(i): acc = a[i]; if( acc == null ) acc = VNull;
+					default: error(pc, "Invalid array access");
 					}
-					pc++;
-				default: error(pc, "Invalid field access : " + fieldName(code[pc]));
+				case VObject(o):
+					throw "TODO";
+				default:
+					error(pc, "Invalid array access");
 				}
-// case OAccArray:
-// case OAccIndex:
+			case OAccIndex:
+				acc = accIndex(pc, acc, code[pc] + 2);
+				pc++;
+			case OAccIndex0:
+				acc = accIndex(pc, acc, 0);
+			case OAccIndex1:
+				acc = accIndex(pc, acc, 1);
 			case OAccBuiltin:
 				acc = hbuiltins.get(code[pc++]);
 				if( acc == null )
@@ -337,12 +454,14 @@ class VM {
 				var obj = stack.pop();
 				switch( obj ) {
 				case VObject(o): o.fields.set(code[pc++], acc);
+				case VProxy(o): Reflect.setField(o, fieldName(code[pc++]), unwrap(acc));
 				default: error(pc, "Invalid field access : " + fieldName(code[pc]));
 				}
 // case OSetArray:
 // case OSetIndex:
 // case OSetThis:
 			case OPush:
+				if( acc == null ) throw "assert";
 				stack.add(acc);
 			case OPop:
 				for( i in 0...code[pc++] )
@@ -362,8 +481,7 @@ class VM {
 						args = args.next;
 					args.next = head;
 				}
-				acc = mcall(pc, vthis, acc, nargs);
-				pc++;
+				return mcall(pc, vthis, acc, nargs);
 			case OCall:
 				acc = mcall(pc, vthis, acc, code[pc]);
 				pc++;
@@ -387,12 +505,34 @@ class VM {
 // case OTrap:
 // case OEndTrap:
 			case ORet:
+				for( i in 0...code[pc++] )
+					stack.pop();
 				return acc;
 // case OMakeEnv:
-// case OMakeArray:
-// case OBool:
-// case OIsNull:
-// case OIsNotNull:
+			case OMakeArray:
+				var a = new Array();
+				for( i in 0...code[pc++] )
+					a.unshift(stack.pop());
+				a.unshift(acc);
+				acc = VArray(a);
+			case OBool:
+				acc = switch( acc ) {
+				case VBool(b): acc;
+				case VNull: VBool(false);
+				case VInt(i): VBool(i != 0);
+				default: VBool(true);
+				}
+			case ONot:
+				acc = switch( acc ) {
+				case VBool(b): VBool(!b);
+				case VNull: VBool(true);
+				case VInt(i): VBool(i == 0);
+				default: VBool(false);
+				}
+			case OIsNull:
+				acc = VBool(acc == VNull);
+			case OIsNotNull:
+				acc = VBool(acc != VNull);
 			case OAdd:
 				var a = stack.pop();
 				acc = switch( acc ) {
@@ -401,6 +541,7 @@ class VM {
 					case VInt(a): VInt(a + b);
 					case VFloat(a): VFloat(a + b);
 					case VString(a): VString(a + b);
+					case VProxy(a): wrap(a + b);
 					default: null;
 					}
 				case VFloat(b):
@@ -408,6 +549,7 @@ class VM {
 					case VInt(a): VFloat(a + b);
 					case VFloat(a): VFloat(a + b);
 					case VString(a): VString(a + b);
+					case VProxy(a): wrap(a + b);
 					default: null;
 					}
 				case VString(b):
@@ -415,8 +557,11 @@ class VM {
 					case VInt(a): VString(a + b);
 					case VFloat(a): VString(a + b);
 					case VString(a): VString(a + b);
+					case VProxy(a): wrap(a + b);
 					default: null;
 					}
+				case VProxy(b):
+					wrap(unwrap(a) + b);
 				default: null;
 				}
 				if( acc == null ) error(pc, "+");
@@ -448,11 +593,16 @@ class VM {
 			case OLte:
 				var c = compare(pc, stack.pop(), acc);
 				acc = VBool(c <= 0 && c != Builtins.CINVALID);
-// case ONot:
 			case OTypeOf:
 				acc = builtins.typeof(acc);
-// case OCompare:
-// case OHash:
+			case OCompare:
+				var v = builtins._compare(stack.pop(), acc);
+				acc = (v == Builtins.CINVALID) ? VNull : VInt(v);
+			case OHash:
+				switch( acc ) {
+				case VString(f): acc = VInt(hashField(f));
+				default: error(pc, "$hash");
+				}
 			case ONew:
 				switch( acc ) {
 				case VNull: acc = VObject(new ValueObject(null));
@@ -461,9 +611,8 @@ class VM {
 				}
 // case OJumpTable:
 // case OApply:
-// case OAccIndex0:
-// case OAccIndex1:
-// case OPhysCompare:
+			case OPhysCompare:
+				error(pc, "$pcompare");
 			default:
 				throw "TODO:" + opcodes[code[pc - 1]];
 			}

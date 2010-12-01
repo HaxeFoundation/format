@@ -41,6 +41,7 @@ class Builtins {
 		b("objsetproto", VFun2(objsetproto));
 		b("typeof", VFun1(typeof));
 		b("string", VFun1(string));
+		b("print", VFunVar(print));
 	}
 	
 	// -------- HELPERS ---------------------
@@ -117,6 +118,12 @@ class Builtins {
 				throw "TODO";
 			default:
 			}
+		case VProxy(a):
+			switch( b ) {
+			case VProxy(b):
+				return ( a == b ) ? 0 : CINVALID;
+			default:
+			}
 		default:
 		}
 		return (a == b) ? 0 : CINVALID;
@@ -143,13 +150,29 @@ class Builtins {
 		case VAbstract(_): "#abstract";
 		case VObject(o):
 			throw "TODO";
+		case VProxy(o):
+			Std.string(o);
+		case VProxyFunction(f):
+			Std.string(f);
 		}
 	}
 	
 	// ----------------- BUILTINS -------------------
 		
 	public function typeof( o : Value ) : Value {
-		return VInt(Type.enumIndex(o));
+		return VInt(switch( o ) {
+		case VProxy(_): 5; // $tobject
+		case VProxyFunction(_): 7; // $tfunction
+		default: Type.enumIndex(o);
+		});
+	}
+	
+	function print( vl : Array<Value> ) {
+		var buf = new StringBuf();
+		for( v in vl )
+			buf.add(_string(v));
+		vm.doPrint(buf.toString());
+		return VNull;
 	}
 	
 	function string( v : Value ) {

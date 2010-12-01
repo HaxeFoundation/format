@@ -6,8 +6,8 @@
     <movie input="" />
     <movie path="test.n" />
     <movie fps="0" />
-    <movie width="0" />
-    <movie height="0" />
+    <movie width="800" />
+    <movie height="600" />
     <movie version="12" />
     <movie background="#FFFFFF" />
   </output>
@@ -21,7 +21,7 @@
     <option flashStrict="False" />
     <option mainClass="Test" />
     <option enabledebug="False" />
-    <option additional="" />
+    <option additional="-resource tpl.mtt.n" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
