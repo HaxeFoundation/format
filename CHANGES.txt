@@ -1,6 +1,7 @@
 2010-??-??: 1.18
 	neko : added Reader, VM
 	neko : added Templo loader
+	tar : fixed Reader
 
 2010-09-15: 1.17
 	swf : added TDoActions, TExport

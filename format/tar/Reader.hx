@@ -71,10 +71,10 @@ class Reader {
 		var type = i.readByte();
 		var lname = i.readUntil(0);
 		i.read(99 - lname.length); // skip
-		var ustar = i.readString(4);
+		var ustar = i.readString(5);
 		var c0 = i.readByte();
 		var c1 = i.readByte();
-		if( ustar != "ustar" || (c0 != 32 && c0 != 0) || (c1 != 32 && c1 != 0) || i.readByte() != 0 || i.readByte() != 0 )
+		if( ustar != "ustar" || (c0 != 32 && c0 != 0) || (c1 != 32 && c1 != 0) || i.readByte() != 0 )
 			throw "Not an tar ustar file";
 		var uname = i.readUntil(0);
 		i.read(31 - uname.length);
