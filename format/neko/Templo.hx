@@ -46,15 +46,16 @@ class Templo {
 			return VProxy(new Array());
 		})));
 		parray.fields.set(vm.hashField("new1"), VFunction(VFun2(function(v:Value,len:Value) {
-			return switch(v) {
+			switch(v) {
 			case VArray(a):
-				var len = switch( len ) { case VInt(i): i; default: return null; };
+				var vlen;
+				switch( len ) { case VInt(i): vlen = i; default: return null; };
 				var a2 = new Array();
-				for( i in 0...len )
+				for( i in 0...vlen )
 					a2.push(me.vm.unwrap(a[i]));
-				VProxy(a2);
+				return VProxy(a2);
 			default:
-				null;
+				return null;
 			};
 		})));
 		String = VObject(pstring);
@@ -117,9 +118,10 @@ class Templo {
 		return VProxy(new Iter(it,size));
 	}
 	
-	function loop( i : Value, callb : Value, b : Value,  ctx : Value ) {
-		var i : Iter = switch(i) {
-		case VProxy(o): cast o;
+	function loop( vi : Value, callb : Value, b : Value,  ctx : Value ) {
+		var i : Iter;
+		switch(vi) {
+		case VProxy(o): i = cast o;
 		default: return null;
 		}
 		var it = i.__it;

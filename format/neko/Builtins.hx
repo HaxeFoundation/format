@@ -144,7 +144,7 @@ class Builtins {
 				b.add(_string(v));
 			}
 			b.addChar("]".code);
-			return b.toString();
+			b.toString();
 		case VString(s): s;
 		case VFunction(f): "#function:" + _nargs(f);
 		case VAbstract(_): "#abstract";

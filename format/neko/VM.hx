@@ -108,13 +108,14 @@ class VM {
 		throw v;
 	}
 
-	function loadPrim( prim : Value, nargs : Value ) {
-		var prim = switch( prim ) {
-		case VString(s): s;
+	function loadPrim( vprim : Value, vargs : Value ) {
+		var prim, nargs;
+		switch( vprim ) {
+		case VString(s): prim = s;
 		default: return null;
 		}
-		var nargs = switch(nargs) {
-		case VInt(n):
+		switch(vargs) {
+		case VInt(n): nargs = n;
 		default: return null;
 		}
 		var me = this;
@@ -130,8 +131,8 @@ class VM {
 	public function load( m : Data, ?loader : ValueObject ) {
 		if( loader == null ) loader = defaultLoader();
 		this.module = new Module(m, loader);
-		var me = this, mod = module;
-		for( i in 0...m.globals.length )
+		for( i in 0...m.globals.length ) {
+			var me = this, mod = module;
 			module.gtable[i] = switch(m.globals[i]) {
 			case GlobalVar(_): VNull;
 			case GlobalFloat(v): VFloat(Std.parseFloat(v));
@@ -175,6 +176,7 @@ class VM {
 			});
 			case GlobalDebug(debug): module.debug = debug; VNull;
 			};
+		}
 		for( f in m.fields )
 			hashField(f);
 		vthis = VNull;
