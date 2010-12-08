@@ -2,6 +2,7 @@
 	neko : added Reader, VM
 	neko : added Templo loader
 	tar : fixed Reader
+	swf : fixed some blendMode inversions
 
 2010-09-15: 1.17
 	swf : added TDoActions, TExport

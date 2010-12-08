@@ -129,9 +129,9 @@ enum BlendMode {
 	BScreen;
 	BLighten;
 	BDarken;
+	BDifference;
 	BAdd;
 	BSubtract;
-	BDifference;
 	BInvert;
 	BAlpha;
 	BErase;

@@ -287,9 +287,9 @@ class Reader {
 		case 4: BScreen;
 		case 5: BLighten;
 		case 6: BDarken;
-		case 7: BAdd;
-		case 8: BSubtract;
-		case 9: BDifference;
+		case 7: BDifference;
+		case 8: BAdd;
+		case 9: BSubtract;
 		case 10: BInvert;
 		case 11: BAlpha;
 		case 12: BErase;
