@@ -34,4 +34,5 @@ enum Value {
 	ADate( d : Date );
 	AUndefined;
 	ANull;
+	AArray( values : Array<Value> );
 }

@@ -50,6 +50,13 @@ class Reader {
 		return h;
 	}
 
+	function readArray(n : Int) {
+		var a = new Array();
+		for( i in 0...n )
+			a.push(read());
+		return a;
+	}
+
 	public function readWithCode( id ) {
 		var i = this.i;
 		return switch( id ) {
@@ -75,6 +82,8 @@ class Reader {
 			AUndefined;
 		case 0x07:
 			throw "Not supported : Reference";
+		case 0x0A:
+			AArray(readArray(i.readUInt30()));
 		case 0x0B:
 			var time_ms = i.readDouble();
 			var tz_min = i.readUInt16();

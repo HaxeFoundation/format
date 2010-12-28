@@ -73,8 +73,14 @@ class Writer {
 		case AUndefined:
 			o.writeByte(0x06);
 		case ADate(d):
+			o.writeByte(0x0B);
 			o.writeDouble(d.getTime());
 			o.writeUInt16(0); // loose TZ
+		case AArray(a):
+			o.writeByte(0x0A);
+			o.writeUInt30(a.length);
+			for(f in a)
+				write(f);
 		}
 	}
 

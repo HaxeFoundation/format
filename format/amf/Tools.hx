@@ -50,6 +50,12 @@ class Tools {
 				for( f in o.keys() )
 					h.set(f,encode(o.get(f)));
 				AObject(h);
+			case cast Array:
+				var o : Array<Dynamic> = o;
+				var a = new Array();
+				for(v in o)
+					a.push(encode(v));
+				AArray(a);
 			default:
 				throw "Can't encode instance of "+Type.getClassName(c);
 			}
@@ -82,7 +88,7 @@ class Tools {
 		}
 	}
 
-	public static function bool( a : Value ) {
+	public static function abool( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
 		case ABool(b): b;
@@ -90,4 +96,11 @@ class Tools {
 		}
 	}
 
+	public static function array( a : Value ) {
+		if( a == null ) return null;
+		return switch( a ) {
+		case AArray(a): a;
+		default: null;
+		}
+	}
 }
