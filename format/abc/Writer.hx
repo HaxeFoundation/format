@@ -311,7 +311,7 @@ class Writer {
 		writeList2(f.locals,writeField);
 	}
 
-	function writeABC( d : ABCData ) {
+	public function write( d : ABCData ) {
 		o.writeInt31(0x002E0010); // as3 magic header
 		writeList(d.ints,opw.writeInt32);
 		writeList(d.uints,opw.writeInt32);
@@ -329,11 +329,6 @@ class Writer {
 		}
 		writeList2(d.inits,writeInit);
 		writeList2(d.functions,writeFunction);
-	}
-
-	public static function write( out, data ) {
-		var w = new Writer(out);
-		w.writeABC(data);
 	}
 
 }
