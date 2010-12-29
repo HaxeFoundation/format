@@ -25,6 +25,9 @@
  * DAMAGE.
  */
 package format.alga;
+#if macro
+import haxe.macro.Expr;
+#end
 
 class Tools {
 
@@ -42,5 +45,37 @@ class Tools {
 		//case RSampler: if( fragment ) { read : true, write : false, count : 8 } else { read : false, write : false, count : 0 };
 		}
 	}
+
+	public static function ofString( str : String ) : haxe.io.Bytes {
+		var b : haxe.io.Bytes = haxe.Unserializer.run(str);
+		#if flash9
+		// force endianness
+		b.getData().endian = flash.utils.Endian.LITTLE_ENDIAN;
+		#end
+		return b;
+	}
+	
+	@:macro public static function asm( kind : Expr, code : Expr ) {
+		var frag = null;
+		switch( kind.expr ) {
+		case EConst(c):
+			switch( c ) {
+			case CIdent(n):
+				if( n == "fragment" ) frag = true;
+				if( n == "vertex" ) frag = false;
+			default:
+			}
+		default:
+		};
+		if( frag == null )
+			haxe.macro.Context.error("Invalid kind : should be fragment|vertex",kind.pos);
+		var p = new Parser(frag);
+		var data = try p.parse(code) catch( e : Parser.ParserError ) haxe.macro.Context.error(e.message,e.pos);
+		var o = new haxe.io.BytesOutput();
+		new Writer(o).write(data);
+		var str = haxe.Serializer.run(o.getBytes());
+		return haxe.macro.Context.parse("format.alga.Tools.ofString('" + str + "')",code.pos);
+	}
+
 
 }
