@@ -1,5 +1,6 @@
 2011-??-??: 1.19
 	amf : added Array support
+	alga : added Data, Writer
 
 2010-12-08: 1.18
 	neko : added Reader, VM
