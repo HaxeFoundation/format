@@ -24,8 +24,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.alga;
-import format.alga.Data;
+package format.agal;
+import format.agal.Data;
 
 class Writer {
 

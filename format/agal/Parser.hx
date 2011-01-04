@@ -24,8 +24,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.alga;
-import format.alga.Data;
+package format.agal;
+import format.agal.Data;
 import haxe.macro.Expr;
 
 class ParserError {
@@ -45,25 +45,25 @@ private typedef Reg = {
 }
 
 class Parser {
-	
+
 	var fragment : Bool;
 	var code : Array<Opcode>;
-	
+
 	public function new(frag) {
 		this.fragment = frag;
 	}
-	
+
 	function error(msg,p) : Dynamic {
 		throw new ParserError(msg, p);
 		return null;
 	}
-	
+
 	public function parse( e : Expr ) : Data {
 		code = [];
 		loop(e);
 		return { code : code, fragmentShader : fragment };
 	}
-	
+
 	function makeOp( op : Dest -> Src -> Src -> Opcode, dst : Reg, args : Array<Expr>, p : Position ) {
 		if( args.length != 2 )
 			error("Two parameters are required", p);
@@ -75,7 +75,7 @@ class Parser {
 			error("One single parameter is accepted", p);
 		code.push(op(makeDest(dst), makeSrc(getReg(args[0]))));
 	}
-	
+
 	function loop( e : Expr ) {
 		switch( e.expr ) {
 		case EBlock(el):
@@ -125,6 +125,8 @@ class Parser {
 						if( flags.length == 0 ) flags = null;
 						code.push(OTex(makeDest(dst), makeSrc(r), { index : idx, flags : flags } ));
 						return;
+					default:
+						error("Unknown operation '" + id + "'", f.pos);
 					}
 				case EBinop(op, e1, e2):
 					switch( op ) {
@@ -147,7 +149,7 @@ class Parser {
 		error("Unsupported expression", e.pos);
 		return null;
 	}
-	
+
 	function makeDest( r : Reg ) : Dest {
 		if( r.fields != null ) {
 			var min = -1;
@@ -168,7 +170,7 @@ class Parser {
 			mask : r.fields,
 		};
 	}
-	
+
 	function makeSrc( r : Reg ) : Src {
 		if( r.fields != null ) {
 			if( r.fields.length == 0 || r.fields.length > 4 )
@@ -185,7 +187,7 @@ class Parser {
 			swiz : r.fields,
 		};
 	}
-	
+
 	function getIdent( e : Expr ) {
 		return switch( e.expr ) {
 		case EConst(c):
@@ -207,7 +209,7 @@ class Parser {
 		default: error("Constant integer expected", e.pos);
 		};
 	}
-	
+
 	function getReg( e : Expr ) : Reg {
 		switch( e.expr ) {
 		case EArray(id, index):
@@ -247,5 +249,5 @@ class Parser {
 		}
 		return error("Invalid register", e.pos);
 	}
-	
+
 }

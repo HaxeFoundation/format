@@ -24,7 +24,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.alga;
+package format.agal;
 #if macro
 import haxe.macro.Expr;
 #end
@@ -54,7 +54,7 @@ class Tools {
 		#end
 		return b;
 	}
-	
+
 	@:macro public static function asm( kind : Expr, code : Expr ) {
 		var frag = null;
 		switch( kind.expr ) {
@@ -74,7 +74,7 @@ class Tools {
 		var o = new haxe.io.BytesOutput();
 		new Writer(o).write(data);
 		var str = haxe.Serializer.run(o.getBytes());
-		return haxe.macro.Context.parse("format.alga.Tools.ofString('" + str + "')",code.pos);
+		return haxe.macro.Context.parse("format.agal.Tools.ofString('" + str + "')",code.pos);
 	}
 
 

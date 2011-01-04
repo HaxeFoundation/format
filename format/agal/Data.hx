@@ -24,7 +24,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.alga;
+package format.agal;
 
 enum Opcode {
 	OMov( dst : Dest, v : Src );
