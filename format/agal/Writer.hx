@@ -45,9 +45,9 @@ class Writer {
 		for( c in data.code ) {
 			var idx = Type.enumIndex(c);
 			var params = Type.enumParameters(c);
-			var dst : Dest = params[0];
+			var dst : Reg = params[0];
 			o.writeUInt30(( idx == idTex ) ? 0x28 : idx);
-			o.writeUInt30( dst.index | (maskBits(dst.mask) << 16) | (regType(dst.t) << 24));
+			o.writeUInt30( dst.index | (maskBits(dst.swiz) << 16) | (regType(dst.t) << 24));
 			writeSrc(params[1]);
 			if( idx == idTex )
 				writeTex(params[2]);
@@ -60,7 +60,7 @@ class Writer {
 		return Type.enumIndex(r);
 	}
 
-	function maskBits( m : WriteMask ) {
+	function maskBits( m : Swizzle ) {
 		if( m == null ) return 15;
 		var bits = 0;
 		for( c in m )
@@ -99,7 +99,7 @@ class Writer {
 		return (dim << 4) | (special << 8) | (wrap << 12) | (mipmap << 16) | (filter << 20);
 	}
 
-	function writeSrc( s : Src ) {
+	function writeSrc( s : Reg ) {
 		if( s == null ) {
 			o.writeUInt30(0);
 			o.writeUInt30(0);

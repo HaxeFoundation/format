@@ -27,44 +27,36 @@
 package format.agal;
 
 enum Opcode {
-	OMov( dst : Dest, v : Src );
-	OAdd( dst : Dest, a : Src, b : Src );
-	OSub( dst : Dest, a : Src, b : Src );
-	OMul( dst : Dest, a : Src, b : Src );
-	ODiv( dst : Dest, a : Src, b : Src );
-	ORcp( dst : Dest, v : Src );
-	OMin( dst : Dest, a : Src, b : Src );
-	OMax( dst : Dest, a : Src, b : Src );
-	OFrc( dst : Dest, v : Src );
-	OSqt( dst : Dest, v : Src );
-	ORsq( dst : Dest, v : Src );
-	OPow( dst : Dest, a : Src, b : Src );
-	OLog( dst : Dest, v : Src );
-	OExp( dst : Dest, v : Src );
-	ONrm( dst : Dest, v : Src );
-	OSin( dst : Dest, v : Src );
-	OCos( dst : Dest, v : Src );
-	OCrs( dst : Dest, a : Src, b : Src );
-	ODp3( dst : Dest, a : Src, b : Src );
-	ODp4( dst : Dest, a : Src, b : Src );
-	OAbs( dst : Dest, v : Src );
-	ONeg( dst : Dest, v : Src );
-	OSat( dst : Dest, v : Src );
-	OM33( dst : Dest, a : Src, b : Src );
-	OM44( dst : Dest, a : Src, b : Src );
-	OM34( dst : Dest, a : Src, b : Src );
-	OTex( dst : Dest, pt : Src, tex : Tex );
+	OMov( dst : Reg, v : Reg );
+	OAdd( dst : Reg, a : Reg, b : Reg );
+	OSub( dst : Reg, a : Reg, b : Reg );
+	OMul( dst : Reg, a : Reg, b : Reg );
+	ODiv( dst : Reg, a : Reg, b : Reg );
+	ORcp( dst : Reg, v : Reg );
+	OMin( dst : Reg, a : Reg, b : Reg );
+	OMax( dst : Reg, a : Reg, b : Reg );
+	OFrc( dst : Reg, v : Reg );
+	OSqt( dst : Reg, v : Reg );
+	ORsq( dst : Reg, v : Reg );
+	OPow( dst : Reg, a : Reg, b : Reg );
+	OLog( dst : Reg, v : Reg );
+	OExp( dst : Reg, v : Reg );
+	ONrm( dst : Reg, v : Reg );
+	OSin( dst : Reg, v : Reg );
+	OCos( dst : Reg, v : Reg );
+	OCrs( dst : Reg, a : Reg, b : Reg );
+	ODp3( dst : Reg, a : Reg, b : Reg );
+	ODp4( dst : Reg, a : Reg, b : Reg );
+	OAbs( dst : Reg, v : Reg );
+	ONeg( dst : Reg, v : Reg );
+	OSat( dst : Reg, v : Reg );
+	OM33( dst : Reg, a : Reg, b : Reg );
+	OM44( dst : Reg, a : Reg, b : Reg );
+	OM34( dst : Reg, a : Reg, b : Reg );
+	OTex( dst : Reg, pt : Reg, tex : Tex );
 }
 
-typedef Dest = {
-	var t : RegType;
-	var index : Int;
-	var mask : WriteMask;
-}
-
-typedef WriteMask = Null<Array<C>>; // length 1-4
-
-typedef Src = {
+typedef Reg = {
 	var t : RegType;
 	var index : Int;
 	var swiz : Swizzle;
