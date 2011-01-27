@@ -26,6 +26,7 @@
  */
 package format.agal;
 import format.agal.Data;
+import format.agal.Compiler;
 import haxe.macro.Expr;
 
 class ParserError {
@@ -37,217 +38,768 @@ class ParserError {
 	}
 }
 
-private typedef Reg = {
-	var t : RegType;
-	var index : Int;
-	var fields : Null<Array<C>>;
-	var pos : Position;
-}
-
 class Parser {
+	
+	var vertex : Function;
+	var fragment : Function;
+	var cur : Code;
+	
+	var vars : Hash<Variable>;
+	var input : Array<Variable>;
+	var indexes : Array<Int>;
+	
+	var vertexShader : Bool;
+	var ops : Array<Array<{ p1 : VarType, p2 : VarType, r : VarType }>>;
 
-	var fragment : Bool;
-	var code : Array<Opcode>;
-
-	public function new(frag) {
-		this.fragment = frag;
+	public function new() {
+		vars = new Hash();
+		indexes = [0, 0, 0, 0, 0, 0];
+		ops = new Array();
+		for( o in initOps() )
+			ops[Type.enumIndex(o.op)] = o.types;
+	}
+	
+	function initOps() {
+		var mat = TMatrix44( { t : false } );
+		var mat_t = TMatrix44( { t : true } );
+		var mat_u = TMatrix44( { t : null } );
+		var floats = [
+			{ p1 : TFloat, p2 : TFloat, r : TFloat },
+			{ p1 : TFloat2, p2 : TFloat2, r : TFloat2 },
+			{ p1 : TFloat3, p2 : TFloat3, r : TFloat3 },
+			{ p1 : TFloat4, p2 : TFloat4, r : TFloat4 },
+		];
+		var ufloats = [
+			{ p1 : TFloat, p2 : null, r : TFloat },
+			{ p1 : TFloat2, p2 : null, r : TFloat2 },
+			{ p1 : TFloat3, p2 : null, r : TFloat3 },
+			{ p1 : TFloat4, p2 : null, r : TFloat4 },
+		];
+		var ops = [];
+		for( o in Lambda.map(Type.getEnumConstructs(CodeOp), function(c) return Type.createEnum(CodeOp, c)) )
+			ops.push({ op : o, types : switch( o ) {
+				case CAdd, CSub, CDiv, CPow: floats;
+				case CMin, CMax: floats;
+				case CMul: floats.concat([
+					{ p1 : TFloat4, p2 : mat_t, r : TFloat4 },
+					{ p1 : mat, p2 : mat_t, r : mat_u },
+				]);
+			}});
+		return ops;
 	}
 
-	function error(msg,p) : Dynamic {
+	function error(msg:String, p) : Dynamic {
 		throw new ParserError(msg, p);
 		return null;
 	}
 
-	public function parse( e : Expr ) : Data {
-		code = [];
-		loop(e);
-		return { code : code, fragmentShader : fragment };
+	public dynamic function warn( msg:String, p:Position) {
 	}
-
-	function makeOp( op : Dest -> Src -> Src -> Opcode, dst : Reg, args : Array<Expr>, p : Position ) {
-		if( args.length != 2 )
-			error("Two parameters are required", p);
-		code.push(op(makeDest(dst), makeSrc(getReg(args[0])), makeSrc(getReg(args[1]))));
+	
+	function typeStr( t : VarType )  {
+		return Std.string(t).substr(1);
 	}
-
-	function makeUnop( op : Dest -> Src -> Opcode, dst : Reg, args : Array<Expr>, p : Position ) {
-		if( args.length != 1 )
-			error("One single parameter is accepted", p);
-		code.push(op(makeDest(dst), makeSrc(getReg(args[0]))));
-	}
-
-	function loop( e : Expr ) {
+	
+	public function parse( e : Expr ) {
+		allocVar("out", ROut, TFloat4, e.pos);
 		switch( e.expr ) {
-		case EBlock(el):
-			for( e in el )
-				loop(e);
-			return;
-		case EBinop(op, dst, v):
-			switch( op ) {
-			case OpAssign:
-				var dst = getReg(dst);
-				switch( v.expr ) {
-				case ECall(f, args):
-					var id = getIdent(f);
-					switch( id ) {
-					case "dp4": return makeOp(ODp4, dst, args, e.pos);
-					case "dp3": return makeOp(ODp3, dst, args, e.pos);
-					case "min": return makeOp(OMin, dst, args, e.pos);
-					case "max": return makeOp(OMax, dst, args, e.pos);
-					case "pow": return makeOp(OPow, dst, args, e.pos);
-					case "cos": return makeUnop(OCos, dst, args, e.pos);
-					case "sin": return makeUnop(OSin, dst, args, e.pos);
-					case "sqrt": return makeUnop(OSqt, dst, args, e.pos);
-					case "frac": return makeUnop(OFrc, dst, args, e.pos);
-					case "tex":
-						if( args.length < 2 ) error("Missing arguments : (index,position) required", e.pos);
-						var idx = getInt(args[0]);
-						var r = getReg(args[1]);
-						var flags = [];
-						for( i in 2...args.length ) {
-							var n = getIdent(args[i]);
-							var f = switch( n ) {
-							case "wrap": TWrap;
-							case "clamp": TClamp;
-							case "linear": TFilterLinear;
-							case "nearest": TFilterNearest;
-							case "t2d": T2D;
-							case "cube": TCube;
-							case "t3d": T3D;
-							case "mmnone": TMipMapDisable;
-							case "mmnearest": TMipMapNearest;
-							case "mmlinear": TMipMapLinear;
-							case "centroid": TCentroidSample;
-							default: error("Unknown texture flag '" + n + "'", args[i].pos);
-							}
-							flags.push(f);
-						}
-						if( flags.length == 0 ) flags = null;
-						code.push(OTex(makeDest(dst), makeSrc(r), { index : idx, flags : flags } ));
-						return;
-					default:
-						error("Unknown operation '" + id + "'", f.pos);
-					}
-				case EBinop(op, e1, e2):
-					switch( op ) {
-					case OpAdd: return makeOp(OAdd, dst, [e1,e2], e.pos);
-					case OpSub: return makeOp(OSub, dst, [e1,e2], e.pos);
-					case OpMult: return makeOp(OMul, dst, [e1, e2], e.pos);
-					case OpDiv: return makeOp(ODiv, dst, [e1,e2], e.pos);
-					default:
-						error("Unsupported operation", v.pos);
-					}
-				default:
-					var src = getReg(v);
-					code.push(OMov(makeDest(dst), makeSrc(src)));
-					return;
+		case EBlock(l):
+			for( x in l )
+				parseDecl(x);
+		default:
+			error("Shader code should be a block", e.pos);
+		}
+		if( vertex == null ) error("Missing vertex function", e.pos);
+		if( fragment == null ) error("Missing fragment function", e.pos);
+		if( indexes[Type.enumIndex(RAttr)] == 0 ) error("Missing input variable", e.pos);
+		// build vertex shader code
+		vertexShader = true;
+		var vs = buildShader(vertex);
+		checkVars();
+
+		// reset
+		indexes[Type.enumIndex(RConst)] = 0;
+		indexes[Type.enumIndex(RTemp)] = 0;
+
+		// build fragment shader code
+		vertexShader = false;
+		var fs = buildShader(fragment);
+		checkVars();
+		
+		return { input : input, vs : vs, fs : fs };
+	}
+	
+	function checkVars() {
+		var shader = (vertexShader ? "vertex" : "fragment")+" shader";
+		for( v in vars ) {
+			if( v.reg == null ) {
+				if( !v.read ) warn("Unused texture " + v.name, v.pos);
+				continue;
+			}
+			switch( v.reg ) {
+			case ROut:
+				if( v.write == 0 ) error("Output is not written by " + shader, v.pos);
+				if( v.write != fullBits(v.type) ) error("Some output components are not written by " + shader, v.pos);
+				v.write = 0; // reset status
+			case RVar:
+				if( !vertexShader ) {
+					if( !v.read && v.write == 0 )
+						warn("Variable '" + v.name + "' is not used", v.pos);
+					else if( !v.read )
+						error("Variable '" + v.name + "' is not read by " + shader, v.pos);
+					else if( v.write == 0 )
+						error("Variable '" + v.name + "' is not written by vertex shader", v.pos);
+					else if( v.write != fullBits(v.type) )
+						error("Some components of variable '" + v.name + "' are not written by vertex shader", v.pos);
 				}
+			case RAttr:
+				if( vertexShader && !v.read ) warn("Input '" + v.name + "' is not used by "+shader, v.pos);
+			case RTemp:
+				throw "assert";
+			case RConst:
+				if( !v.read ) warn("Parameter '" + v.name + "' not used by " + shader, v.pos);
+				vars.remove(v.name);
+			}
+		}
+	}
+	
+	function getType( t : ComplexType, pos ) {
+		switch(t) {
+		case TPath(p):
+			if( p.pack.length > 0 || p.sub != null || p.params.length > 0 )
+				error("Unsupported type", pos);
+			return switch( p.name ) {
+			case "Float": TFloat;
+			case "Float2": TFloat2;
+			case "Float3": TFloat3;
+			case "Float4": TFloat4;
+			case "M44": TMatrix44({ t : null });
+			case "Texture": TTexture;
 			default:
+				error("Unknown type '" + p.name + "'", pos);
 			}
 		default:
+			error("Unsupported type", pos);
 		}
-		error("Unsupported expression", e.pos);
 		return null;
 	}
-
-	function makeDest( r : Reg ) : Dest {
-		if( r.fields != null ) {
-			var min = -1;
-			for( c in r.fields ) {
-				var i = Type.enumIndex(c);
-				if( i <= min ) error("Invalid write mask", r.pos);
-				min = i;
+	
+	function allocVar( name, k, t, p ) {
+		if( vars.exists(name) ) error("Duplicate variable '" + name + "'", p);
+		var tkind = Type.enumIndex(k);
+		if( t == TTexture ) {
+			k = null;
+			tkind = Type.getEnumConstructs(RegType).length;
+		}
+		var v : Variable = {
+			name : name,
+			type : t,
+			reg : k,
+			read : false,
+			index : indexes[tkind],
+			write : if( k == null ) fullBits(t) else switch( k ) { case RAttr, RConst: fullBits(t); default: 0; },
+			const : null,
+			pos : p,
+		};
+		#if neko
+		var me = this;
+		untyped v.__string = function() return neko.NativeString.ofString(name + ":"+me.typeStr(t));
+		#end
+		vars.set(name, v);
+		if( k == RTemp )
+			cur.temps.push(v);
+		indexes[tkind] += Compiler.regSize(t);
+		return v;
+	}
+	
+	function allocConst( cvals : Array<String>, p : Position ) {
+		var swiz = [X, Y, Z, W];
+		var type = switch( cvals.length ) { case 1: TFloat; case 2: TFloat2; case 3: TFloat3; default: TFloat4; };
+		// remove extra zeroes at end
+		for( i in 0...cvals.length ) {
+			var v = cvals[i];
+			while( v.charCodeAt(v.length - 1) == "0".code ) {
+				v = v.substr(0, v.length - 1);
+				cvals[i] = v;
 			}
 		}
-		var p = Tools.getProps(r.t, fragment);
-		if( !p.write )
-			error("Register is read-only", r.pos);
-		if( r.index >= p.count )
-			error("Index out of bounds", r.pos);
-		return {
-			t : r.t,
-			index : r.index,
-			mask : r.fields,
-		};
-	}
-
-	function makeSrc( r : Reg ) : Src {
-		if( r.fields != null ) {
-			if( r.fields.length == 0 || r.fields.length > 4 )
-				error("Invalid swizzle", r.pos);
+		// find an already existing constant
+		for( c in cur.consts ) {
+			var s = [];
+			for( v in cvals ) {
+				for( i in 0...c.vals.length )
+					if( c.vals[i] == v ) {
+						s.push(swiz[i]);
+						break;
+					}
+			}
+			if( s.length == cvals.length )
+				return { d : CVar(c.v, s), t : type, p : p };
 		}
-		var p = Tools.getProps(r.t, fragment);
-		if( !p.read )
-			error("Register is write-only", r.pos);
-		if( r.index >= p.count )
-			error("Index out of bounds", r.pos);
-		return {
-			t : r.t,
-			index : r.index,
-			swiz : r.fields,
-		};
-	}
-
-	function getIdent( e : Expr ) {
-		return switch( e.expr ) {
-		case EConst(c):
-			switch( c ) {
-			case CIdent(n), CType(n): n;
-			default: error("Identifier expected", e.pos);
-			}
-		default: error("Identifier expected", e.pos);
-		};
-	}
-
-	function getInt( e : Expr ) {
-		return switch( e.expr ) {
-		case EConst(c):
-			switch( c ) {
-			case CInt(n): Std.parseInt(n);
-			default: error("Constant integer expected", e.pos);
-			}
-		default: error("Constant integer expected", e.pos);
-		};
-	}
-
-	function getReg( e : Expr ) : Reg {
-		switch( e.expr ) {
-		case EArray(id, index):
-			var n = getIdent(id);
-			var t = switch( n ) {
-			case "vars": RVar;
-			case "tmp": RTemp;
-			case "attr": RAttr;
-			case "const": RConst;
-			default: error("Unknown identifier '" + n + "'", id.pos);
-			}
-			return { t : t, index : getInt(index), fields : null, pos : e.pos };
-		case EConst(c):
-			switch( c ) {
-			case CIdent(n):
-				if( n == "out" )
-					return { t : ROut, index : 0, fields : null, pos : e.pos };
-			default:
-			}
-		case EField(f, ident):
-			var r = getReg(f);
-			if( r.fields != null )
-				error("Invalid field access", e.pos);
-			var fields = [];
-			for( i in 0...ident.length )
-				switch( ident.charAt(i) ) {
-				case "x": fields.push(X);
-				case "y": fields.push(Y);
-				case "z": fields.push(Z);
-				case "w": fields.push(W);
-				default: error("Register component should be xyzw", e.pos);
+		// find an empty slot
+		for( c in cur.consts )
+			if( c.vals.length + cvals.length <= 4 ) {
+				var s = [];
+				for( v in cvals ) {
+					s.push(swiz[c.vals.length]);
+					c.vals.push(v);
 				}
-			r.fields = fields;
-			r.pos = e.pos;
-			return r;
+				return { d : CVar(c.v, s), t : type, p : p };
+			}
+		var v = allocVar("$c" + cur.consts.length, RConst, TFloat4, p);
+		v.const = cvals;
+		cur.consts.push( { v : v, vals : cvals } );
+		return { d : CVar(v, swiz.splice(0,cvals.length)), t : type, p : p };
+	}
+	
+	function parseDecl( e : Expr ) {
+		switch( e.expr ) {
+		case EVars(vl):
+			var p = e.pos;
+			for( v in vl )
+				if( v.name == "input" )
+					switch( v.type ) {
+					case TAnonymous(fl):
+						for( f in fl )
+							switch( f.type ) {
+							case FVar(t): allocVar(f.name, RAttr, getType(t,p), p);
+							default: error("Invalid input variable type", p);
+							}
+					default: error("Invalid type for shader input : should be anonymous", p);
+					}
+				else {
+					if( v.type == null ) error("Missing type for variable '" + v.name + "'", p);
+					allocVar(v.name, RVar, getType(v.type,p), p);
+				}
+		case EFunction(f):
+			switch( f.name ) {
+			case "vertex": vertex = f;
+			case "fragment": fragment = f;
+			default: error("Invalid function '" + f.name + "'", e.pos);
+			}
+		default:
+			error("Unsupported declaration", e.pos);
+		};
+	}
+
+	function buildShader( f : Function ) {
+		cur = {
+			vertex : vertexShader,
+			args : [],
+			consts : [],
+			tex : [],
+			exprs : [],
+			temps : [],
+			tempSize : 0,
+		};
+		var pos = f.expr.pos;
+		for( p in f.args ) {
+			if( p.type == null ) error("Missing parameter type '" + p.name + "'", pos);
+			if( p.value != null ) error("Unsupported default value", p.value.pos);
+			var v = allocVar(p.name, RConst, getType(p.type, pos), pos);
+			if( v.type == TTexture )
+				cur.tex.push(v);
+			else
+				cur.args.push(v);
+		}
+		parseExpr(f.expr);
+		cur.tempSize = indexes[Type.enumIndex(RTemp)];
+		return cur;
+	}
+	
+	function addAssign( e1 : CodeValue, e2 : CodeValue ) {
+		unify(e2.t, e1.t, e2.p);
+		checkRead(e2);
+		switch( e1.d ) {
+		case CVar(v, swiz):
+			switch( v.reg ) {
+			case RVar:
+				if( !vertexShader ) error("You can't write a variable in fragment shader", e1.p);
+				var bits = swizBits(swiz, v.type);
+				if( v.write & bits != 0  ) error("Multiple writes to the same variable are not allowed", e1.p);
+				v.write |= bits;
+			case RConst:
+				error("Constant values cannot be written", e1.p);
+			case RAttr:
+				error("Input values cannot be written", e1.p);
+			case ROut, RTemp:
+				v.write |= swizBits(swiz, v.type);
+			}
 		default:
 		}
-		return error("Invalid register", e.pos);
+		cur.exprs.push( { v : e1, e : e2 } );
+	}
+	
+	function swizBits( s : Array<C>, t : VarType ) {
+		if( s == null ) return fullBits(t);
+		var b = 0;
+		for( x in s )
+			b |= 1 << Type.enumIndex(x);
+		return b;
+	}
+	
+	function fullBits( t : VarType ) {
+		return (1 << floatSize(t)) - 1;
+	}
+	
+	function checkRead( e : CodeValue ) {
+		switch( e.d ) {
+		case CVar(v, swiz):
+			switch( v.reg ) {
+			case ROut: error("Output cannot be read", e.p);
+			case RVar: if( vertexShader ) error("You cannot read variable in vertex shader", e.p); v.read = true;
+			case RConst: v.read = true;
+			case RTemp:
+				if( v.write == 0 ) error("Variable '"+v.name+"'has not been initialized", e.p);
+				var bits = swizBits(swiz, v.type);
+				if( v.write & bits != bits ) error("Some fields of '"+v.name+"'have not been initialized", e.p);
+				v.read = true;
+			case RAttr:
+				if( !vertexShader ) error("You cannot read input variable in fragment shader", e.p);
+				v.read = true;
+			}
+		case COp(_, e1, e2):
+			checkRead(e1);
+			checkRead(e2);
+		case CUnop(_, e):
+			checkRead(e);
+		case CTex(t, v, _):
+			if( vertexShader ) error("You can't read from texture in vertex shader", e.p);
+			t.read = true;
+			checkRead(v);
+		case CSwiz(v, _):
+			checkRead(v);
+		}
+	}
+	
+	
+	function parseExpr( e : Expr ) {
+		switch( e.expr ) {
+		case EBlock(el):
+			var vold = new Hash();
+			for( v in vars.keys() )
+				vold.set(v, vars.get(v));
+			for( e in el )
+				parseExpr(e);
+			vars = vold;
+		case EBinop(op, e1, e2):
+			switch( op ) {
+			case OpAssign:
+				addAssign(parseValue(e1), parseValue(e2));
+			case OpAssignOp(op):
+				addAssign(parseValue(e1), parseValue( { expr : EBinop(op, e1, e2), pos : e.pos } ));
+			default:
+				error("Operation should have side-effects", e.pos);
+			}
+		case EVars(vl):
+			for( v in vl )
+				if( v.expr == null ) {
+					if( v.type == null ) error("Missing type for variable '" + v.name + "'", e.pos);
+					allocVar(v.name, RTemp, getType(v.type, e.pos), e.pos);
+				} else {
+					var val = parseValue(v.expr);
+					var vr = allocVar(v.name, RTemp, (v.type == null) ? val.t : getType(v.type, e.pos), e.pos);
+					unify(val.t, vr.type, v.expr.pos);
+					vr.write = (1 << floatSize(vr.type)) - 1;
+					var ve = { d : CVar(vr), t : vr.type, p : e.pos };
+					addAssign(ve,val);
+				}
+		default:
+			error("Unsupported expression", e.pos);
+		}
+	}
+	
+	function getSwiz( s : String, t : VarType, p : Position ) {
+		var chars = switch( t ) {
+		case TFloat: "x";
+		case TFloat2: "xy";
+		case TFloat3: "xyz";
+		case TFloat4: "xyzw";
+		default: error("Can't access fields of " + typeStr(t), p);
+		};
+		var swiz = [];
+		for( i in 0...s.length )
+			switch( chars.indexOf(s.charAt(i)) ) {
+			case 0: swiz.push(X);
+			case 1: swiz.push(Y);
+			case 2: swiz.push(Z);
+			case 3: swiz.push(W);
+			default: error("Unknown field " + s, p);
+			}
+		return swiz;
+	}
+	
+	function isFloat( t : VarType ) {
+		return switch( t ) {
+		case TFloat, TFloat2, TFloat3, TFloat4: true;
+		default: false;
+		};
+	}
+	
+	function floatSize( t : VarType ) {
+		return switch( t ) {
+		case TFloat: 1;
+		case TFloat2: 2;
+		case TFloat3: 3;
+		case TFloat4: 4;
+		case TTexture: 0;
+		case TMatrix44(_): 16;
+		}
+	}
+	
+	function isMatrix( t : VarType, ?transp : Bool ) {
+		return switch( t ) {
+		case TMatrix44(tr):
+			if( transp == null )
+				true;
+			else if( tr.t == null ) {
+				tr.t = transp;
+				true;
+			} else
+				tr.t == transp;
+		default: false;
+		};
+	}
+	
+	function isCompatible( t1 : VarType, t2 : VarType ) {
+		if( t1 == t2 ) return true;
+		switch( t1 ) {
+		case TMatrix44(t1):
+			switch( t2 ) {
+			case TMatrix44(t2):
+				return( t1.t == null || t2.t == null || t1.t == t2.t );
+			default:
+			}
+		default:
+		}
+		return false;
+	}
+	
+	function tryUnify( t1 : VarType, t2 : VarType ) {
+		if( t1 == t2 ) return true;
+		switch( t1 ) {
+		case TMatrix44(t1):
+			switch( t2 ) {
+			case TMatrix44(t2):
+				if( t1.t == null ) {
+					if( t2.t == null ) throw "assert";
+					t1.t = t2.t;
+					return true;
+				}
+				return( t1.t == t2.t );
+			default:
+			}
+		default:
+		}
+		return false;
+	}
+	
+	function unify(t1, t2, p) {
+		if( !tryUnify(t1, t2) ) {
+			switch(t1) {
+			case TMatrix44(t):
+				if( t.t != null ) {
+					if( t.t )
+						error("Matrix is transposed by another operation", p);
+					else
+						error("Matrix is not transposed by a previous operation", p);
+				}
+			default:
+			}
+			error(typeStr(t1) + " should be " +typeStr(t2), p);
+		}
+	}
+	
+	function makeOp( op : CodeOp, e1 : CodeValue, e2 : CodeValue, p : Position ) {
+		var types = ops[Type.enumIndex(op)];
+		var first = null;
+		for( t in types ) {
+			if( isCompatible(e1.t, t.p1) && isCompatible(e2.t, t.p2) ) {
+				if( first == null ) first = t;
+				if( tryUnify(e1.t, t.p1) && tryUnify(e2.t, t.p2) ) {
+					var ct = switch( t.r ) {
+					case TMatrix44(t): TMatrix44( { t : t.t } );
+					default: t.r;
+					};
+					return { d : COp(op, e1, e2), t : ct, p : p };
+				}
+			}
+		}
+		switch( e2.d ) {
+		case CVar(v, swiz):
+			// if we have an operation on a single constant, then apply it to all members
+			if( swiz != null && swiz.length == 1 && v.const != null ) {
+				var cval = v.const[Type.enumIndex(swiz[0])];
+				var cst = [];
+				for( i in 0...floatSize(e1.t) )
+					cst.push(cval);
+				return makeOp(op, e1, allocConst(cst, e2.p), p);
+			}
+		default:
+		}
+		
+		// if we have an operation on a single scalar, let's map it on all floats
+		if( e2.t == TFloat && isFloat(e1.t) )
+			for( t in types )
+				if( isCompatible(e1.t, t.p1) && isCompatible(e1.t, t.p2) ) {
+					var swiz = [];
+					var s = switch( e2.d ) {
+					case CVar(_, s): if( s == null ) X else s[0];
+					default: X;
+					}
+					for( i in 0...floatSize(e1.t) )
+						swiz.push(s);
+					return makeOp(op, e1, { d : CSwiz(e2, swiz), t : e1.t, p : e2.p }, p );
+				}
+
+		if( first == null )
+			for( t in types )
+				if( isCompatible(e1.t, t.p1) ) {
+					first = t;
+					break;
+				}
+		if( first == null )
+			first = types[0];
+		unify(e1.t, first.p1, e1.p);
+		unify(e2.t, first.p2, e2.p);
+		throw "assert";
+		return null;
+	}
+	
+	function makeUnop( op : CodeUnop, e : CodeValue, p : Position ) {
+		if( !isFloat(e.t) )
+			unify(e.t, TFloat4, e.p);
+		var rt = e.t;
+		switch( op ) {
+		case CLen: rt = TFloat;
+		default:
+		}
+		return { d : CUnop(op, e), t : rt, p : p };
+	}
+	
+	function makeCall( n : String, params : Array<Expr>, p : Position ) {
+		if( n == "div" && params.length == 2 ) {
+			switch( params[0].expr ) {
+			case EConst(c):
+				switch( c ) {
+				case CInt(v), CFloat(v):
+					if( Std.parseFloat(v) == 1 ) {
+						var e2 = parseValue(params[1]);
+						switch( e2.d ) {
+						case CUnop(op, v):
+							// optimize 1 / sqrt(x)
+							if( op == CSqt )
+								return makeUnop(CRsq, v, p);
+						default:
+						}
+						// optimize 1 / x
+						return makeUnop(CRcp, e2, p);
+					}
+				default:
+				}
+			default:
+			}
+		}
+		if( n == "pow" && params.length == 2 ) {
+			switch( params[0].expr ) {
+			case EConst(c):
+				switch( c ) {
+				case CInt(v), CFloat(v):
+					if( Std.parseFloat(v) == 2 ) {
+						var e2 = parseValue(params[1]);
+						return makeUnop(CExp, e2, p);
+					}
+				default:
+				}
+			default:
+			}
+		}
+		if( n == "get" && params.length >= 2 ) {
+			var v = parseValue(params.shift());
+			unify(v.t, TTexture, v.p);
+			var v = switch( v.d ) {
+			case CVar(v, _): v;
+			default: throw "assert";
+			};
+			var t = parseValue(params.shift());
+			var flags = [];
+			var idents = ["d2","cube","d3","mm_no","mm_near","mm_lineae","centroid","wrap","clamp","nearest","linear"];
+			var values = [T2D,TCube,T3D,TMipMapDisable,TMipMapNearest,TMipMapLinear,TCentroidSample,TWrap,TClamp,TFilterNearest,TFilterLinear];
+			for( p in params ) {
+				switch( p.expr ) {
+				case EConst(c):
+					switch( c ) {
+					case CIdent(sflag):
+						var ip = Lambda.indexOf(idents, sflag);
+						if( ip >= 0 ) {
+							var v = values[ip];
+							var sim = switch( v ) {
+							case T2D, TCube, T3D: [T2D, TCube, T3D];
+							case TMipMapDisable, TMipMapLinear, TMipMapNearest: [TMipMapDisable, TMipMapLinear, TMipMapNearest];
+							case TCentroidSample: [TCentroidSample];
+							case TClamp, TWrap: [TClamp, TWrap];
+							case TFilterLinear, TFilterNearest: [TFilterLinear, TFilterNearest];
+							}
+							for( s in sim )
+								if( flags.remove(s) ) {
+									if( s == v )
+										error("Duplicate texture flag", p.pos);
+									else
+										error("Conflicting texture flags " + idents[Lambda.indexOf(values, s)] + " and " + sflag, p.pos);
+								}
+							flags.push(v);
+							continue;
+						}
+					default:
+					}
+				default:
+				}
+				error("Invalid parameter, should be "+idents.join("|"), p.pos);
+			}
+			return { d : CTex(v, t, flags), t : TFloat4, p : p };
+		}
+		var v = [];
+		for( p in params )
+			v.push(parseValue(p));
+		var me = this;
+		function checkParams(k) {
+			if( params.length < k ) me.error(n + " require " + k + " parameters", p);
+		}
+		switch(n) {
+		case "get": checkParams(2);
+		case "type": checkParams(1); warn(typeStr(v[0].t), p); return v[0];
+
+		case "rcp": checkParams(1); return makeUnop(CRcp, v[0], p);
+		case "sqt", "sqrt": checkParams(1); return makeUnop(CSqt, v[0], p);
+		case "rsq", "rsqrt": checkParams(1); return makeUnop(CRsq, v[0], p);
+		case "log": checkParams(1); return makeUnop(CLog, v[0], p);
+		case "exp": checkParams(1); return makeUnop(CExp, v[0], p);
+		case "len", "length": checkParams(1); return makeUnop(CLen, v[0], p);
+		case "sin": checkParams(1); return makeUnop(CSin, v[0], p);
+		case "cos": checkParams(1); return makeUnop(CCos, v[0], p);
+		case "abs": checkParams(1); return makeUnop(CAbs, v[0], p);
+		case "neg": checkParams(1); return makeUnop(CNeg, v[0], p);
+		case "sat", "saturate": checkParams(1); return makeUnop(CSat, v[0], p);
+		case "frc", "fract": checkParams(1); return makeUnop(CFrc, v[0], p);
+		case "int": checkParams(1);  return makeUnop(CInt,v[0], p);
+		
+		case "add": checkParams(2); return makeOp(CAdd, v[0], v[1], p);
+		case "sub": checkParams(2); return makeOp(CSub, v[0], v[1], p);
+		case "mul": checkParams(2); return makeOp(CMul, v[0], v[1], p);
+		case "div": checkParams(2); return makeOp(CDiv, v[0], v[1], p);
+		case "pow": checkParams(2); return makeOp(CPow, v[0], v[1], p);
+		case "min": checkParams(2); return makeOp(CMin, v[0], v[1], p);
+		case "max": checkParams(2); return makeOp(CMax, v[0], v[1], p);
+		
+		default:
+		}
+		return error("Unknown operation '" + n + "'", p);
+	}
+	
+	function parseValue( e : Expr ) : CodeValue {
+		switch( e.expr ) {
+		case EField(ef, f):
+			var v = parseValue(ef);
+			switch( v.d ) {
+			case CVar(v, swiz):
+				if( swiz == null ) {
+					swiz = getSwiz(f, v.type, e.pos);
+					return { d : CVar(v,swiz), t : switch( swiz.length ) { case 1: TFloat; case 2: TFloat2; case 3: TFloat3; default: TFloat4; }, p : e.pos };
+				}
+			default:
+			}
+		case EConst(c):
+			switch( c ) {
+			case CType(i), CIdent(i):
+				var v = vars.get(i);
+				if( v == null ) error("Unknown identifier '" + i + "'", e.pos);
+				return { d : CVar(v), t : v.type, p : e.pos };
+			case CInt(v):
+				return allocConst([v+"."],e.pos);
+			case CFloat(f):
+				return allocConst([f],e.pos);
+			default:
+			}
+		case EBinop(op, e1, e2):
+			var op = switch( op ) {
+			case OpMult: "mul";
+			case OpAdd: "add";
+			case OpDiv: "div";
+			case OpSub: "sub";
+			default: error("Unsupported operation", e.pos);
+			};
+			return makeCall(op, [e1, e2], e.pos);
+		case EUnop(op, _, e1):
+			if( op == OpNeg )
+				return makeCall("neg", [e1], e.pos);
+		case ECall(c, params):
+			switch( c.expr ) {
+			case EField(v, f):
+				return makeCall(f, [v].concat(params), e.pos);
+			case EConst(c):
+				switch( c ) {
+				case CIdent(i), CType(i):
+					return makeCall(i, params, e.pos);
+				default:
+				}
+			default:
+			}
+		case EArrayDecl(values):
+			var consts = [];
+			for( e in values ) {
+				switch( e.expr ) {
+				case EConst(c):
+					switch( c ) {
+					case CInt(i): consts.push(i + "."); continue;
+					case CFloat(f): consts.push(f); continue;
+					default:
+					}
+				default:
+				}
+				error("Vector value should be constant", e.pos);
+			}
+			if( consts.length == 0 || consts.length > 4 )
+				error("Vector size should be 1-4", e.pos);
+			return allocConst(consts, e.pos);
+		case EArray(e1, e2):
+			var v = parseValue(e1);
+			var i = switch( e2.expr ) {
+			case EConst(c):
+				switch(c) {
+				case CInt(v): Std.parseInt(v);
+				default: null;
+				}
+			default: null;
+			};
+			if( i == null )
+				error("Array index should be constant", v.p);
+			if( i < 0 || i > 3 )
+				error("Array index out of bounds", v.p);
+			if( !isMatrix(v.t) )
+				error("You can only access vectors from a matrix", e1.pos);
+			switch( v.d ) {
+			case CVar(v, _):
+				var v : Variable = {
+					name : v.name+"["+i+"]",
+					reg : v.reg,
+					index : v.index + i,
+					type : TFloat4,
+					write : v.write,
+					read : v.read,
+					pos : e.pos,
+					const : null,
+				};
+				return { d : CVar(v), t : TFloat4, p : e.pos };
+			default:
+			}
+		case EParenthesis(k):
+			var v = parseValue(k);
+			v.p = e.pos;
+			return v;
+		default:
+		}
+		error("Unsupported value expression", e.pos);
+		return null;
 	}
 
 }

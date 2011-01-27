@@ -25,9 +25,6 @@
  * DAMAGE.
  */
 package format.agal;
-#if macro
-import haxe.macro.Expr;
-#end
 
 class Tools {
 
@@ -54,28 +51,5 @@ class Tools {
 		#end
 		return b;
 	}
-
-	@:macro public static function asm( kind : Expr, code : Expr ) {
-		var frag = null;
-		switch( kind.expr ) {
-		case EConst(c):
-			switch( c ) {
-			case CIdent(n):
-				if( n == "fragment" ) frag = true;
-				if( n == "vertex" ) frag = false;
-			default:
-			}
-		default:
-		};
-		if( frag == null )
-			haxe.macro.Context.error("Invalid kind : should be fragment|vertex",kind.pos);
-		var p = new Parser(frag);
-		var data = try p.parse(code) catch( e : Parser.ParserError ) haxe.macro.Context.error(e.message,e.pos);
-		var o = new haxe.io.BytesOutput();
-		new Writer(o).write(data);
-		var str = haxe.Serializer.run(o.getBytes());
-		return haxe.macro.Context.parse("format.agal.Tools.ofString('" + str + "')",code.pos);
-	}
-
 
 }
