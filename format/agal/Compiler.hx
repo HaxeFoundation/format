@@ -57,6 +57,8 @@ enum CodeOp {
 	CMin;
 	CMax;
 	CPow;
+	CCrs;
+	CDot;
 }
 
 enum CodeUnop {
@@ -91,6 +93,7 @@ typedef CodeValue = {
 
 typedef Code = {
 	var vertex : Bool;
+	var pos : Position;
 	var args : Array<Variable>;
 	var consts : Array<{ v : Variable, vals : Array<String> }>;
 	var tex : Array<Variable>;
@@ -103,13 +106,20 @@ class Compiler {
 
 	var code : Array<Opcode>;
 	var tempCount : Int;
+	var tempMax : Int;
 
 	public function new() {
 	}
 
-	function allocTemp( t ) {
+	public dynamic function error( msg : String, p : Position ) {
+		throw msg;
+	}
+	
+	function allocTemp( t, p ) {
 		var index = tempCount;
 		tempCount += regSize(t);
+		if( tempCount > tempMax )
+			error("Maximum temporary count reached", p);
 		return { t : RTemp, index : index, swiz : initSwiz(t) };
 	}
 	
@@ -141,6 +151,7 @@ class Compiler {
 	
 	public function compile( c : Code ) : Data {
 		code = [];
+		tempMax = Tools.getProps(RTemp, !c.vertex).count;
 		for( e in c.exprs ) {
 			var d = switch( e.v.d ) {
 			case CVar(v, swiz): reg(v,swiz);
@@ -151,7 +162,7 @@ class Compiler {
 			if( !c.vertex && d.t == ROut )
 				switch( e.e.d ) {
 				case COp(_), CTex(_), CUnop(_):
-					var t = allocTemp(e.v.t);
+					var t = allocTemp(e.v.t,e.e.p);
 					compileTo(t, e.e);
 					mov(d, t, e.v.t);
 					continue;
@@ -211,8 +222,8 @@ class Compiler {
 		}
 	}
 	
-	function toInt( t : VarType, dst : Reg, src : Reg ) {
-		var tmp = allocTemp(t);
+	function toInt( t : VarType, p : Position, dst : Reg, src : Reg ) {
+		var tmp = allocTemp(t,p);
 		code.push(OFrc(tmp, src));
 		return OSub(dst, src, tmp);
 	}
@@ -226,7 +237,7 @@ class Compiler {
 			var v2 = compileSrc(e2);
 			// it is not allowed to apply an operation on two constants or two vars at the same time : use a temp var
 			if( (v1.t == RConst && v2.t == RConst) || (v1.t == RVar && v2.t == RVar) ) {
-				var t = allocTemp(e1.t);
+				var t = allocTemp(e1.t,e1.p);
 				mov(t, v1, e1.t);
 				v1 = t;
 			}
@@ -235,6 +246,8 @@ class Compiler {
 			case CDiv: ODiv;
 			case CMin: OMin;
 			case CMax: OMax;
+			case CDot: if( e1.t == TFloat4 ) ODp4 else ODp3;
+			case CCrs: OCrs;
 			case CMul:
 				if( isMatrix(e2.t) ) {
 					if( e1.t == TFloat4 )
@@ -263,13 +276,13 @@ class Compiler {
 			case CNeg: ONeg;
 			case CSat: OSat;
 			case CFrc: OFrc;
-			case CInt: callback(toInt,p.t);
+			case CInt: callback(toInt,p.t,p.p);
 			})(dst, v));
 		case CTex(v, acc, flags):
 			var vtmp = compileSrc(acc);
 			// getting texture from a const is not allowed
 			if( vtmp.t == RConst ) {
-				var t = allocTemp(acc.t);
+				var t = allocTemp(acc.t,acc.p);
 				mov(t, vtmp, acc.t);
 				vtmp = t;
 			}
@@ -287,7 +300,7 @@ class Compiler {
 			//	throw "assert";
 			return { t : v.t, swiz : swiz, index : v.index };
 		case COp(_), CTex(_), CUnop(_):
-			var t = allocTemp(e.t);
+			var t = allocTemp(e.t,e.p);
 			compileTo(t, e);
 			return t;
 		}

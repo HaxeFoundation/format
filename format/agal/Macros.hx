@@ -28,6 +28,7 @@ package format.agal;
 
 #if macro
 import haxe.macro.Expr;
+import format.agal.Data.RegType;
 #end
 
 class Macros {
@@ -42,20 +43,20 @@ class Macros {
 		};
 	}
 
-	static function buildShaderInfos(shader : Compiler.Code, vertex) {
+	static function buildShaderInfos( shader : Compiler.Code ) {
 		var inf = {
 			vars : [],
 			setup : [],
 			tmp : [],
 		};
-		if( vertex )
+		if( shader.vertex )
 			inf.tmp.push("start(true);");
 		else
 			inf.tmp.push("start(false);");
 		for( c in shader.args.concat(shader.tex) ) {
 			var t = realType(c.type);
 			inf.vars.push(c.name + " : " + t);
-			var n = (vertex?"vertex":"fragment") + "." + c.name;
+			var n = (shader.vertex?"vertex":"fragment") + "." + c.name;
 			switch( c.type ) {
 			case TFloat:
 				inf.setup.push(n);
@@ -97,15 +98,21 @@ class Macros {
 			for( i in c.vals.length...4 )
 				inf.setup.push("0");
 		}
+		
+		if( inf.setup.length >> 2 >= Tools.getProps(RConst, !shader.vertex).count )
+			haxe.macro.Context.error("This shader has reached the maximum number of allowed parameters/constants", shader.pos);
+		
 		return inf;
 	}
 	#end
 
 	@:macro public static function asm( shader : Expr ) {
+		var error = haxe.macro.Context.error;
 		var p = new Parser();
 		p.warn = haxe.macro.Context.warning;
 		var v = try p.parse(shader) catch( e : Parser.ParserError ) haxe.macro.Context.error(e.message, e.pos);
 		var c = new Compiler();
+		c.error = haxe.macro.Context.error;
 
 		var vscode = c.compile(v.vs);
 		var fscode = c.compile(v.fs);
@@ -118,8 +125,8 @@ class Macros {
 		new Writer(o).write(fscode);
 		var fsbytes = haxe.Serializer.run(o.getBytes());
 
-		var vs = buildShaderInfos(v.vs,true);
-		var fs = buildShaderInfos(v.fs,false);
+		var vs = buildShaderInfos(v.vs);
+		var fs = buildShaderInfos(v.fs);
 
 		var initCode =
 			vs.tmp.concat(Lambda.array(Lambda.map(vs.setup, function(s) return "add(" + s + ");"))).join("\n") + "\n\n" +

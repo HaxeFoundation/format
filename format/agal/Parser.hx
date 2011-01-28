@@ -80,6 +80,8 @@ class Parser {
 			ops.push({ op : o, types : switch( o ) {
 				case CAdd, CSub, CDiv, CPow: floats;
 				case CMin, CMax: floats;
+				case CDot: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat }, { p1 : TFloat3, p2 : TFloat3, r : TFloat } ];
+				case CCrs: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat3 }];
 				case CMul: floats.concat([
 					{ p1 : TFloat4, p2 : mat_t, r : TFloat4 },
 					{ p1 : mat, p2 : mat_t, r : mat_u },
@@ -173,7 +175,7 @@ class Parser {
 			case "Float2": TFloat2;
 			case "Float3": TFloat3;
 			case "Float4": TFloat4;
-			case "M44": TMatrix44({ t : null });
+			case "Matrix", "M44": TMatrix44({ t : null });
 			case "Texture": TTexture;
 			default:
 				error("Unknown type '" + p.name + "'", pos);
@@ -285,6 +287,7 @@ class Parser {
 	function buildShader( f : Function ) {
 		cur = {
 			vertex : vertexShader,
+			pos : f.expr.pos,
 			args : [],
 			consts : [],
 			tex : [],
@@ -324,6 +327,14 @@ class Parser {
 				error("Input values cannot be written", e1.p);
 			case ROut, RTemp:
 				v.write |= swizBits(swiz, v.type);
+			}
+			if( swiz != null ) {
+				var min = -1;
+				for( s in swiz ) {
+					var k = Type.enumIndex(s);
+					if( k <= min ) error("Invalid write mask", e1.p);
+					min = k;
+				}
 			}
 		default:
 		}
@@ -690,6 +701,8 @@ class Parser {
 		case "pow": checkParams(2); return makeOp(CPow, v[0], v[1], p);
 		case "min": checkParams(2); return makeOp(CMin, v[0], v[1], p);
 		case "max": checkParams(2); return makeOp(CMax, v[0], v[1], p);
+		case "dp","dp3","dp4","dot": checkParams(2); return makeOp(CDot, v[0], v[1], p);
+		case "crs","cross": checkParams(2); return makeOp(CCrs, v[0], v[1], p);
 		
 		default:
 		}
