@@ -24,17 +24,19 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.agal;
+package format.hxsl;
 
 #if macro
 import haxe.macro.Expr;
+import haxe.macro.Context;
 import format.agal.Data.RegType;
+import format.hxsl.Data;
 #end
 
-class Macros {
+class Build {
 
 	#if macro
-	static function realType( t : Compiler.VarType ) {
+	static function realType( t : VarType ) {
 		return switch( t ) {
 		case TFloat: "Float";
 		case TFloat2, TFloat3, TFloat4: "flash.Vector<Float>";
@@ -43,7 +45,7 @@ class Macros {
 		};
 	}
 
-	static function buildShaderInfos( shader : Compiler.Code ) {
+	static function buildShaderInfos( shader : Code ) {
 		var inf = {
 			vars : [],
 			setup : [],
@@ -98,31 +100,42 @@ class Macros {
 			for( i in c.vals.length...4 )
 				inf.setup.push("0");
 		}
-		
-		if( inf.setup.length >> 2 >= Tools.getProps(RConst, !shader.vertex).count )
-			haxe.macro.Context.error("This shader has reached the maximum number of allowed parameters/constants", shader.pos);
-		
+
+		if( inf.setup.length >> 2 >= format.agal.Tools.getProps(RConst, !shader.vertex).count )
+			Context.error("This shader has reached the maximum number of allowed parameters/constants", shader.pos);
+
 		return inf;
 	}
 	#end
 
-	@:macro public static function asm( shader : Expr ) {
-		var error = haxe.macro.Context.error;
+	@:macro public static function shader() {
+		var cl = Context.getLocalClass().get();
+		var shader = null;
+		for( m in cl.meta.get() )
+			if( m.name == ":shader" ) {
+				if( m.params.length != 1 )
+					Context.error("@:shader metadata should only have one parameter", m.pos);
+				shader = m.params[0];
+				break;
+			}
+		if( shader == null )
+			Context.error("Missing @:shader metadata", cl.pos);
+
 		var p = new Parser();
-		p.warn = haxe.macro.Context.warning;
+		p.warn = Context.warning;
 		var v = try p.parse(shader) catch( e : Parser.ParserError ) haxe.macro.Context.error(e.message, e.pos);
-		var c = new Compiler();
-		c.error = haxe.macro.Context.error;
+		var c = new format.agal.Compiler();
+		c.error = Context.error;
 
 		var vscode = c.compile(v.vs);
 		var fscode = c.compile(v.fs);
 
 		var o = new haxe.io.BytesOutput();
-		new Writer(o).write(vscode);
+		new format.agal.Writer(o).write(vscode);
 		var vsbytes = haxe.Serializer.run(o.getBytes());
 
 		var o = new haxe.io.BytesOutput();
-		new Writer(o).write(fscode);
+		new format.agal.Writer(o).write(fscode);
 		var fsbytes = haxe.Serializer.run(o.getBytes());
 
 		var vs = buildShaderInfos(v.vs);
@@ -145,11 +158,11 @@ class Macros {
 		//	trace(s);
 		#end
 		var decls = [
-			"function getVertexShader() return format.agal.Tools.ofString('" + vsbytes + "');",
-			"function getFragmentShader() return format.agal.Tools.ofString('" + fsbytes + "');",
+			"function override__getVertexData() return format.agal.Tools.ofString('" + vsbytes + "');",
+			"function override__getFragmentData() return format.agal.Tools.ofString('" + fsbytes + "');",
 			"function init( vertex : {" + vs.vars.join(",") + "}, fragment : {" + fs.vars.join(",") + "} ) {" + initCode + "};",
 		];
-		return haxe.macro.Context.parse("{" + decls.join("\n")+"}",shader.pos);
+		return Context.parse("{" + decls.join("\n")+"}",shader.pos);
 	}
 
 }

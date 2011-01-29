@@ -1,7 +1,7 @@
 2011-??-??: 1.19
 	amf : added Array support
 	agal : added Data, Writer
-	agal : high level language + macros support (Parser, Compiler, Macros)
+	hxsl : added Parser + Build + agal Compiler + Shader
 
 2010-12-08: 1.18
 	neko : added Reader, VM

@@ -24,9 +24,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.agal;
-import format.agal.Data;
-import format.agal.Compiler;
+package format.hxsl;
+
+import format.hxsl.Data;
 import haxe.macro.Expr;
 
 class ParserError {
@@ -39,15 +39,15 @@ class ParserError {
 }
 
 class Parser {
-	
+
 	var vertex : Function;
 	var fragment : Function;
 	var cur : Code;
-	
+
 	var vars : Hash<Variable>;
 	var input : Array<Variable>;
 	var indexes : Array<Int>;
-	
+
 	var vertexShader : Bool;
 	var ops : Array<Array<{ p1 : VarType, p2 : VarType, r : VarType }>>;
 
@@ -58,7 +58,7 @@ class Parser {
 		for( o in initOps() )
 			ops[Type.enumIndex(o.op)] = o.types;
 	}
-	
+
 	function initOps() {
 		var mat = TMatrix44( { t : false } );
 		var mat_t = TMatrix44( { t : true } );
@@ -68,12 +68,6 @@ class Parser {
 			{ p1 : TFloat2, p2 : TFloat2, r : TFloat2 },
 			{ p1 : TFloat3, p2 : TFloat3, r : TFloat3 },
 			{ p1 : TFloat4, p2 : TFloat4, r : TFloat4 },
-		];
-		var ufloats = [
-			{ p1 : TFloat, p2 : null, r : TFloat },
-			{ p1 : TFloat2, p2 : null, r : TFloat2 },
-			{ p1 : TFloat3, p2 : null, r : TFloat3 },
-			{ p1 : TFloat4, p2 : null, r : TFloat4 },
 		];
 		var ops = [];
 		for( o in Lambda.map(Type.getEnumConstructs(CodeOp), function(c) return Type.createEnum(CodeOp, c)) )
@@ -97,13 +91,13 @@ class Parser {
 
 	public dynamic function warn( msg:String, p:Position) {
 	}
-	
+
 	function typeStr( t : VarType )  {
 		return Std.string(t).substr(1);
 	}
-	
+
 	public function parse( e : Expr ) {
-		allocVar("out", ROut, TFloat4, e.pos);
+		allocVar("out", VOut, TFloat4, e.pos);
 		switch( e.expr ) {
 		case EBlock(l):
 			for( x in l )
@@ -113,37 +107,33 @@ class Parser {
 		}
 		if( vertex == null ) error("Missing vertex function", e.pos);
 		if( fragment == null ) error("Missing fragment function", e.pos);
-		if( indexes[Type.enumIndex(RAttr)] == 0 ) error("Missing input variable", e.pos);
+		if( indexes[Type.enumIndex(VInput)] == 0 ) error("Missing input variable", e.pos);
 		// build vertex shader code
 		vertexShader = true;
 		var vs = buildShader(vertex);
 		checkVars();
 
 		// reset
-		indexes[Type.enumIndex(RConst)] = 0;
-		indexes[Type.enumIndex(RTemp)] = 0;
+		indexes[Type.enumIndex(VParam)] = 0;
+		indexes[Type.enumIndex(VTmp)] = 0;
 
 		// build fragment shader code
 		vertexShader = false;
 		var fs = buildShader(fragment);
 		checkVars();
-		
+
 		return { input : input, vs : vs, fs : fs };
 	}
-	
+
 	function checkVars() {
 		var shader = (vertexShader ? "vertex" : "fragment")+" shader";
-		for( v in vars ) {
-			if( v.reg == null ) {
-				if( !v.read ) warn("Unused texture " + v.name, v.pos);
-				continue;
-			}
-			switch( v.reg ) {
-			case ROut:
+		for( v in vars )
+			switch( v.kind ) {
+			case VOut:
 				if( v.write == 0 ) error("Output is not written by " + shader, v.pos);
 				if( v.write != fullBits(v.type) ) error("Some output components are not written by " + shader, v.pos);
 				v.write = 0; // reset status
-			case RVar:
+			case VVar:
 				if( !vertexShader ) {
 					if( !v.read && v.write == 0 )
 						warn("Variable '" + v.name + "' is not used", v.pos);
@@ -154,17 +144,18 @@ class Parser {
 					else if( v.write != fullBits(v.type) )
 						error("Some components of variable '" + v.name + "' are not written by vertex shader", v.pos);
 				}
-			case RAttr:
+			case VInput:
 				if( vertexShader && !v.read ) warn("Input '" + v.name + "' is not used by "+shader, v.pos);
-			case RTemp:
+			case VTmp:
 				throw "assert";
-			case RConst:
+			case VParam:
 				if( !v.read ) warn("Parameter '" + v.name + "' not used by " + shader, v.pos);
 				vars.remove(v.name);
+			case VTexture:
+				if( !v.read ) warn("Unused texture " + v.name, v.pos);
 			}
-		}
 	}
-	
+
 	function getType( t : ComplexType, pos ) {
 		switch(t) {
 		case TPath(p):
@@ -185,21 +176,17 @@ class Parser {
 		}
 		return null;
 	}
-	
+
 	function allocVar( name, k, t, p ) {
 		if( vars.exists(name) ) error("Duplicate variable '" + name + "'", p);
 		var tkind = Type.enumIndex(k);
-		if( t == TTexture ) {
-			k = null;
-			tkind = Type.getEnumConstructs(RegType).length;
-		}
 		var v : Variable = {
 			name : name,
 			type : t,
-			reg : k,
+			kind : k,
 			read : false,
 			index : indexes[tkind],
-			write : if( k == null ) fullBits(t) else switch( k ) { case RAttr, RConst: fullBits(t); default: 0; },
+			write : if( k == null ) fullBits(t) else switch( k ) { case VInput, VParam: fullBits(t); default: 0; },
 			const : null,
 			pos : p,
 		};
@@ -208,12 +195,12 @@ class Parser {
 		untyped v.__string = function() return neko.NativeString.ofString(name + ":"+me.typeStr(t));
 		#end
 		vars.set(name, v);
-		if( k == RTemp )
+		if( k == VTmp )
 			cur.temps.push(v);
-		indexes[tkind] += Compiler.regSize(t);
+		indexes[tkind] += Tools.regSize(t);
 		return v;
 	}
-	
+
 	function allocConst( cvals : Array<String>, p : Position ) {
 		var swiz = [X, Y, Z, W];
 		var type = switch( cvals.length ) { case 1: TFloat; case 2: TFloat2; case 3: TFloat3; default: TFloat4; };
@@ -248,12 +235,12 @@ class Parser {
 				}
 				return { d : CVar(c.v, s), t : type, p : p };
 			}
-		var v = allocVar("$c" + cur.consts.length, RConst, TFloat4, p);
+		var v = allocVar("$c" + cur.consts.length, VParam, TFloat4, p);
 		v.const = cvals;
 		cur.consts.push( { v : v, vals : cvals } );
 		return { d : CVar(v, swiz.splice(0,cvals.length)), t : type, p : p };
 	}
-	
+
 	function parseDecl( e : Expr ) {
 		switch( e.expr ) {
 		case EVars(vl):
@@ -264,14 +251,14 @@ class Parser {
 					case TAnonymous(fl):
 						for( f in fl )
 							switch( f.type ) {
-							case FVar(t): allocVar(f.name, RAttr, getType(t,p), p);
+							case FVar(t): allocVar(f.name, VInput, getType(t,p), p);
 							default: error("Invalid input variable type", p);
 							}
 					default: error("Invalid type for shader input : should be anonymous", p);
 					}
 				else {
 					if( v.type == null ) error("Missing type for variable '" + v.name + "'", p);
-					allocVar(v.name, RVar, getType(v.type,p), p);
+					allocVar(v.name, VVar, getType(v.type,p), p);
 				}
 		case EFunction(f):
 			switch( f.name ) {
@@ -299,34 +286,36 @@ class Parser {
 		for( p in f.args ) {
 			if( p.type == null ) error("Missing parameter type '" + p.name + "'", pos);
 			if( p.value != null ) error("Unsupported default value", p.value.pos);
-			var v = allocVar(p.name, RConst, getType(p.type, pos), pos);
+			var v = allocVar(p.name, VParam, getType(p.type, pos), pos);
 			if( v.type == TTexture )
 				cur.tex.push(v);
 			else
 				cur.args.push(v);
 		}
 		parseExpr(f.expr);
-		cur.tempSize = indexes[Type.enumIndex(RTemp)];
+		cur.tempSize = indexes[Type.enumIndex(VTmp)];
 		return cur;
 	}
-	
+
 	function addAssign( e1 : CodeValue, e2 : CodeValue ) {
 		unify(e2.t, e1.t, e2.p);
 		checkRead(e2);
 		switch( e1.d ) {
 		case CVar(v, swiz):
-			switch( v.reg ) {
-			case RVar:
+			switch( v.kind ) {
+			case VVar:
 				if( !vertexShader ) error("You can't write a variable in fragment shader", e1.p);
 				var bits = swizBits(swiz, v.type);
 				if( v.write & bits != 0  ) error("Multiple writes to the same variable are not allowed", e1.p);
 				v.write |= bits;
-			case RConst:
+			case VParam:
 				error("Constant values cannot be written", e1.p);
-			case RAttr:
+			case VInput:
 				error("Input values cannot be written", e1.p);
-			case ROut, RTemp:
+			case VOut, VTmp:
 				v.write |= swizBits(swiz, v.type);
+			case VTexture:
+				error("You can't write to a texture", e1.p);
 			}
 			if( swiz != null ) {
 				var min = -1;
@@ -340,34 +329,36 @@ class Parser {
 		}
 		cur.exprs.push( { v : e1, e : e2 } );
 	}
-	
-	function swizBits( s : Array<C>, t : VarType ) {
+
+	function swizBits( s : Array<Comp>, t : VarType ) {
 		if( s == null ) return fullBits(t);
 		var b = 0;
 		for( x in s )
 			b |= 1 << Type.enumIndex(x);
 		return b;
 	}
-	
+
 	function fullBits( t : VarType ) {
 		return (1 << floatSize(t)) - 1;
 	}
-	
+
 	function checkRead( e : CodeValue ) {
 		switch( e.d ) {
 		case CVar(v, swiz):
-			switch( v.reg ) {
-			case ROut: error("Output cannot be read", e.p);
-			case RVar: if( vertexShader ) error("You cannot read variable in vertex shader", e.p); v.read = true;
-			case RConst: v.read = true;
-			case RTemp:
+			switch( v.kind ) {
+			case VOut: error("Output cannot be read", e.p);
+			case VVar: if( vertexShader ) error("You cannot read variable in vertex shader", e.p); v.read = true;
+			case VParam: v.read = true;
+			case VTmp:
 				if( v.write == 0 ) error("Variable '"+v.name+"'has not been initialized", e.p);
 				var bits = swizBits(swiz, v.type);
 				if( v.write & bits != bits ) error("Some fields of '"+v.name+"'have not been initialized", e.p);
 				v.read = true;
-			case RAttr:
+			case VInput:
 				if( !vertexShader ) error("You cannot read input variable in fragment shader", e.p);
 				v.read = true;
+			case VTexture:
+				error("You can't read from a texture", e.p);
 			}
 		case COp(_, e1, e2):
 			checkRead(e1);
@@ -382,8 +373,8 @@ class Parser {
 			checkRead(v);
 		}
 	}
-	
-	
+
+
 	function parseExpr( e : Expr ) {
 		switch( e.expr ) {
 		case EBlock(el):
@@ -406,10 +397,10 @@ class Parser {
 			for( v in vl )
 				if( v.expr == null ) {
 					if( v.type == null ) error("Missing type for variable '" + v.name + "'", e.pos);
-					allocVar(v.name, RTemp, getType(v.type, e.pos), e.pos);
+					allocVar(v.name, VTmp, getType(v.type, e.pos), e.pos);
 				} else {
 					var val = parseValue(v.expr);
-					var vr = allocVar(v.name, RTemp, (v.type == null) ? val.t : getType(v.type, e.pos), e.pos);
+					var vr = allocVar(v.name, VTmp, (v.type == null) ? val.t : getType(v.type, e.pos), e.pos);
 					unify(val.t, vr.type, v.expr.pos);
 					vr.write = (1 << floatSize(vr.type)) - 1;
 					var ve = { d : CVar(vr), t : vr.type, p : e.pos };
@@ -419,7 +410,7 @@ class Parser {
 			error("Unsupported expression", e.pos);
 		}
 	}
-	
+
 	function getSwiz( s : String, t : VarType, p : Position ) {
 		var chars = switch( t ) {
 		case TFloat: "x";
@@ -439,14 +430,14 @@ class Parser {
 			}
 		return swiz;
 	}
-	
+
 	function isFloat( t : VarType ) {
 		return switch( t ) {
 		case TFloat, TFloat2, TFloat3, TFloat4: true;
 		default: false;
 		};
 	}
-	
+
 	function floatSize( t : VarType ) {
 		return switch( t ) {
 		case TFloat: 1;
@@ -457,7 +448,7 @@ class Parser {
 		case TMatrix44(_): 16;
 		}
 	}
-	
+
 	function isMatrix( t : VarType, ?transp : Bool ) {
 		return switch( t ) {
 		case TMatrix44(tr):
@@ -471,7 +462,7 @@ class Parser {
 		default: false;
 		};
 	}
-	
+
 	function isCompatible( t1 : VarType, t2 : VarType ) {
 		if( t1 == t2 ) return true;
 		switch( t1 ) {
@@ -485,7 +476,7 @@ class Parser {
 		}
 		return false;
 	}
-	
+
 	function tryUnify( t1 : VarType, t2 : VarType ) {
 		if( t1 == t2 ) return true;
 		switch( t1 ) {
@@ -504,7 +495,7 @@ class Parser {
 		}
 		return false;
 	}
-	
+
 	function unify(t1, t2, p) {
 		if( !tryUnify(t1, t2) ) {
 			switch(t1) {
@@ -520,7 +511,7 @@ class Parser {
 			error(typeStr(t1) + " should be " +typeStr(t2), p);
 		}
 	}
-	
+
 	function makeOp( op : CodeOp, e1 : CodeValue, e2 : CodeValue, p : Position ) {
 		var types = ops[Type.enumIndex(op)];
 		var first = null;
@@ -548,7 +539,7 @@ class Parser {
 			}
 		default:
 		}
-		
+
 		// if we have an operation on a single scalar, let's map it on all floats
 		if( e2.t == TFloat && isFloat(e1.t) )
 			for( t in types )
@@ -576,7 +567,7 @@ class Parser {
 		throw "assert";
 		return null;
 	}
-	
+
 	function makeUnop( op : CodeUnop, e : CodeValue, p : Position ) {
 		if( !isFloat(e.t) )
 			unify(e.t, TFloat4, e.p);
@@ -587,7 +578,7 @@ class Parser {
 		}
 		return { d : CUnop(op, e), t : rt, p : p };
 	}
-	
+
 	function makeCall( n : String, params : Array<Expr>, p : Position ) {
 		if( n == "div" && params.length == 2 ) {
 			switch( params[0].expr ) {
@@ -677,10 +668,10 @@ class Parser {
 			if( params.length < k ) me.error(n + " require " + k + " parameters", p);
 		}
 		switch(n) {
-		case "get": checkParams(2);
+		case "get": checkParams(2); // will cause an error
 		case "type": checkParams(1); warn(typeStr(v[0].t), p); return v[0];
 
-		case "rcp": checkParams(1); return makeUnop(CRcp, v[0], p);
+		case "inv","rcp": checkParams(1); return makeUnop(CRcp, v[0], p);
 		case "sqt", "sqrt": checkParams(1); return makeUnop(CSqt, v[0], p);
 		case "rsq", "rsqrt": checkParams(1); return makeUnop(CRsq, v[0], p);
 		case "log": checkParams(1); return makeUnop(CLog, v[0], p);
@@ -693,7 +684,7 @@ class Parser {
 		case "sat", "saturate": checkParams(1); return makeUnop(CSat, v[0], p);
 		case "frc", "fract": checkParams(1); return makeUnop(CFrc, v[0], p);
 		case "int": checkParams(1);  return makeUnop(CInt,v[0], p);
-		
+
 		case "add": checkParams(2); return makeOp(CAdd, v[0], v[1], p);
 		case "sub": checkParams(2); return makeOp(CSub, v[0], v[1], p);
 		case "mul": checkParams(2); return makeOp(CMul, v[0], v[1], p);
@@ -703,12 +694,12 @@ class Parser {
 		case "max": checkParams(2); return makeOp(CMax, v[0], v[1], p);
 		case "dp","dp3","dp4","dot": checkParams(2); return makeOp(CDot, v[0], v[1], p);
 		case "crs","cross": checkParams(2); return makeOp(CCrs, v[0], v[1], p);
-		
+
 		default:
 		}
 		return error("Unknown operation '" + n + "'", p);
 	}
-	
+
 	function parseValue( e : Expr ) : CodeValue {
 		switch( e.expr ) {
 		case EField(ef, f):
@@ -794,7 +785,7 @@ class Parser {
 			case CVar(v, _):
 				var v : Variable = {
 					name : v.name+"["+i+"]",
-					reg : v.reg,
+					kind : v.kind,
 					index : v.index + i,
 					type : TFloat4,
 					write : v.write,

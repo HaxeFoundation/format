@@ -26,81 +26,7 @@
  */
 package format.agal;
 import format.agal.Data;
-
-typedef Position = haxe.macro.Expr.Position;
-
-enum VarType {
-	TFloat;
-	TFloat2;
-	TFloat3;
-	TFloat4;
-	TMatrix44( transpose : { t : Null<Bool> } );
-	TTexture;
-}
-
-typedef Variable = {
-	var name : String;
-	var type : VarType;
-	var reg : RegType;
-	var index : Int;
-	var read : Bool;
-	var write : Int;
-	var const : Array<String>;
-	var pos : Position;
-}
-
-enum CodeOp {
-	CAdd;
-	CSub;
-	CMul;
-	CDiv;
-	CMin;
-	CMax;
-	CPow;
-	CCrs;
-	CDot;
-}
-
-enum CodeUnop {
-	CRcp;
-	CSqt;
-	CRsq;
-	CLog;
-	CExp;
-	CLen;
-	CSin;
-	CCos;
-	CAbs;
-	CNeg;
-	CSat;
-	CFrc;
-	CInt;
-}
-
-enum CodeValueDecl {
-	CVar( v : Variable, ?swiz : Array<C> );
-	COp( op : CodeOp, e1 : CodeValue, e2 : CodeValue );
-	CUnop( op : CodeUnop, e : CodeValue );
-	CTex( v : Variable, acc : CodeValue, flags : Array<TexFlag> );
-	CSwiz( e : CodeValue, swiz : Array<C> );
-}
-
-typedef CodeValue = {
-	var d : CodeValueDecl;
-	var t : VarType;
-	var p : Position;
-}
-
-typedef Code = {
-	var vertex : Bool;
-	var pos : Position;
-	var args : Array<Variable>;
-	var consts : Array<{ v : Variable, vals : Array<String> }>;
-	var tex : Array<Variable>;
-	var temps : Array<Variable>;
-	var tempSize : Int;
-	var exprs : Array<{ v : CodeValue, e : CodeValue }>;
-}
+import format.hxsl.Data;
 
 class Compiler {
 
@@ -114,44 +40,57 @@ class Compiler {
 	public dynamic function error( msg : String, p : Position ) {
 		throw msg;
 	}
-	
+
 	function allocTemp( t, p ) {
 		var index = tempCount;
-		tempCount += regSize(t);
+		tempCount += Tools.regSize(t);
 		if( tempCount > tempMax )
 			error("Maximum temporary count reached", p);
 		return { t : RTemp, index : index, swiz : initSwiz(t) };
-	}
-	
-	public static function regSize( t : VarType ) {
-		return switch( t ) {
-		case TMatrix44(_): 4;
-		default: 1;
-		}
 	}
 
 	function initSwiz( t : VarType ) {
 		return switch( t ) { case TFloat: [X]; case TFloat2: [X, Y]; case TFloat3: [X, Y, Z]; default: null; };
 	}
+
+	function convertSwiz( swiz : Array<Comp> ) : Array<C> {
+		if( swiz == null ) return null;
+		var sz = [];
+		for( s in swiz )
+			switch( s ) {
+			case X: sz.push(X);
+			case Y: sz.push(Y);
+			case Z: sz.push(Z);
+			case W: sz.push(W);
+			}
+		return sz;
+	}
 	
 	function reg( v : Variable, ?swiz ) {
-		if( swiz == null )
-			swiz = initSwiz(v.type);
-		return { t : v.reg, index : v.index, swiz : swiz };
+		var swiz = if( swiz == null ) initSwiz(v.type) else convertSwiz(swiz);
+		var t = switch( v.kind ) {
+		case VParam: RConst;
+		case VOut: ROut;
+		case VTmp: RTemp;
+		case VVar: RVar;
+		case VInput: RAttr;
+		case VTexture: throw "assert";
+		}
+		return { t : t, index : v.index, swiz : swiz };
 	}
 
 	function delta( r : Reg, n : Int) {
 		return { t : r.t, index : r.index + n, swiz : r.swiz };
 	}
-	
+
 	function swizOpt( r : Reg, s ) {
 		if( r.swiz == null ) r.swiz = s;
 		return r;
 	}
-	
+
 	public function compile( c : Code ) : Data {
 		code = [];
-		tempMax = Tools.getProps(RTemp, !c.vertex).count;
+		tempMax = format.agal.Tools.getProps(RTemp, !c.vertex).count;
 		for( e in c.exprs ) {
 			var d = switch( e.v.d ) {
 			case CVar(v, swiz): reg(v,swiz);
@@ -175,21 +114,21 @@ class Compiler {
 			code : code,
 		};
 	}
-	
+
 	function isMatrix( t : VarType ) {
 		return switch( t ) {
 		case TMatrix44(_): true;
 		default: false;
 		}
 	}
-	
+
 	function project( dst : Reg, r1 : Reg, r2 : Reg ) {
 		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [X] }, r1, r2));
 		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [Y] }, r1, delta(r2, 1)));
 		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [Z] }, r1, delta(r2, 2)));
 		return ODp4( { t : dst.t, index : dst.index, swiz : [W] }, r1, delta(r2, 3));
 	}
-	
+
 	function matrix44multiply( rt : VarType, dst : Reg, r1 : Reg, r2 : Reg ) {
 		switch( rt ) {
 		case TMatrix44(t):
@@ -217,17 +156,17 @@ class Compiler {
 		case TFloat3:
 			code.push(OMov(swizOpt(dst,[X,Y,Z]), src));
 		default:
-			for( i in 0...regSize(t) )
+			for( i in 0...Tools.regSize(t) )
 				code.push(OMov(delta(dst,i), delta(src,i)));
 		}
 	}
-	
+
 	function toInt( t : VarType, p : Position, dst : Reg, src : Reg ) {
 		var tmp = allocTemp(t,p);
 		code.push(OFrc(tmp, src));
 		return OSub(dst, src, tmp);
 	}
-	
+
 	function compileTo( dst : Reg, e : CodeValue ) {
 		switch( e.d ) {
 		case CVar(_), CSwiz(_):
@@ -286,7 +225,22 @@ class Compiler {
 				mov(t, vtmp, acc.t);
 				vtmp = t;
 			}
-			code.push(OTex(dst, vtmp, { index : v.index, flags : flags } ));
+			var tflags = [];
+			for( f in flags )
+				tflags.push(switch(f) {
+				case T2D: T2D;
+				case TCube: TCube;
+				case T3D: T3D;
+				case TMipMapDisable: TMipMapDisable;
+				case TMipMapNearest: TMipMapNearest;
+				case TMipMapLinear: TMipMapLinear;
+				case TCentroidSample: TCentroidSample;
+				case TWrap: TWrap;
+				case TClamp: TClamp;
+				case TFilterNearest: TFilterNearest;
+				case TFilterLinear: TFilterLinear;
+				});
+			code.push(OTex(dst, vtmp, { index : v.index, flags : tflags } ));
 		}
 	}
 
@@ -298,7 +252,7 @@ class Compiler {
 			var v = compileSrc(e);
 			//if( v.swiz != null )
 			//	throw "assert";
-			return { t : v.t, swiz : swiz, index : v.index };
+			return { t : v.t, swiz : convertSwiz(swiz), index : v.index };
 		case COp(_), CTex(_), CUnop(_):
 			var t = allocTemp(e.t,e.p);
 			compileTo(t, e);
