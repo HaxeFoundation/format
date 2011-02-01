@@ -33,6 +33,7 @@ class Compiler {
 	var code : Array<Opcode>;
 	var tempCount : Int;
 	var tempMax : Int;
+	var curPos : Position;
 
 	public function new() {
 	}
@@ -41,12 +42,19 @@ class Compiler {
 		throw msg;
 	}
 
-	function allocTemp( t, p ) {
+	function allocTemp( t ) {
+		return { t : RTemp, index : -(Tools.regSize(t) + tempCount * 32), swiz : initSwiz(t) };
+	}
+	
+	function checkTmp( r : Reg ) {
+		if( r.index >= 0 ) return;
+		// restore temp count
+		tempCount = ( -r.index) >> 5;
 		var index = tempCount;
-		tempCount += Tools.regSize(t);
+		tempCount += (-r.index) & 31;
 		if( tempCount > tempMax )
-			error("Maximum temporary count reached", p);
-		return { t : RTemp, index : index, swiz : initSwiz(t) };
+			error("Maximum temporary count reached", curPos);
+		r.index = index;
 	}
 
 	function initSwiz( t : VarType ) {
@@ -97,11 +105,12 @@ class Compiler {
 			default: throw "assert";
 			}
 			tempCount = c.tempSize;
+			curPos = e.e.p;
 			// fragment shader does not allow direct operations to output
 			if( !c.vertex && d.t == ROut )
 				switch( e.e.d ) {
 				case COp(_), CTex(_), CUnop(_):
-					var t = allocTemp(e.v.t,e.e.p);
+					var t = allocTemp(e.v.t);
 					compileTo(t, e.e);
 					mov(d, t, e.v.t);
 					continue;
@@ -162,7 +171,8 @@ class Compiler {
 	}
 
 	function toInt( t : VarType, p : Position, dst : Reg, src : Reg ) {
-		var tmp = allocTemp(t,p);
+		var tmp = allocTemp(t);
+		checkTmp(tmp);
 		code.push(OFrc(tmp, src));
 		return OSub(dst, src, tmp);
 	}
@@ -170,16 +180,20 @@ class Compiler {
 	function compileTo( dst : Reg, e : CodeValue ) {
 		switch( e.d ) {
 		case CVar(_), CSwiz(_):
-			mov(dst, compileSrc(e), e.t);
+			var r = compileSrc(e);
+			checkTmp(dst);
+			mov(dst, r, e.t);
 		case COp(op, e1, e2):
 			var v1 = compileSrc(e1);
 			var v2 = compileSrc(e2);
 			// it is not allowed to apply an operation on two constants or two vars at the same time : use a temp var
 			if( (v1.t == RConst && v2.t == RConst) || (v1.t == RVar && v2.t == RVar) ) {
-				var t = allocTemp(e1.t,e1.p);
+				var t = allocTemp(e1.t);
+				checkTmp(t);
 				mov(t, v1, e1.t);
 				v1 = t;
 			}
+			checkTmp(dst);
 			code.push((switch(op) {
 			case CAdd: OAdd;
 			case CDiv: ODiv;
@@ -202,6 +216,7 @@ class Compiler {
 			})(dst, v1, v2));
 		case CUnop(op, p):
 			var v = compileSrc(p);
+			checkTmp(dst);
 			code.push((switch(op) {
 			case CRcp: ORcp;
 			case CSqt: OSqt;
@@ -221,10 +236,12 @@ class Compiler {
 			var vtmp = compileSrc(acc);
 			// getting texture from a const is not allowed
 			if( vtmp.t == RConst ) {
-				var t = allocTemp(acc.t,acc.p);
+				var t = allocTemp(acc.t);
+				checkTmp(t);
 				mov(t, vtmp, acc.t);
 				vtmp = t;
 			}
+			checkTmp(dst);
 			var tflags = [];
 			for( f in flags )
 				tflags.push(switch(f) {
@@ -254,7 +271,7 @@ class Compiler {
 			//	throw "assert";
 			return { t : v.t, swiz : convertSwiz(swiz), index : v.index };
 		case COp(_), CTex(_), CUnop(_):
-			var t = allocTemp(e.t,e.p);
+			var t = allocTemp(e.t);
 			compileTo(t, e);
 			return t;
 		}
