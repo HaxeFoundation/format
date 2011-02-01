@@ -30,8 +30,11 @@ package format.hxsl;
 
 	var c : flash.display3D.Context3D;
 	var p : flash.display3D.Program3D;
+	var buf : flash.display3D.VertexBuffer3D;
 	var cst : flash.Vector<Float>;
 	var pos : Int;
+	var regIndex : Int;
+	var bufSize : Int;
 
 	public function new(c) {
 		this.c = c;
@@ -52,6 +55,35 @@ package format.hxsl;
 	function send(vertex) {
 		var pt = vertex?flash.display3D.Context3DProgramType.VERTEX:flash.display3D.Context3DProgramType.FRAGMENT;
 		c.setProgramConstantsFromVector(pt, 0, cst);
+	}
+	
+	static var FORMATS = [
+		null,
+		flash.display3D.Context3DVertexBufferFormat.FLOAT_1,
+		flash.display3D.Context3DVertexBufferFormat.FLOAT_2,
+		flash.display3D.Context3DVertexBufferFormat.FLOAT_3,
+		flash.display3D.Context3DVertexBufferFormat.FLOAT_4,
+	];
+	
+	function bindInit(buf) {
+		this.buf = buf;
+		regIndex = 0;
+		bufSize = 0;
+	}
+	
+	function bindDone() {
+		buf = null;
+	}
+	
+	inline function bindReg(nfloats:Int) {
+		c.setVertexBufferAt( regIndex, buf, bufSize, FORMATS[nfloats] );
+		regIndex++;
+		bufSize += nfloats;
+	}
+	
+	public function bind(buf) {
+		this.buf = buf;
+		throw "needs subclass";
 	}
 
 	function start(vertex) {

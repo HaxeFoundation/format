@@ -146,6 +146,13 @@ class Build {
 			fs.tmp.concat(Lambda.array(Lambda.map(fs.setup, function(s) return "add(" + s + ");"))).join("\n") + "\n\n" +
 			"done();\n"
 		;
+		
+		var bindCode =
+			"bindInit(buf);\n" +
+			Lambda.map(v.input, function(v) return "bindReg(" + Tools.floatSize(v.type) + ");\n").join("") +
+			"bindDone();\n"
+		;
+		
 		#if (debug && shaderDebug)
 		trace("VERTEX");
 		for( o in vscode.code )
@@ -160,6 +167,7 @@ class Build {
 		var decls = [
 			"function override__getVertexData() return format.agal.Tools.ofString('" + vsbytes + "');",
 			"function override__getFragmentData() return format.agal.Tools.ofString('" + fsbytes + "');",
+			"function override__bind(buf) {"+bindCode+"};",
 			"function init( vertex : {" + vs.vars.join(",") + "}, fragment : {" + fs.vars.join(",") + "} ) {" + initCode + "};",
 		];
 		return Context.parse("{" + decls.join("\n")+"}",shader.pos);

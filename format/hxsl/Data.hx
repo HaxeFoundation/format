@@ -140,4 +140,17 @@ class Tools {
 		}
 	}
 	
+	
+	public static function floatSize( t : VarType ) {
+		return switch( t ) {
+		case TFloat: 1;
+		case TFloat2: 2;
+		case TFloat3: 3;
+		case TFloat4: 4;
+		case TTexture: 0;
+		case TMatrix44(_): 16;
+		}
+	}
+
+	
 }

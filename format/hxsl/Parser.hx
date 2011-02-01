@@ -97,6 +97,7 @@ class Parser {
 	}
 
 	public function parse( e : Expr ) {
+		input = [];
 		allocVar("out", VOut, TFloat4, e.pos);
 		switch( e.expr ) {
 		case EBlock(l):
@@ -107,7 +108,7 @@ class Parser {
 		}
 		if( vertex == null ) error("Missing vertex function", e.pos);
 		if( fragment == null ) error("Missing fragment function", e.pos);
-		if( indexes[Type.enumIndex(VInput)] == 0 ) error("Missing input variable", e.pos);
+		if( input.length == 0 ) error("Missing input variable", e.pos);
 		// build vertex shader code
 		vertexShader = true;
 		var vs = buildShader(vertex);
@@ -194,9 +195,19 @@ class Parser {
 		var me = this;
 		untyped v.__string = function() return neko.NativeString.ofString(name + ":"+me.typeStr(t));
 		#end
+		if( k != null ) {
+			switch( k ) {
+			case VTmp:
+				cur.temps.push(v);
+			case VInput:
+				input.push(v);
+				v = Reflect.copy(v);
+				if( !isMatrix(v.type,true) )
+					v.type = TFloat4;
+			default:
+			}
+		}
 		vars.set(name, v);
-		if( k == VTmp )
-			cur.temps.push(v);
 		indexes[tkind] += Tools.regSize(t);
 		return v;
 	}
@@ -339,7 +350,7 @@ class Parser {
 	}
 
 	function fullBits( t : VarType ) {
-		return (1 << floatSize(t)) - 1;
+		return (1 << Tools.floatSize(t)) - 1;
 	}
 
 	function checkRead( e : CodeValue ) {
@@ -402,7 +413,7 @@ class Parser {
 					var val = parseValue(v.expr);
 					var vr = allocVar(v.name, VTmp, (v.type == null) ? val.t : getType(v.type, e.pos), e.pos);
 					unify(val.t, vr.type, v.expr.pos);
-					vr.write = (1 << floatSize(vr.type)) - 1;
+					vr.write = fullBits(vr.type);
 					var ve = { d : CVar(vr), t : vr.type, p : e.pos };
 					addAssign(ve,val);
 				}
@@ -436,17 +447,6 @@ class Parser {
 		case TFloat, TFloat2, TFloat3, TFloat4: true;
 		default: false;
 		};
-	}
-
-	function floatSize( t : VarType ) {
-		return switch( t ) {
-		case TFloat: 1;
-		case TFloat2: 2;
-		case TFloat3: 3;
-		case TFloat4: 4;
-		case TTexture: 0;
-		case TMatrix44(_): 16;
-		}
 	}
 
 	function isMatrix( t : VarType, ?transp : Bool ) {
@@ -533,7 +533,7 @@ class Parser {
 			if( swiz != null && swiz.length == 1 && v.const != null ) {
 				var cval = v.const[Type.enumIndex(swiz[0])];
 				var cst = [];
-				for( i in 0...floatSize(e1.t) )
+				for( i in 0...Tools.floatSize(e1.t) )
 					cst.push(cval);
 				return makeOp(op, e1, allocConst(cst, e2.p), p);
 			}
@@ -549,7 +549,7 @@ class Parser {
 					case CVar(_, s): if( s == null ) X else s[0];
 					default: X;
 					}
-					for( i in 0...floatSize(e1.t) )
+					for( i in 0...Tools.floatSize(e1.t) )
 						swiz.push(s);
 					return makeOp(op, e1, { d : CSwiz(e2, swiz), t : e1.t, p : e2.p }, p );
 				}
