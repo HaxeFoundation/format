@@ -126,7 +126,7 @@ class Parser {
 
 		return { input : input, vs : vs, fs : fs };
 	}
-
+	
 	function checkVars() {
 		var shader = (vertexShader ? "vertex" : "fragment")+" shader";
 		for( v in vars )
@@ -140,14 +140,17 @@ class Parser {
 					if( !v.read && v.write == 0 )
 						warn("Variable '" + v.name + "' is not used", v.pos);
 					else if( !v.read )
-						error("Variable '" + v.name + "' is not read by " + shader, v.pos);
+						warn("Variable '" + v.name + "' is not read by " + shader, v.pos);
 					else if( v.write == 0 )
 						error("Variable '" + v.name + "' is not written by vertex shader", v.pos);
 					else if( v.write != fullBits(v.type) )
 						error("Some components of variable '" + v.name + "' are not written by vertex shader", v.pos);
 				}
 			case VInput:
-				if( vertexShader && !v.read ) warn("Input '" + v.name + "' is not used by "+shader, v.pos);
+				if( vertexShader && !v.read ) {
+					warn("Input '" + v.name + "' is not used by " + shader, v.pos);
+					cur.exprs.push({ v : trash(), e : { d : CVar(v), t : TFloat4, p : v.pos } });
+				}
 			case VTmp:
 				throw "assert";
 			case VParam:
@@ -156,6 +159,19 @@ class Parser {
 			case VTexture:
 				if( !v.read ) warn("Unused texture " + v.name, v.pos);
 			}
+	}
+	
+	function trash() {
+		return { d : CVar( {
+			name : "$trash",
+			pos : cur.pos,
+			type : TFloat4,
+			kind : VTmp,
+			index : 0,
+			read : false,
+			write : 15,
+			const : null,
+		}), t : TFloat4, p : cur.pos };
 	}
 
 	function getType( t : ComplexType, pos ) {
