@@ -157,7 +157,14 @@ class Parser {
 				if( !v.read ) warn("Parameter '" + v.name + "' not used by " + shader, v.pos);
 				vars.remove(v.name);
 			case VTexture:
-				if( !v.read ) warn("Unused texture " + v.name, v.pos);
+				if( !v.read ) {
+					warn("Unused texture " + v.name, v.pos);
+					var t = trash();
+					var a = t;
+					if( cur.tempSize == 0 )
+						a = allocConst(["0", "0"], v.pos);
+					cur.exprs.push({ v : t, e : { d : CTex(v,a,[]), t : TFloat4, p : v.pos } });
+				}
 			}
 	}
 	
@@ -235,10 +242,10 @@ class Parser {
 		// remove extra zeroes at end
 		for( i in 0...cvals.length ) {
 			var v = cvals[i];
-			while( v.charCodeAt(v.length - 1) == "0".code ) {
+			if( v.indexOf(".") < 0 ) v += ".";
+			while( v.charCodeAt(v.length - 1) == "0".code )
 				v = v.substr(0, v.length - 1);
-				cvals[i] = v;
-			}
+			cvals[i] = v;
 		}
 		// find an already existing constant
 		for( c in cur.consts ) {
@@ -762,7 +769,7 @@ class Parser {
 				if( v == null ) error("Unknown identifier '" + i + "'", e.pos);
 				return { d : CVar(v), t : v.type, p : e.pos };
 			case CInt(v):
-				return allocConst([v+"."],e.pos);
+				return allocConst([v],e.pos);
 			case CFloat(f):
 				return allocConst([f],e.pos);
 			default:
@@ -801,7 +808,7 @@ class Parser {
 				switch( e.expr ) {
 				case EConst(c):
 					switch( c ) {
-					case CInt(i): consts.push(i + "."); continue;
+					case CInt(i): consts.push(i); continue;
 					case CFloat(f): consts.push(f); continue;
 					default:
 					}
