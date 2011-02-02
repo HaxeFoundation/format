@@ -41,12 +41,19 @@ class Writer {
 		o.writeInt31(1); // version
 		o.writeByte(0xA1);
 		o.writeByte(data.fragmentShader ? 1 : 0);
+		var idKil = Type.enumIndex(OKil(null));
 		var idTex = Type.enumIndex(OTex(null, null, null));
 		for( c in data.code ) {
 			var idx = Type.enumIndex(c);
 			var params = Type.enumParameters(c);
 			var dst : Reg = params[0];
-			o.writeUInt30(( idx == idTex ) ? 0x28 : idx);
+			o.writeUInt30(( idx >= idKil ) ? (idx - idKil + 0x27) : idx);
+			if( idx == idKil ) {
+				o.writeUInt30(0);
+				writeSrc(dst);
+				writeSrc(null);
+				continue;
+			}
 			o.writeUInt30( dst.index | (maskBits(dst.swiz) << 16) | (regType(dst.t) << 24));
 			writeSrc(params[1]);
 			if( idx == idTex )

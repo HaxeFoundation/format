@@ -39,7 +39,7 @@ class Build {
 	static function realType( t : VarType ) {
 		return switch( t ) {
 		case TFloat: "Float";
-		case TFloat2, TFloat3, TFloat4: "flash.Vector<Float>";
+		case TFloat2, TFloat3, TFloat4: "flash.geom.Vector3D";
 		case TMatrix44(_): "flash.geom.Matrix3D";
 		case TTexture: "flash.display3D.textures.Texture";
 		};
@@ -66,20 +66,20 @@ class Build {
 				inf.setup.push(n);
 				inf.setup.push(n);
 			case TFloat2:
-				inf.setup.push(n + "[0]");
-				inf.setup.push(n + "[1]");
+				inf.setup.push(n + ".x");
+				inf.setup.push(n + ".y");
 				inf.setup.push("0");
 				inf.setup.push("0");
 			case TFloat3:
-				inf.setup.push(n + "[0]");
-				inf.setup.push(n + "[1]");
-				inf.setup.push(n + "[2]");
+				inf.setup.push(n + ".x");
+				inf.setup.push(n + ".y");
+				inf.setup.push(n + ".z");
 				inf.setup.push("0");
 			case TFloat4:
-				inf.setup.push(n + "[0]");
-				inf.setup.push(n + "[1]");
-				inf.setup.push(n + "[2]");
-				inf.setup.push(n + "[3]");
+				inf.setup.push(n + ".x");
+				inf.setup.push(n + ".y");
+				inf.setup.push(n + ".z");
+				inf.setup.push(n + ".w");
 			case TMatrix44(t):
 				var tmp = "raw_" + c.name;
 				inf.tmp.push("var " + tmp + " = " + n + ".rawData;");
@@ -160,9 +160,9 @@ class Build {
 		trace("FRAGMENT");
 		for( o in fscode.code )
 			trace(o);
-		//trace("INIT CODE");
-		//for( s in initCode.split("\n") )
-		//	trace(s);
+		// trace("INIT CODE");
+		// for( s in initCode.split("\n") )
+		// 	trace(s);
 		#end
 		var decls = [
 			"function override__getVertexData() return format.agal.Tools.ofString('" + vsbytes + "');",

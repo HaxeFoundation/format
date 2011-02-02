@@ -52,9 +52,10 @@ package format.hxsl;
 		return null;
 	}
 
-	function send(vertex) {
+	function send(vertex:Bool) {
 		var pt = vertex?flash.display3D.Context3DProgramType.VERTEX:flash.display3D.Context3DProgramType.FRAGMENT;
 		c.setProgramConstantsFromVector(pt, 0, cst);
+		cst = null;
 	}
 	
 	static var FORMATS = [

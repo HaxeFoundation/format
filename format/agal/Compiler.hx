@@ -100,12 +100,17 @@ class Compiler {
 		code = [];
 		tempMax = format.agal.Tools.getProps(RTemp, !c.vertex).count;
 		for( e in c.exprs ) {
+			tempCount = c.tempSize;
+			curPos = e.e.p;
+			if( e.v == null ) {
+				// assume dest not check
+				compileTo({ t : ROut, index : -1, swiz : null }, e.e);
+				continue;
+			}
 			var d = switch( e.v.d ) {
 			case CVar(v, swiz): reg(v,swiz);
 			default: throw "assert";
 			}
-			tempCount = c.tempSize;
-			curPos = e.e.p;
 			// fragment shader does not allow direct operations to output
 			if( !c.vertex && d.t == ROut )
 				switch( e.e.d ) {
@@ -200,36 +205,46 @@ class Compiler {
 			case CMin: OMin;
 			case CMax: OMax;
 			case CDot: if( e1.t == TFloat4 ) ODp4 else ODp3;
-			case CCrs: OCrs;
+			case CCross: OCrs;
 			case CMul:
 				if( isMatrix(e2.t) ) {
-					if( e1.t == TFloat4 )
-						OM44
-					else if( isMatrix(e1.t) )
-						callback(matrix44multiply,e.t)
-					else
-						throw "assert";
+					switch( e1.t ) {
+					case TFloat4: OM44;
+					case TFloat3: if( e.t == TFloat4 ) OM34 else OM33;
+					case TMatrix44(_): callback(matrix44multiply, e.t);
+					default: throw "assert";
+					}
 				} else
 					OMul;
 			case CSub: OSub;
 			case CPow: OPow;
+			case CGte: OSge;
+			case CLt: OSlt;
 			})(dst, v1, v2));
 		case CUnop(op, p):
+			switch( op ) {
+			case CLen:
+				compileTo(dst, { d : COp(CDot, p, p), p : e.p, t : e.t } );
+				return;
+			default:
+			}
 			var v = compileSrc(p);
 			checkTmp(dst);
 			code.push((switch(op) {
 			case CRcp: ORcp;
-			case CSqt: OSqt;
+			case CSqrt: OSqt;
 			case CRsq: ORsq;
 			case CLog: OLog;
 			case CExp: OExp;
-			case CLen: ONrm;
+			case CLen: throw "assert";
 			case CSin: OSin;
 			case CCos: OCos;
 			case CAbs: OAbs;
 			case CNeg: ONeg;
 			case CSat: OSat;
-			case CFrc: OFrc;
+			case CFrac: OFrc;
+			case CNorm: ONrm;
+			case CKill: function(dst, v) return OKil(v);
 			case CInt: callback(toInt,p.t,p.p);
 			})(dst, v));
 		case CTex(v, acc, flags):

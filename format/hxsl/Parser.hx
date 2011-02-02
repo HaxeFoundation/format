@@ -73,11 +73,12 @@ class Parser {
 		for( o in Lambda.map(Type.getEnumConstructs(CodeOp), function(c) return Type.createEnum(CodeOp, c)) )
 			ops.push({ op : o, types : switch( o ) {
 				case CAdd, CSub, CDiv, CPow: floats;
-				case CMin, CMax: floats;
+				case CMin, CMax, CLt, CGte: floats;
 				case CDot: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat }, { p1 : TFloat3, p2 : TFloat3, r : TFloat } ];
-				case CCrs: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat3 }];
+				case CCross: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat3 }];
 				case CMul: floats.concat([
 					{ p1 : TFloat4, p2 : mat_t, r : TFloat4 },
+					{ p1 : TFloat3, p2 : mat_t, r : TFloat3 },
 					{ p1 : mat, p2 : mat_t, r : mat_u },
 				]);
 			}});
@@ -297,7 +298,8 @@ class Parser {
 		for( p in f.args ) {
 			if( p.type == null ) error("Missing parameter type '" + p.name + "'", pos);
 			if( p.value != null ) error("Unsupported default value", p.value.pos);
-			var v = allocVar(p.name, VParam, getType(p.type, pos), pos);
+			var t = getType(p.type, pos);
+			var v = allocVar(p.name, (t == TTexture) ? VTexture : VParam, t, pos);
 			if( v.type == TTexture )
 				cur.tex.push(v);
 			else
@@ -417,6 +419,24 @@ class Parser {
 					var ve = { d : CVar(vr), t : vr.type, p : e.pos };
 					addAssign(ve,val);
 				}
+		case ECall(v, params):
+			switch( v.expr ) {
+			case EConst(c):
+				switch(c) {
+				case CIdent(s):
+					if( s == "kill" && params.length == 1 ) {
+						var v = parseValue(params[0]);
+						unify(v.t, TFloat, v.p);
+						checkRead(v);
+						if( cur.vertex ) error("Kill is only allowed in fragment shaders", e.pos);
+						cur.exprs.push( { v : null, e : { d : CUnop(CKill,v), t : TFloat, p : e.pos } } );
+						return;
+					}
+				default:
+				}
+			default:
+			}
+			error("Unsupported call", e.pos);
 		default:
 			error("Unsupported expression", e.pos);
 		}
@@ -573,6 +593,7 @@ class Parser {
 			unify(e.t, TFloat4, e.p);
 		var rt = e.t;
 		switch( op ) {
+		case CNorm: rt = TFloat3;
 		case CLen: rt = TFloat;
 		default:
 		}
@@ -590,7 +611,7 @@ class Parser {
 						switch( e2.d ) {
 						case CUnop(op, v):
 							// optimize 1 / sqrt(x)
-							if( op == CSqt )
+							if( op == CSqrt )
 								return makeUnop(CRsq, v, p);
 						default:
 						}
@@ -672,7 +693,7 @@ class Parser {
 		case "type": checkParams(1); warn(typeStr(v[0].t), p); return v[0];
 
 		case "inv","rcp": checkParams(1); return makeUnop(CRcp, v[0], p);
-		case "sqt", "sqrt": checkParams(1); return makeUnop(CSqt, v[0], p);
+		case "sqt", "sqrt": checkParams(1); return makeUnop(CSqrt, v[0], p);
 		case "rsq", "rsqrt": checkParams(1); return makeUnop(CRsq, v[0], p);
 		case "log": checkParams(1); return makeUnop(CLog, v[0], p);
 		case "exp": checkParams(1); return makeUnop(CExp, v[0], p);
@@ -682,8 +703,9 @@ class Parser {
 		case "abs": checkParams(1); return makeUnop(CAbs, v[0], p);
 		case "neg": checkParams(1); return makeUnop(CNeg, v[0], p);
 		case "sat", "saturate": checkParams(1); return makeUnop(CSat, v[0], p);
-		case "frc", "fract": checkParams(1); return makeUnop(CFrc, v[0], p);
+		case "frc", "frac": checkParams(1); return makeUnop(CFrac, v[0], p);
 		case "int": checkParams(1);  return makeUnop(CInt,v[0], p);
+		case "nrm", "norm", "normalize": checkParams(1); return makeUnop(CNorm, v[0], p);
 
 		case "add": checkParams(2); return makeOp(CAdd, v[0], v[1], p);
 		case "sub": checkParams(2); return makeOp(CSub, v[0], v[1], p);
@@ -693,7 +715,12 @@ class Parser {
 		case "min": checkParams(2); return makeOp(CMin, v[0], v[1], p);
 		case "max": checkParams(2); return makeOp(CMax, v[0], v[1], p);
 		case "dp","dp3","dp4","dot": checkParams(2); return makeOp(CDot, v[0], v[1], p);
-		case "crs","cross": checkParams(2); return makeOp(CCrs, v[0], v[1], p);
+		case "crs", "cross": checkParams(2); return makeOp(CCross, v[0], v[1], p);
+		
+		case "lt", "slt": checkParams(2); return makeOp(CLt, v[0], v[1], p);
+		case "gte", "sge": checkParams(2); return makeOp(CGte, v[0], v[1], p);
+		case "gt", "sgt": checkParams(2); return makeOp(CLt, v[1], v[0], p);
+		case "lte", "sle": checkParams(2); return makeOp(CGte, v[1], v[0], p);
 
 		default:
 		}
@@ -730,6 +757,10 @@ class Parser {
 			case OpAdd: "add";
 			case OpDiv: "div";
 			case OpSub: "sub";
+			case OpLt: "lt";
+			case OpLte: "lte";
+			case OpGt: "gt";
+			case OpGte: "gte";
 			default: error("Unsupported operation", e.pos);
 			};
 			return makeCall(op, [e1, e2], e.pos);

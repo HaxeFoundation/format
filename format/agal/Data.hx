@@ -53,7 +53,10 @@ enum Opcode {
 	OM33( dst : Reg, a : Reg, b : Reg );
 	OM44( dst : Reg, a : Reg, b : Reg );
 	OM34( dst : Reg, a : Reg, b : Reg );
+	OKil( v : Reg );
 	OTex( dst : Reg, pt : Reg, tex : Tex );
+	OSge( dst : Reg, a : Reg, b : Reg );
+	OSlt( dst : Reg, a : Reg, b : Reg );
 }
 
 typedef Reg = {

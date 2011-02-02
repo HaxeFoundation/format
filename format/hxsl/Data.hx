@@ -86,13 +86,15 @@ enum CodeOp {
 	CMin;
 	CMax;
 	CPow;
-	CCrs;
+	CCross;
 	CDot;
+	CLt;
+	CGte;
 }
 
 enum CodeUnop {
 	CRcp;
-	CSqt;
+	CSqrt;
 	CRsq;
 	CLog;
 	CExp;
@@ -102,8 +104,10 @@ enum CodeUnop {
 	CAbs;
 	CNeg;
 	CSat;
-	CFrc;
+	CFrac;
 	CInt;
+	CNorm;
+	CKill;
 }
 
 enum CodeValueDecl {
@@ -128,7 +132,7 @@ typedef Code = {
 	var tex : Array<Variable>;
 	var temps : Array<Variable>;
 	var tempSize : Int;
-	var exprs : Array<{ v : CodeValue, e : CodeValue }>;
+	var exprs : Array<{ v : Null<CodeValue>, e : CodeValue }>;
 }
 
 class Tools {
