@@ -116,6 +116,11 @@ class Parser {
 		checkVars();
 
 		// reset
+		for( v in vars )
+			switch( v.kind ) {
+			case VParam: vars.remove(v.name);
+			default:
+			}
 		indexes[Type.enumIndex(VParam)] = 0;
 		indexes[Type.enumIndex(VTmp)] = 0;
 
@@ -136,15 +141,20 @@ class Parser {
 				if( v.write != fullBits(v.type) ) error("Some output components are not written by " + shader, v.pos);
 				v.write = 0; // reset status
 			case VVar:
-				if( !vertexShader ) {
+				if( vertexShader ) {
+					if( v.write == 0 ) {
+						// delay error
+					} else if( v.write != fullBits(v.type) )
+						error("Some components of variable '" + v.name + "' are not written by vertex shader", v.pos);
+					else if( v.write != 15 )
+						padWrite(v);
+				} else {
 					if( !v.read && v.write == 0 )
 						warn("Variable '" + v.name + "' is not used", v.pos);
 					else if( !v.read )
 						warn("Variable '" + v.name + "' is not read by " + shader, v.pos);
 					else if( v.write == 0 )
 						error("Variable '" + v.name + "' is not written by vertex shader", v.pos);
-					else if( v.write != fullBits(v.type) )
-						error("Some components of variable '" + v.name + "' are not written by vertex shader", v.pos);
 				}
 			case VInput:
 				if( vertexShader && !v.read ) {
@@ -155,7 +165,6 @@ class Parser {
 				throw "assert";
 			case VParam:
 				if( !v.read ) warn("Parameter '" + v.name + "' not used by " + shader, v.pos);
-				vars.remove(v.name);
 			case VTexture:
 				if( !v.read ) {
 					warn("Unused texture " + v.name, v.pos);
@@ -166,6 +175,56 @@ class Parser {
 					cur.exprs.push({ v : t, e : { d : CTex(v,a,[]), t : TFloat4, p : v.pos } });
 				}
 			}
+	}
+	
+	function isGoodSwiz( s : Array<Comp> ) {
+		if( s == null ) return true;
+		var cur = 0;
+		for( x in s )
+			if( Type.enumIndex(x) != cur++ )
+				return false;
+		return true;
+	}
+	
+	function padWrite( v : Variable ) {
+		for( e in cur.exprs ) {
+			if( e.v == null ) continue;
+			switch( e.v.d ) {
+			case CVar(vv, sv):
+				if( v == vv && isGoodSwiz(sv) ) {
+					switch( e.e.d ) {
+					case CVar(v2, sv2):
+						// remove swizzle on write
+						var vn = Reflect.copy(v);
+						vn.type = TFloat4;
+						e.v.d = CVar(vn);
+						// remove swizzle on read
+						if( isGoodSwiz(sv2) ) {
+							var vn2 = Reflect.copy(v2);
+							vn2.type = TFloat4;
+							e.e.d = CVar(vn2);
+						} else
+						// or pad swizzle on input var
+							while( sv2.length < 4 )
+								sv2.push(X);
+						// adjust types
+						e.e.t = e.v.t = TFloat4;
+						return;
+					default:
+					}
+				}
+			default:
+			}
+		}
+		// store zeroes into remaining components
+		var missing = [], zeroes = [];
+		for( i in Tools.floatSize(v.type)...4 ) {
+			missing.push(Type.createEnumIndex(Comp, i));
+			zeroes.push("0");
+		}
+		var c = allocConst(zeroes, v.pos);
+		checkRead(c);
+		cur.exprs.push( { v : { d : CVar(v, missing), t : makeFloat(missing.length), p : v.pos }, e : c } );
 	}
 	
 	function trash() {
@@ -236,9 +295,13 @@ class Parser {
 		return v;
 	}
 
+	function makeFloat( i : Int ) {
+		 return switch( i ) { case 1: TFloat; case 2: TFloat2; case 3: TFloat3; case 4: TFloat4; default: throw "assert"; };
+	}
+	
 	function allocConst( cvals : Array<String>, p : Position ) {
 		var swiz = [X, Y, Z, W];
-		var type = switch( cvals.length ) { case 1: TFloat; case 2: TFloat2; case 3: TFloat3; default: TFloat4; };
+		var type = makeFloat(cvals.length);
 		// remove extra zeroes at end
 		for( i in 0...cvals.length ) {
 			var v = cvals[i];
@@ -758,7 +821,7 @@ class Parser {
 			case CVar(v, swiz):
 				if( swiz == null ) {
 					swiz = getSwiz(f, v.type, e.pos);
-					return { d : CVar(v,swiz), t : switch( swiz.length ) { case 1: TFloat; case 2: TFloat2; case 3: TFloat3; default: TFloat4; }, p : e.pos };
+					return { d : CVar(v,swiz), t : makeFloat(swiz.length), p : e.pos };
 				}
 			default:
 			}
