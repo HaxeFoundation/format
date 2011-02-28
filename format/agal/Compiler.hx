@@ -230,6 +230,13 @@ class Compiler {
 			}
 			var v = compileSrc(p);
 			checkTmp(dst);
+			if( dst.t == RVar && op == CNorm ) {
+				var t = allocTemp(p.t);
+				checkTmp(t);
+				code.push(ONrm(t, v));
+				mov(dst, t, p.t);
+				return;
+			}
 			code.push((switch(op) {
 			case CRcp: ORcp;
 			case CSqrt: OSqt;
