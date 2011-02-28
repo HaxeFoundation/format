@@ -473,6 +473,55 @@ class Parser {
 		}
 	}
 
+	function parseInt( e : Expr ) {
+		return switch( e.expr ) {
+		case EConst(c): switch( c ) { case CInt(i): Std.parseInt(i); default: null; }
+		case EUnop(op, _, e):
+			if( op == OpNeg ) {
+				var i = parseInt(e);
+				if( i == null ) null else -i;
+			} else
+				null;
+		default: null;
+		}
+	}
+	
+	function replaceVar( v : String, by : ExprDef, e : Expr ) {
+		return { expr : switch( e.expr ) {
+		case EConst(c):
+			switch( c ) {
+			case CIdent(v2):
+				if( v == v2 ) by else e.expr;
+			default:
+				e.expr;
+			}
+		case EBinop(op, e1, e2):
+			EBinop(op, replaceVar(v, by, e1), replaceVar(v, by, e2));
+		case EUnop(op, p, e):
+			EUnop(op, p, replaceVar(v, by, e));
+		case EVars(vl):
+			var vl2 = [];
+			for( x in vl )
+				vl2.push( { name : x.name, type : x.type, expr : if( x.expr == null ) null else replaceVar(v, by, x.expr) } );
+			EVars(vl2);
+		case ECall(e, el):
+			ECall(replaceVar(v, by, e), Lambda.array(Lambda.map(el, callback(replaceVar, v, by))));
+		case EFor(x, it, e):
+			EFor(x, replaceVar(v, by, it), replaceVar(v, by, e));
+		case EBlock(el):
+			EBlock(Lambda.array(Lambda.map(el, callback(replaceVar, v, by))));
+		case EArrayDecl(el):
+			EArrayDecl(Lambda.array(Lambda.map(el, callback(replaceVar, v, by))));
+		case EIf(cond, eif, eelse):
+			EIf(replaceVar(v, by, cond), replaceVar(v, by, eif), eelse == null ? null : replaceVar(v, by, eelse));
+		case EField(e, f):
+			EField(replaceVar(v, by, e), f);
+		case EParenthesis(e):
+			EParenthesis(replaceVar(v, by, e));
+		default:
+			e.expr;
+		}, pos : e.pos };
+	}
 
 	function parseExpr( e : Expr ) {
 		switch( e.expr ) {
@@ -523,6 +572,22 @@ class Parser {
 			default:
 			}
 			error("Unsupported call", e.pos);
+		case EFor(v, it, expr):
+			var min = null, max = null;
+			switch( it.expr ) {
+			case EBinop(op, e1, e2):
+				if( op == OpInterval ) {
+					min = parseInt(e1);
+					max = parseInt(e2);
+				}
+			default:
+			}
+			if( min == null || max == null )
+				error("For iterator should be in the form 1...5", it.pos);
+			for( i in min...max ) {
+				var expr = replaceVar(v, EConst(Constant.CInt(Std.string(i))), expr);
+				parseExpr(expr);
+			}
 		default:
 			error("Unsupported expression", e.pos);
 		}
@@ -917,6 +982,24 @@ class Parser {
 			var v = parseValue(k);
 			v.p = e.pos;
 			return v;
+		case EIf(ec, eif, eelse):
+			var vcond = parseValue(ec);
+			var ops = switch( vcond.d ) {
+			case COp(op, e1, e2):
+				switch( op ) {
+				case CLt, CGte: [vcond, { d : COp((op == CLt) ? CGte : CLt, e1, e2), t : vcond.t, p : vcond.p } ];
+				default: null;
+				}
+			default: null;
+			}
+			if( ops == null ) error("if condition must be a comparison", e.pos);
+			var vif = parseValue(eif);
+			if( eelse == null ) error("'if' needs an 'else'", e.pos);
+			var velse = parseValue(eelse);
+			unify(velse.t, vif.t, velse.p);
+			var e1 = { d : COp(CMul, vif, ops[0]), t : vif.t, p : vif.p };
+			var e2 = { d : COp(CMul, velse, ops[1]), t : velse.t, p : velse.p };
+			return { d : COp(CAdd, e1, e2), t : vif.t, p : e.pos };
 		default:
 		}
 		error("Unsupported value expression", e.pos);
