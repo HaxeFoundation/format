@@ -95,9 +95,9 @@ class Build {
 			}
 		}
 		for( c in shader.consts ) {
-			for( f in c.vals )
+			for( f in c )
 				inf.setup.push(f);
-			for( i in c.vals.length...4 )
+			for( i in c.length...4 )
 				inf.setup.push("0");
 		}
 
@@ -121,14 +121,16 @@ class Build {
 		if( shader == null )
 			Context.error("Missing @:shader metadata", cl.pos);
 
-		var p = new Parser();
-		p.warn = Context.warning;
-		var v = try p.parse(shader) catch( e : Parser.ParserError ) haxe.macro.Context.error(e.message, e.pos);
+		var v = try new Parser().parse(shader) catch( e : Error ) haxe.macro.Context.error(e.message, e.pos);
+		var c = new Compiler();
+		c.warn = Context.warning;
+		var v = try c.compile(v) catch( e : Error ) haxe.macro.Context.error(e.message, e.pos);
+		
 		var c = new format.agal.Compiler();
 		c.error = Context.error;
 
-		var vscode = c.compile(v.vs);
-		var fscode = c.compile(v.fs);
+		var vscode = c.compile(v.vertex);
+		var fscode = c.compile(v.fragment);
 
 		var o = new haxe.io.BytesOutput();
 		new format.agal.Writer(o).write(vscode);
@@ -138,8 +140,8 @@ class Build {
 		new format.agal.Writer(o).write(fscode);
 		var fsbytes = haxe.Serializer.run(o.getBytes());
 
-		var vs = buildShaderInfos(v.vs);
-		var fs = buildShaderInfos(v.fs);
+		var vs = buildShaderInfos(v.vertex);
+		var fs = buildShaderInfos(v.fragment);
 
 		var initCode =
 			vs.tmp.concat(Lambda.array(Lambda.map(vs.setup, function(s) return "add(" + s + ");"))).join("\n") + "\n\n" +

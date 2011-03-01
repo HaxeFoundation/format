@@ -74,7 +74,6 @@ typedef Variable = {
 	var index : Int;
 	var read : Bool;
 	var write : Int;
-	var const : Array<String>;
 	var pos : Position;
 }
 
@@ -110,6 +109,8 @@ enum CodeUnop {
 	CKill;
 }
 
+// final hxsl
+
 enum CodeValueDecl {
 	CVar( v : Variable, ?swiz : Array<Comp> );
 	COp( op : CodeOp, e1 : CodeValue, e2 : CodeValue );
@@ -128,11 +129,59 @@ typedef Code = {
 	var vertex : Bool;
 	var pos : Position;
 	var args : Array<Variable>;
-	var consts : Array<{ v : Variable, vals : Array<String> }>;
+	var consts : Array<Array<String>>;
 	var tex : Array<Variable>;
-	var temps : Array<Variable>;
-	var tempSize : Int;
 	var exprs : Array<{ v : Null<CodeValue>, e : CodeValue }>;
+	var tempSize : Int;
+}
+
+// parsed hxsl
+
+enum ParsedValueDecl {
+	PVar( v : String );
+	PConst( index : Int, swiz : Array<Comp> );
+	PLocal( v : ParsedVar );
+	POp( op : CodeOp, e1 : ParsedValue, e2 : ParsedValue );
+	PUnop( op : CodeUnop, e : ParsedValue );
+	PTex( v : String, acc : ParsedValue, flags : Array<TexFlag> );
+	PSwiz( e : ParsedValue, swiz : Array<Comp> );
+	PIf( cond : ParsedValue, e1 : ParsedValue, e2 : ParsedValue );
+}
+
+typedef ParsedValue = {
+	var v : ParsedValueDecl;
+	var p : Position;
+}
+
+typedef ParsedVar = {
+	var n : String;
+	var t : VarType;
+	var p : Position;
+}
+
+typedef ParsedCode = {
+	var vertex : Bool;
+	var pos : Position;
+	var args : Array<ParsedVar>;
+	var consts : Array<Array<String>>;
+	var exprs : Array<{ v : Null<ParsedValue>, e : ParsedValue, p : Position }>;
+}
+
+typedef ParsedHxsl = {
+	var pos : Position;
+	var input : Array<ParsedVar>;
+	var vars : Array<ParsedVar>;
+	var vertex : ParsedCode;
+	var fragment : ParsedCode;
+}
+
+class Error {
+	public var message : String;
+	public var pos : Position;
+	public function new(msg, p) {
+		this.message = msg;
+		this.pos = p;
+	}
 }
 
 class Tools {
