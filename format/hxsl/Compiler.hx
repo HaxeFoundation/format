@@ -430,10 +430,10 @@ class Compiler {
 			case TFloat4: 4;
 			case TMatrix44(_), TTexture: 0;
 			}
-			// allow all components access on input values only
+			// allow all components access on input and varying values only
 			switch( v.d ) {
 			case CVar(v, s):
-				if( s == null && v.kind == VInput ) count = 4;
+				if( s == null && (v.kind == VInput || v.kind == VVar) ) count = 4;
 			default:
 			}
 			// check that swizzling is correct
