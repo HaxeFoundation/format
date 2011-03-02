@@ -63,7 +63,7 @@ enum VarType {
 	TFloat2;
 	TFloat3;
 	TFloat4;
-	TMatrix( w : Int, h : Int, transpose : { t : Null<Bool> } );
+	TMatrix( r : Int, c : Int, transpose : { t : Null<Bool> } );
 	TTexture;
 }
 
@@ -148,6 +148,7 @@ enum ParsedValueDecl {
 	PSwiz( e : ParsedValue, swiz : Array<Comp> );
 	PIf( cond : ParsedValue, e1 : ParsedValue, e2 : ParsedValue );
 	PVector( el : Array<ParsedValue> );
+	PRow( e : ParsedValue, index : Int );
 }
 
 typedef ParsedValue = {

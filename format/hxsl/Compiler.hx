@@ -35,10 +35,13 @@ class Compiler {
 	var ops : Array<Array<{ p1 : VarType, p2 : VarType, r : VarType }>>;
 	var delayed : Array<{ idx : Int, callb : Void -> Void }>;
 	var tempCount : Int;
+	
+	public var inlineTranspose : Bool;
 
 	public function new() {
 		tempCount = 0;
 		vars = new Hash();
+		inlineTranspose = true;
 		indexes = [0, 0, 0, 0, 0, 0];
 		ops = new Array();
 		for( o in initOps() )
@@ -87,8 +90,8 @@ class Compiler {
 
 	function typeStr( t : VarType )  {
 		switch( t ) {
-		case TMatrix(w, h, t):
-			return "M" + w + "" + h + (t.t ? "T" : "");
+		case TMatrix(r, c, t):
+			return "M" + r + "" + c + (t.t ? "T" : "");
 		default:
 			return Std.string(t).substr(1);
 		}
@@ -208,7 +211,10 @@ class Compiler {
 				error("Constant values cannot be written", v.p);
 			case VInput:
 				error("Input values cannot be written", v.p);
-			case VOut, VTmp:
+			case VOut:
+				if( !cur.vertex && vr.write != 0 ) error("You must use a single write for fragment shader output", v.p);
+				vr.write |= bits;
+			case VTmp:
 				vr.write |= bits;
 			case VTexture:
 				error("You can't write to a texture", v.p);
@@ -257,7 +263,7 @@ class Compiler {
 		};
 		#if neko
 		var me = this;
-		untyped v.__string = function() return neko.NativeString.ofString(name + ":"+me.typeStr(t));
+		untyped v.__string = function() return neko.NativeString.ofString(this.name + ":"+me.typeStr(this.type));
 		#end
 		vars.set(name, v);
 		indexes[tkind] += Tools.regSize(t);
@@ -329,13 +335,6 @@ class Compiler {
 		return s;
 	}
 	
-	function allocZero( count : Int, p : Position ) {
-		var z = [];
-		for( i in 0...count )
-			z.push("0");
-		return allocConst(z, p);
-	}
-
 	function checkVars() {
 		var shader = (cur.vertex ? "vertex" : "fragment")+" shader";
 		for( v in vars ) {
@@ -393,37 +392,53 @@ class Compiler {
 				if( v == vv && isGoodSwiz(sv) ) {
 					switch( e.e.d ) {
 					case CVar(v2, sv2):
-						// remove swizzle on write
-						var vn = Reflect.copy(v);
-						vn.type = TFloat4;
-						e.v.d = CVar(vn);
-						// remove swizzle on read
-						if( isGoodSwiz(sv2) ) {
-							var vn2 = Reflect.copy(v2);
-							vn2.type = TFloat4;
-							e.e.d = CVar(vn2);
-						} else
-						// or pad swizzle on input var
-							while( sv2.length < 4 )
-								sv2.push(X);
-						// adjust types
-						e.e.t = e.v.t = TFloat4;
-						return;
+						// only allow "mov" extension if we are sure that the variable is padded with "1"
+						if( v2.kind == VInput || v2.kind == VVar ) {
+							// remove swizzle on write
+							var vn = Reflect.copy(v);
+							vn.type = TFloat4;
+							e.v.d = CVar(vn);
+							// remove swizzle on read
+							if( isGoodSwiz(sv2) ) {
+								var vn2 = Reflect.copy(v2);
+								vn2.type = TFloat4;
+								e.e.d = CVar(vn2);
+							} else
+							// or pad swizzle on input var
+								while( sv2.length < 4 )
+									sv2.push(X);
+							// adjust types
+							e.e.t = e.v.t = TFloat4;
+							return;
+						}
 					default:
 					}
 				}
 			default:
 			}
 		}
-		// store zeroes into remaining components
-		var missing = [];
-		for( i in Tools.floatSize(v.type)...4 )
+		// store 1-values into remaining components
+		var missing = [], ones = [];
+		for( i in Tools.floatSize(v.type)...4 ) {
 			missing.push(Type.createEnumIndex(Comp, i));
-		var c = allocZero(missing.length, v.pos);
+			ones.push("1");
+		}
+		var c = allocConst(ones,v.pos);
 		checkRead(c);
 		cur.exprs.push( { v : { d : CVar(v, missing), t : Tools.makeFloat(missing.length), p : v.pos }, e : c } );
 	}
 
+	function rowVar( v : Variable, row : Int ) {
+		var v2 = Reflect.copy(v);
+		v2.name += "[" + row + "]";
+		v2.index += row;
+		v2.type = Tools.makeFloat(switch( v.type ) {
+		case TMatrix(r, c, t): if( t.t ) r else c;
+		default: -1;
+		});
+		return v2;
+	}
+	
 	function isGoodSwiz( s : Array<Comp> ) {
 		if( s == null ) return true;
 		var cur = 0;
@@ -441,9 +456,9 @@ class Compiler {
 			case VVar: if( cur.vertex ) error("You cannot read variable in vertex shader", e.p); v.read = true;
 			case VParam: v.read = true;
 			case VTmp:
-				if( v.write == 0 ) error("Variable '"+v.name+"'has not been initialized", e.p);
+				if( v.write == 0 ) error("Variable '"+v.name+"' has not been initialized", e.p);
 				var bits = swizBits(swiz, v.type);
-				if( v.write & bits != bits ) error("Some fields of '"+v.name+"'have not been initialized", e.p);
+				if( v.write & bits != bits ) error("Some fields of '"+v.name+"' have not been initialized", e.p);
 				v.read = true;
 			case VInput:
 				if( !cur.vertex ) error("You cannot read input variable in fragment shader", e.p);
@@ -466,17 +481,49 @@ class Compiler {
 	}
 	
 	function compileValue( e : ParsedValue ) : CodeValue {
-		return switch( e.v ) {
+		switch( e.v ) {
 		case PVar(vname):
 			var v = vars.get(vname);
 			if( v == null ) error("Unknown variable '" + vname + "'", e.p);
-			{ d : CVar(v), t : v.type, p : e.p };
+			return { d : CVar(v), t : v.type, p : e.p };
 		case PConst(i):
-			allocConst([i], e.p);
+			return allocConst([i], e.p);
 		case PLocal(v):
 			var v = allocVar(v.n, VTmp, v.t, v.p);
-			{ d : CVar(v), t : v.type, p : e.p };
+			return { d : CVar(v), t : v.type, p : e.p };
 		case PSwiz(v, s):
+			// compile e[row].col
+			if( s.length == 1 ) switch( v.v ) {
+			case PRow(v, index):
+				var v = compileValue(v);
+				switch( v.t ) {
+				case TMatrix(r, c, t):
+					if( t.t == null ) t.t = false;
+					if( index < 0 || index >= r ) error("You can't access row " + index + " on " + typeStr(v.t), e.p);
+					for( s in s ) if( Type.enumIndex(s) >= c ) error("You can't access colum " + Std.string(s) + " on " + typeStr(v.t), e.p);
+					// inverse row/col
+					if( t.t ) {
+						var s2 = [[X,Y,Z,W][index]];
+						index = Type.enumIndex(s[0]);
+						s = s2;
+						var tmp = r;
+						r = c;
+						c = r;
+					}
+					switch( v.d ) {
+					case CVar(vr, _):
+						checkRead(v);
+						var v2 = rowVar(vr, index);
+						return { d : CVar(v2, s), t : TFloat, p : e.p };
+					default:
+						// we could use a temp but there's a lot of calculus lost anyway, so let's the user think about it
+						error("You can't access matrix row on a complex expression", e.p);
+					}
+				default:
+					// let's fall through, we will get an error anyway
+				}
+			default:
+			}
 			var v = compileValue(v);
 			// check swizzling according to value type
 			var count = switch( v.t ) {
@@ -508,21 +555,21 @@ class Compiler {
 					for( s in s )
 						ns.push(swiz[Type.enumIndex(s)]);
 				}
-				{ d : CVar(v, ns), t : Tools.makeFloat(s.length), p : e.p };
+				return { d : CVar(v, ns), t : Tools.makeFloat(s.length), p : e.p };
 			default:
-				{ d : CSwiz(v, s), t : Tools.makeFloat(s.length), p : e.p };
+				return { d : CSwiz(v, s), t : Tools.makeFloat(s.length), p : e.p };
 			}
 		case POp(op, e1, e2):
-			makeOp(op, compileValue(e1), compileValue(e2), e.p);
+			return makeOp(op, e1, e2, e.p);
 		case PUnop(op, e1):
-			makeUnop(op, compileValue(e1), e.p);
+			return makeUnop(op, e1, e.p);
 		case PTex(vname, acc, flags):
 			var v = vars.get(vname);
 			if( v == null || v.type != TTexture ) error("Invalid texture '" + vname + "'", e.p);
 			var acc = compileValue(acc);
 			// allow 1-3 components, maybe we should have different texture types
 			if( Tools.floatSize(acc.t) > 3 ) unify(acc.t, TFloat2, acc.p);
-			{ d : CTex(v, acc, flags), t : TFloat4, p : e.p };
+			return { d : CTex(v, acc, flags), t : TFloat4, p : e.p };
 		case PIf(cond,e1,e2):
 			var cond = compileValue(cond);
 			var cond2 = switch( cond.d ) {
@@ -544,9 +591,28 @@ class Compiler {
 			// we could optimize by storing the value of "c" into a temp var
 			var e1 = { d : COp(CMul, cond, e1), t : e1.t, p : e.p };
 			var e2 = { d : COp(CMul, cond2, e2), t : e2.t, p : e.p };
-			{ d : COp(CAdd, e1, e2), t : e1.t, p : e.p };
+			return { d : COp(CAdd, e1, e2), t : e1.t, p : e.p };
 		case PVector(values):
-			compileVector(values, e.p);
+			return compileVector(values, e.p);
+		case PRow(v, index):
+			var v = compileValue(v);
+			switch( v.t ) {
+			case TMatrix(r, c, t):
+				if( index < 0 || index >= c ) error("You can't read row " + index + " on " + typeStr(v.t), e.p);
+				if( t.t == null ) t.t = false;
+				switch( v.d ) {
+				case CVar(vr, swiz):
+					if( t.t ) error("You can't read a row from a transposed matrix", e.p); // TODO : use temp
+					checkRead(v);
+					var vr = rowVar(vr, index);
+					return { d : CVar(vr), t : vr.type, p : e.p };
+				default:
+					error("You can't read a row from a complex expression", e.p); // TODO : use temp
+				}
+			default:
+				unify(v.t, TMatrix(4, 4, { t : null } ), v.p);
+			}
+			throw "assert"; // unreachable
 		};
 	}
 	
@@ -589,12 +655,12 @@ class Compiler {
 	function tryUnify( t1 : VarType, t2 : VarType ) {
 		if( t1 == t2 ) return true;
 		switch( t1 ) {
-		case TMatrix(w,h,t1):
+		case TMatrix(r,c,t1):
 			switch( t2 ) {
-			case TMatrix(w2, h2, t2):
-				if( w != w2 || h != h2 ) return false;
+			case TMatrix(r2, c2, t2):
+				if( r != r2 || c != c2 ) return false;
 				if( t1.t == null ) {
-					if( t2.t == null ) throw "assert";
+					if( t2.t == null ) t2.t = false;
 					t1.t = t2.t;
 					return true;
 				}
@@ -610,10 +676,10 @@ class Compiler {
 		if( !tryUnify(t1, t2) ) {
 			// if we only have the transpose flag different, let's print a nice error message
 			switch(t1) {
-			case TMatrix(w, h, t):
+			case TMatrix(r, c, t):
 				switch( t2 ) {
-				case TMatrix(w2, h2, t):
-					if( w == w2 && h == h2 && t.t != null ) {
+				case TMatrix(r2, c2, t):
+					if( r == r2 && c == c2 && t.t != null ) {
 						if( t.t )
 							error("Matrix is transposed by another operation", p);
 						else
@@ -628,7 +694,38 @@ class Compiler {
 		}
 	}
 	
-	function makeOp( op : CodeOp, e1 : CodeValue, e2 : CodeValue, p : Position ) {
+	function makeOp( op : CodeOp, e1 : ParsedValue, e2 : ParsedValue, p : Position ) {
+		
+		switch( op ) {
+		// optimize 1 / sqrt(x) && 1 / x
+		case CDiv:
+			switch( e1.v ) {
+			case PConst(c):
+				if( Std.parseFloat(c) == 1 ) {
+					switch( e2.v ) {
+					case PUnop(op, v):
+						if( op == CSqrt )
+							return makeUnop(CRsq, v, p);
+					default:
+					}
+					return makeUnop(CRcp, e2, p);
+				}
+			default:
+			}
+		// optimize 2^x
+		case CPow:
+			switch( e1.v ) {
+			case PConst(c):
+				if( Std.parseFloat(c) == 2 )
+					return makeUnop(CExp, e2, p);
+			default:
+			}
+		default:
+		}
+		
+		var e1 = compileValue(e1);
+		var e2 = compileValue(e2);
+		
 		// look for a valid operation as listed in "ops"
 		var types = ops[Type.enumIndex(op)];
 		var first = null;
@@ -650,7 +747,7 @@ class Compiler {
 					}
 					for( i in 0...Tools.floatSize(e1.t) )
 						swiz.push(s);
-					return makeOp(op, e1, { d : CSwiz(e2, swiz), t : e1.t, p : e2.p }, p );
+					return { d : COp(op,e1,{ d : CSwiz(e2, swiz), t : e1.t, p : e2.p }), t : e1.t, p : p };
 				}
 		// ...or the other way around
 		if( e1.t == TFloat && isFloat(e2.t) )
@@ -663,7 +760,7 @@ class Compiler {
 					}
 					for( i in 0...Tools.floatSize(e2.t) )
 						swiz.push(s);
-					return makeOp(op, { d : CSwiz(e1, swiz), t : e2.t, p : e1.p }, e2, p );
+					return { d : COp(op,{ d : CSwiz(e1, swiz), t : e2.t, p : e1.p }, e2), t : e2.t, p : p };
 				}
 
 		// we have an error, so let's find the most appropriate override
@@ -682,21 +779,46 @@ class Compiler {
 		return null;
 	}
 	
-	function makeUnop( op : CodeUnop, e : CodeValue, p : Position ) {
+	function makeUnop( op : CodeUnop, e : ParsedValue, p : Position ) {
+		
+		var e = compileValue(e);
+		
 		var rt = e.t;
 		switch( op ) {
 		case CNorm: rt = TFloat3;
 		case CLen: rt = TFloat;
 		case CTrans:
 			switch( e.t ) {
-			case TMatrix(w, h, t):
+			case TMatrix(r, c, t):
 				// transpose-free ?
 				if( t.t == null ) {
 					t.t = true;
 					e.p = p;
 					return e;
 				}
-				return { d : CUnop(CTrans, e), t : TMatrix(h, w, { t : !t.t } ), p : p };
+				if( inlineTranspose ) {
+					var v = switch( e.d ) {
+					case CVar(v, _): v;
+					default: error("You cannot transpose a complex expression", e.p);
+					}
+					var t0 = null;
+					var tr = Tools.makeFloat(r);
+					var vrow = [];
+					for( s in 0...r )
+						vrow.push(rowVar(v, s));
+					for( i in 0...c ) {
+						var t = allocTemp(tr, p);
+						t.read = true; // will be readed by the matrix we build
+						if( t0 == null ) t0 = t;
+						for( s in 0...r )
+							addAssign( { d : CVar(t,[[X, Y, Z, W][s]]), t : TFloat, p : p }, { d : CVar(vrow[s],[[X,Y,Z,W][i]]), t : TFloat, p : p }, p);
+					}
+					var vmt = Reflect.copy(t0);
+					vmt.type = TMatrix(c, r, { t : !t.t } );
+					vmt.write = fullBits(vmt.type);
+					return { d : CVar(vmt), t : vmt.type, p : p };
+				}
+				return { d : CUnop(CTrans, e), t : TMatrix(c, r, { t : !t.t } ), p : p };
 			default:
 			}
 		default:
@@ -716,10 +838,10 @@ class Compiler {
 	function isCompatible( t1 : VarType, t2 : VarType ) {
 		if( t1 == t2 ) return true;
 		switch( t1 ) {
-		case TMatrix(w,h,t1):
+		case TMatrix(r,c,t1):
 			switch( t2 ) {
-			case TMatrix(w2,h2,t2):
-				return w2 == w && h2 == h && ( t1.t == null || t2.t == null || t1.t == t2.t );
+			case TMatrix(r2,c2,t2):
+				return r2 == r && c2 == c && ( t1.t == null || t2.t == null || t1.t == t2.t );
 			default:
 			}
 		default:

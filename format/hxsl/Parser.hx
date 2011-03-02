@@ -211,7 +211,7 @@ class Parser {
 			error("Unsupported expression", e.pos);
 		}
 	}
-	
+
 	function parseValue( e : Expr ) : ParsedValue {
 		switch( e.expr ) {
 		case EField(ef, s):
@@ -275,12 +275,23 @@ class Parser {
 			var v = parseValue(k);
 			v.p = e.pos;
 			return v;
-		case EIf(ec, eif, eelse):
+		case EIf(ec, eif, eelse), ETernary(ec,eif,eelse):
 			var vcond = parseValue(ec);
 			var vif = parseValue(eif);
 			if( eelse == null ) error("'if' needs an 'else'", e.pos);
 			var velse = parseValue(eelse);
 			return { v : PIf(vcond, vif, velse), p : e.pos };
+		case EArray(e1, e2):
+			var e1 = parseValue(e1);
+			var e2 = parseValue(e2);
+			var i = switch(e2.v) {
+			case PConst(v):
+				var i = Std.parseInt(v);
+				if( Std.string(i) == v ) i else null;
+			default: null;
+			}
+			if( i == null ) error("Matrix row needs to be a constant integer", e2.p);
+			return { v : PRow(e1, i), p : e.pos };
 		default:
 		}
 		error("Unsupported value expression", e.pos);
@@ -326,13 +337,17 @@ class Parser {
 			EBlock(Lambda.array(Lambda.map(el, callback(replaceVar, v, by))));
 		case EArrayDecl(el):
 			EArrayDecl(Lambda.array(Lambda.map(el, callback(replaceVar, v, by))));
-		case EIf(cond, eif, eelse):
+		case EIf(cond, eif, eelse), ETernary(cond,eif,eelse):
 			EIf(replaceVar(v, by, cond), replaceVar(v, by, eif), eelse == null ? null : replaceVar(v, by, eelse));
 		case EField(e, f):
 			EField(replaceVar(v, by, e), f);
 		case EParenthesis(e):
 			EParenthesis(replaceVar(v, by, e));
-		default:
+		case EType(e, f):
+			EType(replaceVar(v, by, e), f);
+		case EArray(e1, e2):
+			EArray(replaceVar(v, by, e1), replaceVar(v, by, e2));
+		case EWhile(_), EUntyped(_), ETry(_), EThrow(_), ESwitch(_), EReturn(_), EObjectDecl(_), ENew(_), EFunction(_), EDisplay(_), EDisplayNew(_), EContinue, ECast(_), EBreak:
 			e.expr;
 		}, pos : e.pos };
 	}
@@ -346,42 +361,6 @@ class Parser {
 	}
 
 	function makeCall( n : String, params : Array<Expr>, p : Position ) {
-		// optimize 1 / sqrt(x) && 1 / x
-		if( n == "div" && params.length == 2 ) {
-			switch( params[0].expr ) {
-			case EConst(c):
-				switch( c ) {
-				case CInt(v), CFloat(v):
-					if( Std.parseFloat(v) == 1 ) {
-						var e2 = parseValue(params[1]);
-						switch( e2.v ) {
-						case PUnop(op, v):
-							if( op == CSqrt )
-								return makeUnop(CRsq, v, p);
-						default:
-						}
-						return makeUnop(CRcp, e2, p);
-					}
-				default:
-				}
-			default:
-			}
-		}
-		// optimize 2^x
-		if( n == "pow" && params.length == 2 ) {
-			switch( params[0].expr ) {
-			case EConst(c):
-				switch( c ) {
-				case CInt(v), CFloat(v):
-					if( Std.parseFloat(v) == 2 ) {
-						var e2 = parseValue(params[1]);
-						return makeUnop(CExp, e2, p);
-					}
-				default:
-				}
-			default:
-			}
-		}
 		// texture handling
 		if( n == "get" && params.length >= 2 ) {
 			var v = parseValue(params.shift());
