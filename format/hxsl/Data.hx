@@ -63,7 +63,7 @@ enum VarType {
 	TFloat2;
 	TFloat3;
 	TFloat4;
-	TMatrix44( transpose : { t : Null<Bool> } );
+	TMatrix( w : Int, h : Int, transpose : { t : Null<Bool> } );
 	TTexture;
 }
 
@@ -107,6 +107,7 @@ enum CodeUnop {
 	CInt;
 	CNorm;
 	CKill;
+	CTrans;
 }
 
 // final hxsl
@@ -139,13 +140,14 @@ typedef Code = {
 
 enum ParsedValueDecl {
 	PVar( v : String );
-	PConst( index : Int, swiz : Array<Comp> );
+	PConst( v : String );
 	PLocal( v : ParsedVar );
 	POp( op : CodeOp, e1 : ParsedValue, e2 : ParsedValue );
 	PUnop( op : CodeUnop, e : ParsedValue );
 	PTex( v : String, acc : ParsedValue, flags : Array<TexFlag> );
 	PSwiz( e : ParsedValue, swiz : Array<Comp> );
 	PIf( cond : ParsedValue, e1 : ParsedValue, e2 : ParsedValue );
+	PVector( el : Array<ParsedValue> );
 }
 
 typedef ParsedValue = {
@@ -163,7 +165,6 @@ typedef ParsedCode = {
 	var vertex : Bool;
 	var pos : Position;
 	var args : Array<ParsedVar>;
-	var consts : Array<Array<String>>;
 	var exprs : Array<{ v : Null<ParsedValue>, e : ParsedValue, p : Position }>;
 }
 
@@ -188,7 +189,7 @@ class Tools {
 	
 	public static function regSize( t : VarType ) {
 		return switch( t ) {
-		case TMatrix44(_): 4;
+		case TMatrix(w,h,t): t.t ? h : w;
 		default: 1;
 		}
 	}
@@ -201,9 +202,18 @@ class Tools {
 		case TFloat3: 3;
 		case TFloat4: 4;
 		case TTexture: 0;
-		case TMatrix44(_): 16;
+		case TMatrix(w,h,_): w*h;
 		}
 	}
 
+	public static function makeFloat( i : Int ) {
+		return switch( i ) {
+			case 1: TFloat;
+			case 2: TFloat2;
+			case 3: TFloat3;
+			case 4: TFloat4;
+			default: throw "assert";
+		};
+	}
 	
 }

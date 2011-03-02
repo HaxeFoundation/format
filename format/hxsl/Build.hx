@@ -40,7 +40,7 @@ class Build {
 		return switch( t ) {
 		case TFloat: "Float";
 		case TFloat2, TFloat3, TFloat4: "flash.geom.Vector3D";
-		case TMatrix44(_): "flash.geom.Matrix3D";
+		case TMatrix(_): "flash.geom.Matrix3D";
 		case TTexture: "flash.display3D.textures.Texture";
 		};
 	}
@@ -80,16 +80,14 @@ class Build {
 				inf.setup.push(n + ".y");
 				inf.setup.push(n + ".z");
 				inf.setup.push(n + ".w");
-			case TMatrix44(t):
+			case TMatrix(w,h,t):
 				var tmp = "raw_" + c.name;
 				inf.tmp.push("var " + tmp + " = " + n + ".rawData;");
-				if( t.t )
-					// transpose
-					for( i in [0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15] )
-						inf.setup.push(tmp + "[" + i + "]");
-				else
-					for( i in 0...16 )
-						inf.setup.push(tmp + "[" + i + "]");
+				for( y in 0...w )
+					for( x in 0...h ) {
+						var index = if( t.t ) y + x * 4 else x + y * 4;
+						inf.setup.push(tmp + "[" + index + "]");
+					}
 			case TTexture:
 				inf.tmp.push("texture(" + c.index + "," + n + ");");
 			}

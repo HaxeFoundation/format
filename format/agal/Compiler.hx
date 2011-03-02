@@ -129,13 +129,6 @@ class Compiler {
 		};
 	}
 
-	function isMatrix( t : VarType ) {
-		return switch( t ) {
-		case TMatrix44(_): true;
-		default: false;
-		}
-	}
-
 	function project( dst : Reg, r1 : Reg, r2 : Reg ) {
 		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [X] }, r1, r2));
 		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [Y] }, r1, delta(r2, 1)));
@@ -143,9 +136,15 @@ class Compiler {
 		return ODp4( { t : dst.t, index : dst.index, swiz : [W] }, r1, delta(r2, 3));
 	}
 
+	function project3( dst : Reg, r1 : Reg, r2 : Reg ) {
+		code.push(ODp3( { t : dst.t, index : dst.index, swiz : [X] }, r1, r2));
+		code.push(ODp3( { t : dst.t, index : dst.index, swiz : [Y] }, r1, delta(r2, 1)));
+		return ODp3( { t : dst.t, index : dst.index, swiz : [Z] }, r1, delta(r2, 2));
+	}
+	
 	function matrix44multiply( rt : VarType, dst : Reg, r1 : Reg, r2 : Reg ) {
 		switch( rt ) {
-		case TMatrix44(t):
+		case TMatrix(_,_,t):
 			if( t.t ) {
 				// result must be transposed, let's inverse operands
 				var tmp = r1;
@@ -161,6 +160,23 @@ class Compiler {
 		return project(delta(dst, 3), delta(r1, 3), r2);
 	}
 
+	function matrix33multiply( rt : VarType, dst : Reg, r1 : Reg, r2 : Reg ) {
+		switch( rt ) {
+		case TMatrix(_,_,t):
+			if( t.t ) {
+				// result must be transposed, let's inverse operands
+				var tmp = r1;
+				r1 = r2;
+				r2 = tmp;
+			}
+		default:
+		}
+		// for some reason, using three OM33 here trigger an error (?)
+		code.push(project3(dst,r1,r2));
+		code.push(project3(delta(dst, 1), delta(r1, 1), r2));
+		return project3(delta(dst, 2), delta(r1, 2), r2);
+	}
+	
 	function mov( dst : Reg, src : Reg, t : VarType ) {
 		switch( t ) {
 		case TFloat:
@@ -207,15 +223,23 @@ class Compiler {
 			case CDot: if( e1.t == TFloat4 ) ODp4 else ODp3;
 			case CCross: OCrs;
 			case CMul:
-				if( isMatrix(e2.t) ) {
+				switch( e2.t ) {
+				case TMatrix(_):
 					switch( e1.t ) {
 					case TFloat4: OM44;
 					case TFloat3: if( e.t == TFloat4 ) OM34 else OM33;
-					case TMatrix44(_): callback(matrix44multiply, e.t);
+					case TMatrix(w, h, _):
+						if( w == 4 && h == 4 )
+							callback(matrix44multiply, e.t);
+						else if( w == 3 && h == 3 )
+							callback(matrix33multiply, e.t);
+						else
+							throw "assert";
 					default: throw "assert";
 					}
-				} else
+				default:
 					OMul;
+				}
 			case CSub: OSub;
 			case CPow: OPow;
 			case CGte: OSge;
@@ -230,6 +254,7 @@ class Compiler {
 			}
 			var v = compileSrc(p);
 			checkTmp(dst);
+			// normalize into a varying require temp var
 			if( dst.t == RVar && op == CNorm ) {
 				var t = allocTemp(p.t);
 				checkTmp(t);
@@ -252,7 +277,8 @@ class Compiler {
 			case CFrac: OFrc;
 			case CNorm: ONrm;
 			case CKill: function(dst, v) return OKil(v);
-			case CInt: callback(toInt,p.t,p.p);
+			case CInt: callback(toInt, p.t, p.p);
+			case CTrans: throw "assert";
 			})(dst, v));
 		case CTex(v, acc, flags):
 			var vtmp = compileSrc(acc);

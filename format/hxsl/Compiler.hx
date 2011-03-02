@@ -33,8 +33,11 @@ class Compiler {
 	var vars : Hash<Variable>;
 	var indexes : Array<Int>;
 	var ops : Array<Array<{ p1 : VarType, p2 : VarType, r : VarType }>>;
+	var delayed : Array<{ idx : Int, callb : Void -> Void }>;
+	var tempCount : Int;
 
 	public function new() {
+		tempCount = 0;
 		vars = new Hash();
 		indexes = [0, 0, 0, 0, 0, 0];
 		ops = new Array();
@@ -43,9 +46,11 @@ class Compiler {
 	}
 
 	function initOps() {
-		var mat = TMatrix44( { t : false } );
-		var mat_t = TMatrix44( { t : true } );
-		var mat_u = TMatrix44( { t : null } );
+		var mat4 = TMatrix(4, 4, { t : false } );
+		var mat4_t = TMatrix(4, 4, { t : true } );
+		var mat3 = TMatrix(3, 3, { t : false } );
+		var mat3_t = TMatrix(3, 3, { t : true } );
+		
 		var floats = [
 			{ p1 : TFloat, p2 : TFloat, r : TFloat },
 			{ p1 : TFloat2, p2 : TFloat2, r : TFloat2 },
@@ -60,9 +65,13 @@ class Compiler {
 				case CDot: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat }, { p1 : TFloat3, p2 : TFloat3, r : TFloat } ];
 				case CCross: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat3 }];
 				case CMul: floats.concat([
-					{ p1 : TFloat4, p2 : mat_t, r : TFloat4 },
-					{ p1 : TFloat3, p2 : mat_t, r : TFloat3 },
-					{ p1 : mat, p2 : mat_t, r : mat_u },
+					{ p1 : TFloat4, p2 : mat4_t, r : TFloat4 },
+					{ p1 : TFloat3, p2 : mat3_t, r : TFloat3 },
+					{ p1 : TFloat3, p2 : mat4_t, r : TFloat3 }, // only use the 3x4 part of the matrix
+					{ p1 : mat4, p2 : mat4_t, r : mat4 },
+					{ p1 : mat3, p2 : mat3_t, r : mat3 },
+					{ p1 : mat4_t, p2 : mat4, r : mat4_t },
+					{ p1 : mat3_t, p2 : mat3, r : mat3_t },
 				]);
 			}});
 		return ops;
@@ -77,7 +86,13 @@ class Compiler {
 	}
 
 	function typeStr( t : VarType )  {
-		return Std.string(t).substr(1);
+		switch( t ) {
+		case TMatrix(w, h, t):
+			return "M" + w + "" + h + (t.t ? "T" : "");
+		default:
+			return Std.string(t).substr(1);
+		}
+		
 	}
 
 	public function compile( h : ParsedHxsl ) {
@@ -100,7 +115,7 @@ class Compiler {
 		cur = {
 			vertex : c.vertex,
 			pos : c.pos,
-			consts : c.consts,
+			consts : [],
 			args : [],
 			exprs : [],
 			tex : [],
@@ -113,8 +128,23 @@ class Compiler {
 			} else
 				cur.args.push(allocVar(v.n, VParam, v.t, v.p));
 	
+		delayed = [];
 		for( e in c.exprs )
 			compileAssign(e.v, e.e, e.p);
+		
+		while( true ) {
+			var curd = delayed;
+			if( curd.length == 0 ) break;
+			delayed = [];
+			var delta = 0;
+			for( d in curd ) {
+				var insert = d.idx + delta;
+				var next = cur.exprs.splice(insert, cur.exprs.length - insert);
+				d.callb();
+				delta += cur.exprs.length - insert;
+				cur.exprs = cur.exprs.concat(next);
+			}
+		}
 			
 		cur.tempSize = indexes[Type.enumIndex(VTmp)];
 		checkVars();
@@ -161,6 +191,10 @@ class Compiler {
 		}
 		var v = compileValue(v);
 		unify(e.t, v.t, e.p);
+		addAssign(v, e, p);
+	}
+	
+	function addAssign( v : CodeValue, e : CodeValue, p : Position ) {
 		checkRead(e);
 		switch( v.d ) {
 		case CVar(vr, swiz):
@@ -191,6 +225,10 @@ class Compiler {
 			error("Invalid assign", p);
 		}
 		cur.exprs.push( { v : v, e : e } );
+	}
+	
+	function addDelayed( callb ) {
+		delayed.push( { idx : cur.exprs.length, callb : callb } );
 	}
 
 	function swizBits( s : Array<Comp>, t : VarType ) {
@@ -226,6 +264,64 @@ class Compiler {
 		return v;
 	}
 
+	function allocTemp( t, p ) {
+		return allocVar("$t" + tempCount++, VTmp, t, p);
+	}
+	
+	function allocConst( cvals : Array<String>, p : Position ) : CodeValue {
+		var swiz = [X, Y, Z, W];
+		// remove extra zeroes at end
+		for( i in 0...cvals.length ) {
+			var v = cvals[i];
+			if( v.indexOf(".") < 0 ) v += ".";
+			while( v.charCodeAt(v.length - 1) == "0".code )
+				v = v.substr(0, v.length - 1);
+			cvals[i] = v;
+		}
+		// find an already existing constant
+		for( index in 0...cur.consts.length ) {
+			var c = cur.consts[index];
+			var s = [];
+			for( v in cvals ) {
+				for( i in 0...c.length )
+					if( c[i] == v ) {
+						s.push(swiz[i]);
+						break;
+					}
+			}
+			if( s.length == cvals.length )
+			return makeConst(index,s,p);
+		}
+		// find an empty slot
+		for( i in 0...cur.consts.length ) {
+			var c = cur.consts[i];
+			if( c.length + cvals.length <= 4 ) {
+				var s = [];
+				for( v in cvals ) {
+					s.push(swiz[c.length]);
+					c.push(v);
+				}
+				return makeConst(i,s,p);
+			}
+		}
+		var index = cur.consts.length;
+		cur.consts.push(cvals);
+		return makeConst(index, swiz.splice(0, cvals.length), p);
+	}
+	
+	function makeConst(index:Int, swiz, p) {
+		var v : Variable = {
+			name : "$c" + index,
+			kind : VParam,
+			type : TFloat4,
+			index : index + indexes[Type.enumIndex(VParam)],
+			read : true,
+			write : 0,
+			pos : p,
+		};
+		return { d : CVar(v, swiz), t : Tools.makeFloat(swiz.length), p : p };
+	}
+	
 	function constSwiz(k,count) {
 		var s = [];
 		var e = [X, Y, Z, W][k];
@@ -234,73 +330,58 @@ class Compiler {
 	}
 	
 	function allocZero( count : Int, p : Position ) {
-		// do we already have a zero ?
-		var free = null;
-		for( i in 0...cur.consts.length ) {
-			var c = cur.consts[i];
-			for( k in 0...c.length )
-				if( c[k] == "0." )
-					return compileValue( { v : PConst(i, constSwiz(k,count)), p : p } );
-			if( free == null && cur.consts.length < 4 )
-				free = i;
-		}
-		// alloc a new one
-		if( free == null ) {
-			free = cur.consts.length;
-			cur.consts.push([]);
-		}
-		var s = constSwiz(cur.consts[free].length,count);
-		cur.consts[free].push("0.");
-		return compileValue( { v : PConst(free, s), p : p } );
+		var z = [];
+		for( i in 0...count )
+			z.push("0");
+		return allocConst(z, p);
 	}
 
 	function checkVars() {
 		var shader = (cur.vertex ? "vertex" : "fragment")+" shader";
-		for( v in vars )
+		for( v in vars ) {
+			var p = v.pos;
 			switch( v.kind ) {
 			case VOut:
-				if( v.write == 0 ) error("Output is not written by " + shader, v.pos);
-				if( v.write != fullBits(v.type) ) error("Some output components are not written by " + shader, v.pos);
+				if( v.write == 0 ) error("Output is not written by " + shader, p);
+				if( v.write != fullBits(v.type) ) error("Some output components are not written by " + shader, p);
 				v.write = 0; // reset status between two shaders
 			case VVar:
 				if( cur.vertex ) {
 					if( v.write == 0 ) {
 						// delay error
 					} else if( v.write != fullBits(v.type) )
-						error("Some components of variable '" + v.name + "' are not written by vertex shader", v.pos);
+						error("Some components of variable '" + v.name + "' are not written by vertex shader", p);
 					else if( v.write != 15 ) {
 						// force the output write
 						padWrite(v);
 					}
 				} else {
 					if( !v.read && v.write == 0 )
-						warn("Variable '" + v.name + "' is not used", v.pos);
+						warn("Variable '" + v.name + "' is not used", p);
 					else if( !v.read )
-						warn("Variable '" + v.name + "' is not read by " + shader, v.pos);
+						warn("Variable '" + v.name + "' is not read by " + shader, p);
 					else if( v.write == 0 )
-						error("Variable '" + v.name + "' is not written by vertex shader", v.pos);
+						error("Variable '" + v.name + "' is not written by vertex shader", p);
 				}
 			case VInput:
 				if( cur.vertex && !v.read ) {
-					warn("Input '" + v.name + "' is not used by " + shader, v.pos);
+					warn("Input '" + v.name + "' is not used by " + shader, p);
 					// force the input read
-					cur.exprs.push({ v : trash(), e : { d : CVar(v), t : TFloat4, p : v.pos } });
+					addAssign( { d : CVar(allocTemp(TFloat4, p)), t : TFloat4, p : p }, { d : CVar(v), t : TFloat4, p : p }, p);
 				}
 			case VTmp:
-				if( !v.read ) warn("Unused local variable '" + v.name+"'", v.pos);
+				if( !v.read ) warn("Unused local variable '" + v.name+"'", p);
 			case VParam:
-				if( !v.read ) warn("Parameter '" + v.name + "' not used by " + shader, v.pos);
+				if( !v.read ) warn("Parameter '" + v.name + "' not used by " + shader, p);
 			case VTexture:
 				if( !v.read ) {
-					warn("Unused texture " + v.name, v.pos);
+					warn("Unused texture " + v.name, p);
 					// force the texture read
-					var t = trash();
-					var a = t;
-					if( cur.tempSize == 0 )
-						a = allocZero(2,v.pos);
-					cur.exprs.push({ v : t, e : { d : CTex(v,a,[]), t : TFloat4, p : v.pos } });
+					var t = { d : CVar(allocTemp(TFloat4, p)), t : TFloat4, p : p };
+					addAssign(t, { d : CTex(v,t,[]), t : TFloat4, p : p }, p);
 				}
 			}
+		}
 	}
 	
 	function padWrite( v : Variable ) {
@@ -340,7 +421,7 @@ class Compiler {
 			missing.push(Type.createEnumIndex(Comp, i));
 		var c = allocZero(missing.length, v.pos);
 		checkRead(c);
-		cur.exprs.push( { v : { d : CVar(v, missing), t : makeFloat(missing.length), p : v.pos }, e : c } );
+		cur.exprs.push( { v : { d : CVar(v, missing), t : Tools.makeFloat(missing.length), p : v.pos }, e : c } );
 	}
 
 	function isGoodSwiz( s : Array<Comp> ) {
@@ -350,22 +431,6 @@ class Compiler {
 			if( Type.enumIndex(x) != cur++ )
 				return false;
 		return true;
-	}
-		
-	function trash() {
-		return { d : CVar( {
-			name : "$trash",
-			pos : cur.pos,
-			type : TFloat4,
-			kind : VTmp,
-			index : 0,
-			read : false,
-			write : 15,
-		}), t : TFloat4, p : cur.pos };
-	}
-	
-	function makeFloat( i : Int ) {
-		 return switch( i ) { case 1: TFloat; case 2: TFloat2; case 3: TFloat3; case 4: TFloat4; default: throw "assert"; };
 	}
 
 	function checkRead( e : CodeValue ) {
@@ -406,17 +471,8 @@ class Compiler {
 			var v = vars.get(vname);
 			if( v == null ) error("Unknown variable '" + vname + "'", e.p);
 			{ d : CVar(v), t : v.type, p : e.p };
-		case PConst(i, swiz):
-			var v : Variable = {
-				name : "$c" + i,
-				kind : VParam,
-				type : TFloat4,
-				index : i + indexes[Type.enumIndex(VParam)],
-				read : true,
-				write : 0,
-				pos : e.p,
-			};
-			{ d : CVar(v, swiz), t : makeFloat(swiz.length), p : e.p };
+		case PConst(i):
+			allocConst([i], e.p);
 		case PLocal(v):
 			var v = allocVar(v.n, VTmp, v.t, v.p);
 			{ d : CVar(v), t : v.type, p : e.p };
@@ -428,7 +484,7 @@ class Compiler {
 			case TFloat2: 2;
 			case TFloat3: 3;
 			case TFloat4: 4;
-			case TMatrix44(_), TTexture: 0;
+			case TMatrix(_), TTexture: 0;
 			}
 			// allow all components access on input and varying values only
 			switch( v.d ) {
@@ -452,9 +508,9 @@ class Compiler {
 					for( s in s )
 						ns.push(swiz[Type.enumIndex(s)]);
 				}
-				{ d : CVar(v, ns), t : makeFloat(s.length), p : e.p };
+				{ d : CVar(v, ns), t : Tools.makeFloat(s.length), p : e.p };
 			default:
-				{ d : CSwiz(v, s), t : makeFloat(s.length), p : e.p };
+				{ d : CSwiz(v, s), t : Tools.makeFloat(s.length), p : e.p };
 			}
 		case POp(op, e1, e2):
 			makeOp(op, compileValue(e1), compileValue(e2), e.p);
@@ -489,15 +545,54 @@ class Compiler {
 			var e1 = { d : COp(CMul, cond, e1), t : e1.t, p : e.p };
 			var e2 = { d : COp(CMul, cond2, e2), t : e2.t, p : e.p };
 			{ d : COp(CAdd, e1, e2), t : e1.t, p : e.p };
+		case PVector(values):
+			compileVector(values, e.p);
 		};
+	}
+	
+	function compileVector(values:Array<ParsedValue>, p) {
+		if( values.length == 0 || values.length > 4 )
+			error("Vector size should be 1-4", p);
+		var consts = [];
+		var exprs = [];
+		for( i in 0...values.length ) {
+			var e = values[i];
+			switch( e.v ) {
+			case PConst(c): consts.push(c);
+			default: exprs[i] = compileValue(e);
+			}
+		}
+		// all values are constants
+		if( consts.length == values.length )
+			return allocConst(consts, p);
+		// declare a new temporary
+		var v = allocTemp(Tools.makeFloat(values.length),p);
+		// assign expressions first
+		var write = [];
+		for( i in 0...values.length ) {
+			var e = exprs[i];
+			var c = [X, Y, Z, W][i];
+			if( e == null ) {
+				write.push(c);
+				continue;
+			}
+			unify(e.t,TFloat,e.p);
+			addAssign( { d : CVar(v, [c]), t : TFloat, p : e.p }, e, p);
+		}
+		// assign constants if any
+		if( write.length > 0 )
+			addAssign( { d : CVar(v, write), t : Tools.makeFloat(write.length), p : p }, allocConst(consts,p), p);
+		// return temporary
+		return { d : CVar(v), t : v.type, p : p };
 	}
 	
 	function tryUnify( t1 : VarType, t2 : VarType ) {
 		if( t1 == t2 ) return true;
 		switch( t1 ) {
-		case TMatrix44(t1):
+		case TMatrix(w,h,t1):
 			switch( t2 ) {
-			case TMatrix44(t2):
+			case TMatrix(w2, h2, t2):
+				if( w != w2 || h != h2 ) return false;
 				if( t1.t == null ) {
 					if( t2.t == null ) throw "assert";
 					t1.t = t2.t;
@@ -513,16 +608,22 @@ class Compiler {
 
 	function unify(t1, t2, p) {
 		if( !tryUnify(t1, t2) ) {
+			// if we only have the transpose flag different, let's print a nice error message
 			switch(t1) {
-			case TMatrix44(t):
-				if( t.t != null ) {
-					if( t.t )
-						error("Matrix is transposed by another operation", p);
-					else
-						error("Matrix is not transposed by a previous operation", p);
+			case TMatrix(w, h, t):
+				switch( t2 ) {
+				case TMatrix(w2, h2, t):
+					if( w == w2 && h == h2 && t.t != null ) {
+						if( t.t )
+							error("Matrix is transposed by another operation", p);
+						else
+							error("Matrix is not transposed by a previous operation", p);
+					}
+				default:
 				}
 			default:
 			}
+			// default error message
 			error(typeStr(t1) + " should be " +typeStr(t2), p);
 		}
 	}
@@ -534,13 +635,8 @@ class Compiler {
 		for( t in types ) {
 			if( isCompatible(e1.t, t.p1) && isCompatible(e2.t, t.p2) ) {
 				if( first == null ) first = t;
-				if( tryUnify(e1.t, t.p1) && tryUnify(e2.t, t.p2) ) {
-					var ct = switch( t.r ) {
-					case TMatrix44(t): TMatrix44( { t : t.t } );
-					default: t.r;
-					};
-					return { d : COp(op, e1, e2), t : ct, p : p };
-				}
+				if( tryUnify(e1.t, t.p1) && tryUnify(e2.t, t.p2) )
+					return { d : COp(op, e1, e2), t : t.r, p : p };
 			}
 		}
 		// if we have an operation on a single scalar, let's map it on all floats
@@ -587,14 +683,26 @@ class Compiler {
 	}
 	
 	function makeUnop( op : CodeUnop, e : CodeValue, p : Position ) {
-		if( !isFloat(e.t) )
-			unify(e.t, TFloat4, e.p);
 		var rt = e.t;
 		switch( op ) {
 		case CNorm: rt = TFloat3;
 		case CLen: rt = TFloat;
+		case CTrans:
+			switch( e.t ) {
+			case TMatrix(w, h, t):
+				// transpose-free ?
+				if( t.t == null ) {
+					t.t = true;
+					e.p = p;
+					return e;
+				}
+				return { d : CUnop(CTrans, e), t : TMatrix(h, w, { t : !t.t } ), p : p };
+			default:
+			}
 		default:
 		}
+		if( !isFloat(e.t) )
+			unify(e.t, TFloat4, e.p); // force error
 		return { d : CUnop(op, e), t : rt, p : p };
 	}
 
@@ -605,27 +713,13 @@ class Compiler {
 		};
 	}
 
-	function isMatrix( t : VarType, ?transp : Bool ) {
-		return switch( t ) {
-		case TMatrix44(tr):
-			if( transp == null )
-				true;
-			else if( tr.t == null ) {
-				tr.t = transp;
-				true;
-			} else
-				tr.t == transp;
-		default: false;
-		};
-	}
-
 	function isCompatible( t1 : VarType, t2 : VarType ) {
 		if( t1 == t2 ) return true;
 		switch( t1 ) {
-		case TMatrix44(t1):
+		case TMatrix(w,h,t1):
 			switch( t2 ) {
-			case TMatrix44(t2):
-				return( t1.t == null || t2.t == null || t1.t == t2.t );
+			case TMatrix(w2,h2,t2):
+				return w2 == w && h2 == h && ( t1.t == null || t2.t == null || t1.t == t2.t );
 			default:
 			}
 		default:

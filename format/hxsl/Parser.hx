@@ -36,7 +36,6 @@ class Parser {
 	var input : Array<ParsedVar>;
 	var vars : Array<ParsedVar>;
 	var hvars : Hash<Position>;
-	
 	var cur : ParsedCode;
 
 	public function new() {
@@ -77,7 +76,10 @@ class Parser {
 			case "Float2": TFloat2;
 			case "Float3": TFloat3;
 			case "Float4": TFloat4;
-			case "Matrix", "M44": TMatrix44({ t : null });
+			case "Matrix", "M44": TMatrix(4, 4, { t : null } );
+			case "M33": TMatrix(3, 3, { t : null } );
+			case "M34": TMatrix(3, 4, { t : null } );
+			case "M43": TMatrix(4, 3, { t : null } );
 			case "Texture": TTexture;
 			default:
 				error("Unknown type '" + p.name + "'", pos);
@@ -93,47 +95,6 @@ class Parser {
 			error("Duplicate variable name", p);
 		hvars.set(v, p);
 		return { n : v, t : t == null ? null : getType(t, p), p : p };
-	}
-
-	function allocConst( cvals : Array<String>, p : Position ) {
-		var swiz = [X, Y, Z, W];
-		// remove extra zeroes at end
-		for( i in 0...cvals.length ) {
-			var v = cvals[i];
-			if( v.indexOf(".") < 0 ) v += ".";
-			while( v.charCodeAt(v.length - 1) == "0".code )
-				v = v.substr(0, v.length - 1);
-			cvals[i] = v;
-		}
-		// find an already existing constant
-		for( index in 0...cur.consts.length ) {
-			var c = cur.consts[index];
-			var s = [];
-			for( v in cvals ) {
-				for( i in 0...c.length )
-					if( c[i] == v ) {
-						s.push(swiz[i]);
-						break;
-					}
-			}
-			if( s.length == cvals.length )
-			return { v : PConst(index,s), p : p };
-		}
-		// find an empty slot
-		for( i in 0...cur.consts.length ) {
-			var c = cur.consts[i];
-			if( c.length + cvals.length <= 4 ) {
-				var s = [];
-				for( v in cvals ) {
-					s.push(swiz[c.length]);
-					c.push(v);
-				}
-				return { v : PConst(i,s), p : p };
-			}
-		}
-		var index = cur.consts.length;
-		cur.consts.push(cvals);
-		return { v : PConst(index,swiz.splice(0,cvals.length)), p : p };
 	}
 
 	function parseDecl( e : Expr ) {
@@ -171,7 +132,6 @@ class Parser {
 			vertex : vertex,
 			pos : f.expr.pos,
 			args : [],
-			consts : [],
 			exprs : [],
 		};
 		var pos = f.expr.pos;
@@ -273,9 +233,9 @@ class Parser {
 				if( !hvars.exists(i) ) error("Unknown identifier '" + i + "'", e.pos);
 				return { v : PVar(i), p : e.pos };
 			case CInt(v):
-				return allocConst([v],e.pos);
+				return { v : PConst(v), p : e.pos };
 			case CFloat(f):
-				return allocConst([f],e.pos);
+				return { v : PConst(f), p : e.pos };
 			default:
 			}
 		case EBinop(op, e1, e2):
@@ -307,22 +267,10 @@ class Parser {
 			default:
 			}
 		case EArrayDecl(values):
-			var consts = [];
-			for( e in values ) {
-				switch( e.expr ) {
-				case EConst(c):
-					switch( c ) {
-					case CInt(i): consts.push(i); continue;
-					case CFloat(f): consts.push(f); continue;
-					default:
-					}
-				default:
-				}
-				error("Vector value should be constant", e.pos);
-			}
-			if( consts.length == 0 || consts.length > 4 )
-				error("Vector size should be 1-4", e.pos);
-			return allocConst(consts, e.pos);
+			var vl = [];
+			for( v in values )
+				vl.push(parseValue(v));
+			return { v : PVector(vl), p : e.pos };
 		case EParenthesis(k):
 			var v = parseValue(k);
 			v.p = e.pos;
@@ -503,6 +451,7 @@ class Parser {
 		case "frc", "frac": checkParams(1); return makeUnop(CFrac, v[0], p);
 		case "int": checkParams(1);  return makeUnop(CInt,v[0], p);
 		case "nrm", "norm", "normalize": checkParams(1); return makeUnop(CNorm, v[0], p);
+		case "trans", "transpose": checkParams(1); return makeUnop(CTrans, v[0], p);
 
 		case "add": checkParams(2); return makeOp(CAdd, v[0], v[1], p);
 		case "sub": checkParams(2); return makeOp(CSub, v[0], v[1], p);
@@ -518,7 +467,7 @@ class Parser {
 		case "gte", "sge": checkParams(2); return makeOp(CGte, v[0], v[1], p);
 		case "gt", "sgt": checkParams(2); return makeOp(CLt, v[1], v[0], p);
 		case "lte", "sle": checkParams(2); return makeOp(CGte, v[1], v[0], p);
-
+		
 		default:
 		}
 		return error("Unknown operation '" + n + "'", p);
