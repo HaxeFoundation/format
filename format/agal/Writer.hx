@@ -79,8 +79,15 @@ class Writer {
 		if( s == null ) return 0 | (1 << 2) | (2 << 4) | (3 << 6);
 		var bits = 0;
 		var p = 0;
+		var last = 0;
 		for( c in s ) {
-			bits |= Type.enumIndex(c) << p;
+			last = Type.enumIndex(c);
+			bits |= last << p;
+			p += 2;
+		}
+		// repeat last component
+		while( p < 8 ) {
+			bits |= last << p;
 			p += 2;
 		}
 		return bits;
