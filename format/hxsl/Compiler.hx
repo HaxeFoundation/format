@@ -36,12 +36,12 @@ class Compiler {
 	var delayed : Array<{ idx : Int, callb : Void -> Void }>;
 	var tempCount : Int;
 
-	public var inlineTranspose : Bool;
+	public var doinline : { transpose : Bool, int : Bool };
 
 	public function new() {
 		tempCount = 0;
 		vars = new Hash();
-		inlineTranspose = true;
+		doinline = { transpose : true, int : true };
 		indexes = [0, 0, 0, 0, 0, 0];
 		ops = new Array();
 		for( o in initOps() )
@@ -804,7 +804,7 @@ class Compiler {
 					e.p = p;
 					return e;
 				}
-				if( inlineTranspose ) {
+				if( doinline.transpose ) {
 					var v = switch( e.d ) {
 					case CVar(v, _): v;
 					default: error("You cannot transpose a complex expression", e.p);
@@ -828,6 +828,17 @@ class Compiler {
 				}
 				return { d : CUnop(CTrans, e), t : TMatrix(c, r, { t : !t.t } ), p : p };
 			default:
+			}
+		case CInt:
+			// inline int(t) as t - frc(t)
+			if( doinline.int ) {
+				if( !isFloat(e.t) )
+					unify(e.t, TFloat4, e.p); // force error
+				var v = allocTemp(e.t, p);
+				var ev = { d : CVar(v), t : e.t, p : p };
+				addAssign( ev, e, p);
+				var efrc = { d : CUnop(CFrac, e), t : e.t, p : p };
+				return { d : COp(CSub, ev, efrc), t : e.t, p : p };
 			}
 		default:
 		}

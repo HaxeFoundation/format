@@ -191,13 +191,6 @@ class Compiler {
 		}
 	}
 
-	function toInt( t : VarType, p : Position, dst : Reg, src : Reg ) {
-		var tmp = allocTemp(t);
-		checkTmp(tmp);
-		code.push(OFrc(tmp, src));
-		return OSub(dst, src, tmp);
-	}
-
 	function compileTo( dst : Reg, e : CodeValue ) {
 		switch( e.d ) {
 		case CVar(_), CSwiz(_):
@@ -277,8 +270,7 @@ class Compiler {
 			case CFrac: OFrc;
 			case CNorm: ONrm;
 			case CKill: function(dst, v) return OKil(v);
-			case CInt: callback(toInt, p.t, p.p);
-			case CTrans: throw "assert";
+			case CInt,CTrans: throw "assert";
 			})(dst, v));
 		case CTex(v, acc, flags):
 			var vtmp = compileSrc(acc);
