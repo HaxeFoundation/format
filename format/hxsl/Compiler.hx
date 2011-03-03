@@ -35,7 +35,7 @@ class Compiler {
 	var ops : Array<Array<{ p1 : VarType, p2 : VarType, r : VarType }>>;
 	var delayed : Array<{ idx : Int, callb : Void -> Void }>;
 	var tempCount : Int;
-	
+
 	public var inlineTranspose : Bool;
 
 	public function new() {
@@ -53,7 +53,7 @@ class Compiler {
 		var mat4_t = TMatrix(4, 4, { t : true } );
 		var mat3 = TMatrix(3, 3, { t : false } );
 		var mat3_t = TMatrix(3, 3, { t : true } );
-		
+
 		var floats = [
 			{ p1 : TFloat, p2 : TFloat, r : TFloat },
 			{ p1 : TFloat2, p2 : TFloat2, r : TFloat2 },
@@ -95,25 +95,25 @@ class Compiler {
 		default:
 			return Std.string(t).substr(1);
 		}
-		
+
 	}
 
 	public function compile( h : ParsedHxsl ) {
 		allocVar("out", VOut, TFloat4, h.pos);
-		
+
 		var input = [];
 		for( v in h.input )
 			input.push(allocVar(v.n, VInput, v.t, v.p));
-		
+
 		for( v in h.vars )
 			allocVar(v.n, VVar, v.t, v.p);
-			
+
 		var vertex = compileShader(h.vertex);
 		var fragment = compileShader(h.fragment);
-		
+
 		return { input : input, vertex : vertex, fragment : fragment };
 	}
-	
+
 	function compileShader( c : ParsedCode ) : Code {
 		cur = {
 			vertex : c.vertex,
@@ -132,11 +132,11 @@ class Compiler {
 			default:
 				cur.args.push(allocVar(v.n, VParam, v.t, v.p));
 			}
-	
+
 		delayed = [];
 		for( e in c.exprs )
 			compileAssign(e.v, e.e, e.p);
-		
+
 		while( true ) {
 			var curd = delayed;
 			if( curd.length == 0 ) break;
@@ -150,10 +150,10 @@ class Compiler {
 				cur.exprs = cur.exprs.concat(next);
 			}
 		}
-			
+
 		cur.tempSize = indexes[Type.enumIndex(VTmp)];
 		checkVars();
-		
+
 		// cleanup
 		for( v in vars )
 			switch( v.kind ) {
@@ -162,10 +162,10 @@ class Compiler {
 			}
 		indexes[Type.enumIndex(VParam)] = 0;
 		indexes[Type.enumIndex(VTmp)] = 0;
-		
+
 		return cur;
 	}
-	
+
 	function compileAssign( v : Null<ParsedValue>, e : ParsedValue, p : Position ) {
 		if( v == null ) {
 			var e = compileValue(e);
@@ -198,7 +198,7 @@ class Compiler {
 		unify(e.t, v.t, e.p);
 		addAssign(v, e, p);
 	}
-	
+
 	function addAssign( v : CodeValue, e : CodeValue, p : Position ) {
 		checkRead(e);
 		switch( v.d ) {
@@ -234,7 +234,7 @@ class Compiler {
 		}
 		cur.exprs.push( { v : v, e : e } );
 	}
-	
+
 	function addDelayed( callb ) {
 		delayed.push( { idx : cur.exprs.length, callb : callb } );
 	}
@@ -250,7 +250,7 @@ class Compiler {
 	function fullBits( t : VarType ) {
 		return (1 << Tools.floatSize(t)) - 1;
 	}
-	
+
 	function allocVar( name, k, t, p ) {
 		if( vars.exists(name) ) error("Duplicate variable '" + name + "'", p);
 		var tkind = Type.enumIndex(k);
@@ -275,7 +275,7 @@ class Compiler {
 	function allocTemp( t, p ) {
 		return allocVar("$t" + tempCount++, VTmp, t, p);
 	}
-	
+
 	function allocConst( cvals : Array<String>, p : Position ) : CodeValue {
 		var swiz = [X, Y, Z, W];
 		// remove extra zeroes at end
@@ -316,7 +316,7 @@ class Compiler {
 		cur.consts.push(cvals);
 		return makeConst(index, swiz.splice(0, cvals.length), p);
 	}
-	
+
 	function makeConst(index:Int, swiz, p) {
 		var v : Variable = {
 			name : "$c" + index,
@@ -329,14 +329,14 @@ class Compiler {
 		};
 		return { d : CVar(v, swiz), t : Tools.makeFloat(swiz.length), p : p };
 	}
-	
+
 	function constSwiz(k,count) {
 		var s = [];
 		var e = [X, Y, Z, W][k];
 		for( i in 0...count ) s.push(e);
 		return s;
 	}
-	
+
 	function checkVars() {
 		var shader = (cur.vertex ? "vertex" : "fragment")+" shader";
 		for( v in vars ) {
@@ -379,12 +379,16 @@ class Compiler {
 					warn("Unused texture " + v.name, p);
 					// force the texture read
 					var t = { d : CVar(allocTemp(TFloat4, p)), t : TFloat4, p : p };
-					addAssign(t, { d : CTex(v,t,[]), t : TFloat4, p : p }, p);
+					var cst = switch( v.type ) {
+					case TTexture(cube): cube ? ["0","0","0"] : ["0","0"];
+					default: throw "assert";
+					}
+					addAssign(t, { d : CTex(v,allocConst(cst,p),[]), t : TFloat4, p : p }, p);
 				}
 			}
 		}
 	}
-	
+
 	function padWrite( v : Variable ) {
 		// if we already have a partial "mov" copy, we can simply extend the writing on other components
 		for( e in cur.exprs ) {
@@ -440,7 +444,7 @@ class Compiler {
 		});
 		return v2;
 	}
-	
+
 	function isGoodSwiz( s : Array<Comp> ) {
 		if( s == null ) return true;
 		var cur = 0;
@@ -481,7 +485,7 @@ class Compiler {
 			checkRead(v);
 		}
 	}
-	
+
 	function compileValue( e : ParsedValue ) : CodeValue {
 		switch( e.v ) {
 		case PVar(vname):
@@ -619,7 +623,7 @@ class Compiler {
 			throw "assert"; // unreachable
 		};
 	}
-	
+
 	function compileVector(values:Array<ParsedValue>, p) {
 		if( values.length == 0 || values.length > 4 )
 			error("Vector size should be 1-4", p);
@@ -655,7 +659,7 @@ class Compiler {
 		// return temporary
 		return { d : CVar(v), t : v.type, p : p };
 	}
-	
+
 	function tryUnify( t1 : VarType, t2 : VarType ) {
 		if( t1 == t2 ) return true;
 		switch( t1 ) {
@@ -697,9 +701,9 @@ class Compiler {
 			error(typeStr(t1) + " should be " +typeStr(t2), p);
 		}
 	}
-	
+
 	function makeOp( op : CodeOp, e1 : ParsedValue, e2 : ParsedValue, p : Position ) {
-		
+
 		switch( op ) {
 		// optimize 1 / sqrt(x) && 1 / x
 		case CDiv:
@@ -726,10 +730,10 @@ class Compiler {
 			}
 		default:
 		}
-		
+
 		var e1 = compileValue(e1);
 		var e2 = compileValue(e2);
-		
+
 		// look for a valid operation as listed in "ops"
 		var types = ops[Type.enumIndex(op)];
 		var first = null;
@@ -782,11 +786,11 @@ class Compiler {
 		throw "assert";
 		return null;
 	}
-	
+
 	function makeUnop( op : CodeUnop, e : ParsedValue, p : Position ) {
-		
+
 		var e = compileValue(e);
-		
+
 		var rt = e.t;
 		switch( op ) {
 		case CNorm: rt = TFloat3;
