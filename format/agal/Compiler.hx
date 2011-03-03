@@ -291,11 +291,13 @@ class Compiler {
 			}
 			checkTmp(dst);
 			var tflags = [];
+			switch( v.type ) {
+			case TTexture(cube):
+				if( cube ) tflags.push(TCube);
+			default:
+			}
 			for( f in flags )
 				tflags.push(switch(f) {
-				case T2D: T2D;
-				case TCube: TCube;
-				case T3D: T3D;
 				case TMipMapDisable: TMipMapDisable;
 				case TMipMapNearest: TMipMapNearest;
 				case TMipMapLinear: TMipMapLinear;

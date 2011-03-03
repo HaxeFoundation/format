@@ -41,7 +41,7 @@ class Build {
 		case TFloat: "Float";
 		case TFloat2, TFloat3, TFloat4: "flash.geom.Vector3D";
 		case TMatrix(_): "flash.geom.Matrix3D";
-		case TTexture: "flash.display3D.textures.Texture";
+		case TTexture(cube): "flash.display3D.textures." + (cube ? "CubeTexture" : "Texture");
 		};
 	}
 
@@ -88,7 +88,7 @@ class Build {
 						var index = if( t.t ) y + x * 4 else x + y * 4;
 						inf.setup.push(tmp + "[" + index + "]");
 					}
-			case TTexture:
+			case TTexture(_):
 				inf.tmp.push("texture(" + c.index + "," + n + ");");
 			}
 		}

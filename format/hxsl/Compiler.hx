@@ -125,11 +125,13 @@ class Compiler {
 			tempSize : 0,
 		};
 		for( v in c.args )
-			if( v.t == TTexture ) {
+			switch( v.t ) {
+			case TTexture(_):
 				if( c.vertex ) error("You can't use a texture inside a vertex shader", v.p);
 				cur.tex.push(allocVar(v.n, VTexture, v.t, v.p));
-			} else
+			default:
 				cur.args.push(allocVar(v.n, VParam, v.t, v.p));
+			}
 	
 		delayed = [];
 		for( e in c.exprs )
@@ -531,7 +533,7 @@ class Compiler {
 			case TFloat2: 2;
 			case TFloat3: 3;
 			case TFloat4: 4;
-			case TMatrix(_), TTexture: 0;
+			case TMatrix(_), TTexture(_): 0;
 			}
 			// allow all components access on input and varying values only
 			switch( v.d ) {
@@ -565,10 +567,12 @@ class Compiler {
 			return makeUnop(op, e1, e.p);
 		case PTex(vname, acc, flags):
 			var v = vars.get(vname);
-			if( v == null || v.type != TTexture ) error("Invalid texture '" + vname + "'", e.p);
+			if( v == null ) error("Unknown texture '" + vname + "'", e.p);
 			var acc = compileValue(acc);
-			// allow 1-3 components, maybe we should have different texture types
-			if( Tools.floatSize(acc.t) > 3 ) unify(acc.t, TFloat2, acc.p);
+			switch( v.type ) {
+			case TTexture(cube): unify(acc.t, cube?TFloat3:TFloat2, acc.p);
+			default: error("'"+vname + "' is not a texture", e.p);
+			}
 			return { d : CTex(v, acc, flags), t : TFloat4, p : e.p };
 		case PIf(cond,e1,e2):
 			var cond = compileValue(cond);

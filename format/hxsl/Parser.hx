@@ -80,7 +80,8 @@ class Parser {
 			case "M33": TMatrix(3, 3, { t : null } );
 			case "M34": TMatrix(3, 4, { t : null } );
 			case "M43": TMatrix(4, 3, { t : null } );
-			case "Texture": TTexture;
+			case "Texture": TTexture(false);
+			case "CubeTexture": TTexture(true);
 			default:
 				error("Unknown type '" + p.name + "'", pos);
 			}
@@ -370,8 +371,8 @@ class Parser {
 			};
 			var t = parseValue(params.shift());
 			var flags = [];
-			var idents = ["d2","cube","d3","mm_no","mm_near","mm_lineae","centroid","wrap","clamp","nearest","linear"];
-			var values = [T2D,TCube,T3D,TMipMapDisable,TMipMapNearest,TMipMapLinear,TCentroidSample,TWrap,TClamp,TFilterNearest,TFilterLinear];
+			var idents = ["mm_no","mm_near","mm_lineae","centroid","wrap","clamp","nearest","linear"];
+			var values = [TMipMapDisable,TMipMapNearest,TMipMapLinear,TCentroidSample,TWrap,TClamp,TFilterNearest,TFilterLinear];
 			for( p in params ) {
 				switch( p.expr ) {
 				case EConst(c):
@@ -381,7 +382,6 @@ class Parser {
 						if( ip >= 0 ) {
 							var v = values[ip];
 							var sim = switch( v ) {
-							case T2D, TCube, T3D: [T2D, TCube, T3D];
 							case TMipMapDisable, TMipMapLinear, TMipMapNearest: [TMipMapDisable, TMipMapLinear, TMipMapNearest];
 							case TCentroidSample: [TCentroidSample];
 							case TClamp, TWrap: [TClamp, TWrap];

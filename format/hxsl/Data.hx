@@ -29,9 +29,6 @@ package format.hxsl;
 typedef Position = haxe.macro.Expr.Position;
 
 enum TexFlag {
-	T2D; // default
-	TCube;
-	T3D;
 	TMipMapDisable; // default
 	TMipMapNearest;
 	TMipMapLinear;
@@ -64,7 +61,7 @@ enum VarType {
 	TFloat3;
 	TFloat4;
 	TMatrix( r : Int, c : Int, transpose : { t : Null<Bool> } );
-	TTexture;
+	TTexture( cube : Bool );
 }
 
 typedef Variable = {
@@ -187,22 +184,22 @@ class Error {
 }
 
 class Tools {
-	
+
 	public static function regSize( t : VarType ) {
 		return switch( t ) {
 		case TMatrix(w,h,t): t.t ? h : w;
 		default: 1;
 		}
 	}
-	
-	
+
+
 	public static function floatSize( t : VarType ) {
 		return switch( t ) {
 		case TFloat: 1;
 		case TFloat2: 2;
 		case TFloat3: 3;
 		case TFloat4: 4;
-		case TTexture: 0;
+		case TTexture(_): 0;
 		case TMatrix(w,h,_): w*h;
 		}
 	}
@@ -216,5 +213,5 @@ class Tools {
 			default: throw "assert";
 		};
 	}
-	
+
 }
