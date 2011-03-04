@@ -66,7 +66,7 @@ class Compiler {
 				case CAdd, CSub, CDiv, CPow: floats;
 				case CMin, CMax, CLt, CGte: floats;
 				case CDot: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat }, { p1 : TFloat3, p2 : TFloat3, r : TFloat } ];
-				case CCross: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat3 }];
+				case CCross: [ { p1 : TFloat3, p2 : TFloat3, r : TFloat3 }];
 				case CMul: floats.concat([
 					{ p1 : TFloat4, p2 : mat4_t, r : TFloat4 },
 					{ p1 : TFloat3, p2 : mat3_t, r : TFloat3 },
