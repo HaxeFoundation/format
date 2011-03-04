@@ -28,12 +28,22 @@ package format.agal;
 import format.agal.Data;
 import format.hxsl.Data;
 
+private typedef Temp = {
+	var liveBits : Array<Int>;
+	var bitsDefPos : Array<Int>;
+	var assignedTo : Int;
+}
+
 class Compiler {
 
 	var code : Array<Opcode>;
 	var tempCount : Int;
 	var tempMax : Int;
 	var curPos : Position;
+	var temps : Array<Temp>;
+	var codePos : Int;
+	var assignRegisters : Bool;
+	var startRegister : Int;
 
 	public function new() {
 	}
@@ -43,18 +53,9 @@ class Compiler {
 	}
 
 	function allocTemp( t ) {
-		return { t : RTemp, index : -(Tools.regSize(t) + tempCount * 32), swiz : initSwiz(t) };
-	}
-	
-	function checkTmp( r : Reg ) {
-		if( r.index >= 0 ) return;
-		// restore temp count
-		tempCount = ( -r.index) >> 5;
 		var index = tempCount;
-		tempCount += (-r.index) & 31;
-		if( tempCount > tempMax )
-			error("Maximum temporary count reached", curPos);
-		r.index = index;
+		tempCount += Tools.regSize(t);
+		return { t : RTemp, index : index, swiz : initSwiz(t) };
 	}
 
 	function initSwiz( t : VarType ) {
@@ -73,7 +74,7 @@ class Compiler {
 			}
 		return sz;
 	}
-	
+
 	function reg( v : Variable, ?swiz ) {
 		var swiz = if( swiz == null ) initSwiz(v.type) else convertSwiz(swiz);
 		var t = switch( v.kind ) {
@@ -87,20 +88,29 @@ class Compiler {
 		return { t : t, index : v.index, swiz : swiz };
 	}
 
-	function delta( r : Reg, n : Int) {
-		return { t : r.t, index : r.index + n, swiz : r.swiz };
+	function delta( r : Reg, n : Int, ?s) {
+		return { t : r.t, index : r.index + n, swiz : (s == null) ? r.swiz : s };
 	}
-
+	
 	function swizOpt( r : Reg, s ) {
 		if( r.swiz == null ) r.swiz = s;
 		return r;
+	}
+	
+	function swizBits( s : Swizzle ) {
+		if( s == null )
+			return 15;
+		var b = 0;
+		for( s in s )
+			b |= 1 << Type.enumIndex(s);
+		return b;
 	}
 
 	public function compile( c : Code ) : Data {
 		code = [];
 		tempMax = format.agal.Tools.getProps(RTemp, !c.vertex).count;
+		tempCount = c.tempSize;
 		for( e in c.exprs ) {
-			tempCount = c.tempSize;
 			curPos = e.e.p;
 			if( e.v == null ) {
 				// assume dest not check
@@ -123,12 +133,178 @@ class Compiler {
 				}
 			compileTo(d, e.e);
 		}
+		#if debug
+		var old = code.copy();  // used by DEBUG below
+		#end
+		
+		uniqueReg();
+		
+		curPos = c.pos;
+		temps = [];
+		assignRegisters = false;
+		compileLiveness();
+
+		assignRegisters = true;
+		startRegister = 0;
+		compileLiveness();
+		
+		// DEBUG
+		/*
+		#if debug
+		for( i in 0...temps.length ) {
+			var bits = temps[i].liveBits;
+			var lifes = [];
+			var p = 0;
+			while( true ) {
+				while( p < bits.length && bits[p] == null )
+					p++;
+				if( p >= bits.length ) break;
+				var k = bits[p];
+				var start = p;
+				while( bits[p] == k )
+					p++;
+				lifes.push(start + "-"+ (p - 1)+" : "+k);
+			}
+			trace("T" + i + " " + Std.string(lifes));
+		}
+		for( i in 0...code.length ) {
+			var a = format.agal.Tools.opStr(old[i]);
+			var b = format.agal.Tools.opStr(code[i]);
+			trace("@"+i+"   "+StringTools.rpad(a," ",30) + (a == b ? "" : b));
+		}
+		#end
+		*/
+		
+		// remove no-ops
+		var i = 0;
+		while( i < code.length ) {
+			var c = code[i++];
+			switch( c ) {
+			case OMov(dst, v):
+				if( dst.index == v.index && dst.t == v.t && swizBits(dst.swiz) == swizBits(v.swiz) ) {
+					code.remove(c);
+					i--;
+				}
+			default:
+				// TODO : group dp4/dp3 into m44/m34/m44 ?
+			}
+		}
+			
 		return {
 			fragmentShader : !c.vertex,
 			code : code,
 		};
 	}
+	
+	function uniqueReg() {
+		function cp(r:Reg) {
+			return { t : r.t, index : r.index, swiz : r.swiz };
+		}
+		for( i in 0...code.length )
+			code[i] = switch( code[i] ) {
+			case OKil(r): OKil(cp(r));
+			case OTex(d, v, fl): OTex(cp(d), cp(v), fl);
+			case OMov(d, v), ORcp(d, v), OFrc(d, v), OSqt(d, v), ORsq(d, v), OLog(d, v), OExp(d, v), ONrm(d, v), OSin(d, v), OCos(d, v), OAbs(d, v), ONeg(d, v), OSat(d, v):
+				Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(v)]);
+			case OAdd(d, a, b), OSub(d, a, b), OMul(d, a, b), ODiv(d, a, b), OMin(d, a, b), OMax(d, a, b), OPow(d, a, b), OCrs(d, a, b), ODp3(d, a, b), OSge(d, a, b), OSlt(d, a, b), ODp4(d,a,b), OM33(d, a, b),  OM44(d, a, b), OM34(d,a,b):
+				Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(a), cp(b)]);
+			};
+	}
+	
+	function compileLiveness() {
+		for( i in 0...code.length ) {
+			codePos = i;
+			switch( code[i] ) {
+			case OKil(r):
+				oread(r);
+			case OTex(d, v, _), OMov(d, v), ORcp(d, v), OFrc(d,v),OSqt(d,v), ORsq(d,v), OLog(d,v),OExp(d,v), ONrm(d,v), OSin(d,v), OCos(d,v), OAbs(d,v), ONeg(d,v), OSat(d,v):
+				oread(v);
+				owrite(d);
+			case OAdd(d, a, b), OSub(d, a, b), OMul(d, a, b), ODiv(d, a, b), OMin(d, a, b), OMax(d, a, b),
+				OPow(d, a, b), OCrs(d, a, b), ODp3(d, a, b), OSge(d, a, b), OSlt(d, a, b), ODp4(d,a,b):
+				oread(a);
+				oread(b);
+				owrite(d);
+			case OM33(d, a, b),  OM44(d, a, b), OM34(d,a,b):
+				if( a.t == RTemp || b.t == RTemp ) throw "assert";
+				owrite(d);
+			}
+		}
+	}
+	
+	function oread( r : Reg ) {
+		if( r.t != RTemp ) return;
+		var t = temps[r.index];
+		if( t == null ) throw "assert";
+		var s = if( r.swiz == null ) [X, Y, Z, W] else r.swiz;
+		if( assignRegisters ) {
+			if( t.assignedTo < 0 ) throw "assert";
+			r.index = t.assignedTo;
+			return;
+		}
+		// if we need to read some components at some time
+		// make sure that we reserve all the components as soon
+		// as the first one is written
+		var minPos = null;
+		var mask = 0;
+		for( s in s ) {
+			var bit = Type.enumIndex(s);
+			var pos = t.bitsDefPos[bit];
+			if( minPos == null || pos < minPos ) minPos = pos;
+			mask |= 1 << bit;
+		}
+		if( minPos < 0 ) throw "assert";
+		for( p in minPos+1...codePos ) {
+			var k = t.liveBits[p];
+			if( k == null ) k = 0;
+			t.liveBits[p] = k | mask;
+		}
+	}
 
+	function owrite( r : Reg ) {
+		if( r.t != RTemp ) return;
+		var t = temps[r.index];
+		if( assignRegisters ) {
+			// if we are already live, use our id
+			if( t.liveBits[codePos] != null ) {
+				r.index = t.assignedTo;
+				return;
+			}
+			// allocate a new temp id by looking the other live variable components
+			var tid = -1;
+			var found = false;
+			// make sure that we reserve all the components we need
+			var reserved = t.liveBits[codePos + 1];
+			if( reserved == null ) reserved = 0;
+			var mask = swizBits(r.swiz) | reserved;
+			while( !found ) {
+				found = true;
+				tid++;
+				for( t in temps ) {
+					var bits = t.liveBits[codePos];
+					if( bits != null && bits & mask != 0 && t.assignedTo == tid ) {
+						found = false;
+						break;
+					}
+				}
+			}
+			t.assignedTo = tid;
+			r.index = tid;
+			if( tid >= tempMax ) error("Maximum number of temp vars reached", curPos);
+			return;
+		}
+		if( t == null ) {
+			t = { liveBits : [], bitsDefPos : [ -1, -1, -1, -1], assignedTo : -1 };
+			temps[r.index] = t;
+		}
+		if( r.swiz == null )
+			for( i in 0...4 )
+				t.bitsDefPos[i] = codePos;
+		else
+			for( s in r.swiz )
+				t.bitsDefPos[Type.enumIndex(s)] = codePos;
+	}
+	
 	function project( dst : Reg, r1 : Reg, r2 : Reg ) {
 		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [X] }, r1, r2));
 		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [Y] }, r1, delta(r2, 1)));
@@ -141,7 +317,7 @@ class Compiler {
 		code.push(ODp3( { t : dst.t, index : dst.index, swiz : [Y] }, r1, delta(r2, 1)));
 		return ODp3( { t : dst.t, index : dst.index, swiz : [Z] }, r1, delta(r2, 2));
 	}
-	
+
 	function matrix44multiply( rt : VarType, dst : Reg, r1 : Reg, r2 : Reg ) {
 		switch( rt ) {
 		case TMatrix(_,_,t):
@@ -176,7 +352,7 @@ class Compiler {
 		code.push(project3(delta(dst, 1), delta(r1, 1), r2));
 		return project3(delta(dst, 2), delta(r1, 2), r2);
 	}
-	
+
 	function mov( dst : Reg, src : Reg, t : VarType ) {
 		switch( t ) {
 		case TFloat:
@@ -190,12 +366,21 @@ class Compiler {
 				code.push(OMov(delta(dst,i), delta(src,i)));
 		}
 	}
+	
+	// we have to make sure that we don't have MXX macros when one of the sources is a temp var
+	// or else that might break our temp optimization algorithm because each column might be
+	// assigned to a different temporary, and since we can't read+write on the same source without
+	// causing issues
+	function matrixOp( op : Reg -> Reg -> Reg -> Opcode, num : Int, dst : Reg, a : Reg, b : Reg ) {
+		for( i in 0...num )
+			code.push(op(delta(dst, 0, [[X, Y, Z, W][i]]), a, delta(b, i)));
+		return code.pop();
+	}
 
 	function compileTo( dst : Reg, e : CodeValue ) {
 		switch( e.d ) {
 		case CVar(_), CSwiz(_):
 			var r = compileSrc(e);
-			checkTmp(dst);
 			mov(dst, r, e.t);
 		case COp(op, e1, e2):
 			var v1 = compileSrc(e1);
@@ -203,11 +388,9 @@ class Compiler {
 			// it is not allowed to apply an operation on two constants or two vars at the same time : use a temp var
 			if( (v1.t == RConst && v2.t == RConst) || (v1.t == RVar && v2.t == RVar) ) {
 				var t = allocTemp(e1.t);
-				checkTmp(t);
 				mov(t, v1, e1.t);
 				v1 = t;
 			}
-			checkTmp(dst);
 			code.push((switch(op) {
 			case CAdd: OAdd;
 			case CDiv: ODiv;
@@ -219,8 +402,8 @@ class Compiler {
 				switch( e2.t ) {
 				case TMatrix(_):
 					switch( e1.t ) {
-					case TFloat4: OM44;
-					case TFloat3: if( e.t == TFloat4 ) OM34 else OM33;
+					case TFloat4: if( v1.t == RTemp || v2.t == RTemp ) callback(matrixOp,ODp4,4) else OM44;
+					case TFloat3: if( v1.t == RTemp || v2.t == RTemp ) callback(matrixOp,e.t == TFloat4 ? ODp4 : ODp3,3) else if( e.t == TFloat4 ) OM34 else OM33;
 					case TMatrix(w, h, _):
 						if( w == 4 && h == 4 )
 							callback(matrix44multiply, e.t);
@@ -228,7 +411,8 @@ class Compiler {
 							callback(matrix33multiply, e.t);
 						else
 							throw "assert";
-					default: throw "assert";
+					default:
+						throw "assert";
 					}
 				default:
 					OMul;
@@ -239,21 +423,23 @@ class Compiler {
 			case CLt: OSlt;
 			})(dst, v1, v2));
 		case CUnop(op, p):
+			var v = compileSrc(p);
 			switch( op ) {
+			case CNorm:
+				// normalize into a varying require temp var
+				if( dst.t == RVar ) {
+					var t = allocTemp(p.t);
+					code.push(ONrm(t, v));
+					mov(dst, t, p.t);
+					return;
+				}
 			case CLen:
-				compileTo(dst, { d : COp(CDot, p, p), p : e.p, t : e.t } );
+				// compile length(x) as x.dot(x)
+				var t = allocTemp(p.t);
+				mov(t, v, p.t);
+				code.push((p.t == TFloat4 ? ODp4 : ODp3)(dst, t, t));
 				return;
 			default:
-			}
-			var v = compileSrc(p);
-			checkTmp(dst);
-			// normalize into a varying require temp var
-			if( dst.t == RVar && op == CNorm ) {
-				var t = allocTemp(p.t);
-				checkTmp(t);
-				code.push(ONrm(t, v));
-				mov(dst, t, p.t);
-				return;
 			}
 			code.push((switch(op) {
 			case CRcp: ORcp;
@@ -277,11 +463,9 @@ class Compiler {
 			// getting texture from a const is not allowed
 			if( vtmp.t == RConst ) {
 				var t = allocTemp(acc.t);
-				checkTmp(t);
 				mov(t, vtmp, acc.t);
 				vtmp = t;
 			}
-			checkTmp(dst);
 			var tflags = [];
 			switch( v.type ) {
 			case TTexture(cube):
@@ -309,8 +493,6 @@ class Compiler {
 			return reg(v, swiz);
 		case CSwiz(e, swiz):
 			var v = compileSrc(e);
-			//if( v.swiz != null )
-			//	throw "assert";
 			return { t : v.t, swiz : convertSwiz(swiz), index : v.index };
 		case COp(_), CTex(_), CUnop(_):
 			var t = allocTemp(e.t);
