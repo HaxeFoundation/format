@@ -123,7 +123,7 @@ class Build {
 		var c = new Compiler();
 		c.warn = Context.warning;
 		var v = try c.compile(v) catch( e : Error ) haxe.macro.Context.error(e.message, e.pos);
-		
+
 		var c = new format.agal.Compiler();
 		c.error = Context.error;
 
@@ -146,38 +146,20 @@ class Build {
 			fs.tmp.concat(Lambda.array(Lambda.map(fs.setup, function(s) return "add(" + s + ");"))).join("\n") + "\n\n" +
 			"done();\n"
 		;
-		
+
 		var bindCode =
 			"bindInit(buf);\n" +
 			Lambda.map(v.input, function(v) return "bindReg(" + Tools.floatSize(v.type) + ");\n").join("") +
 			"bindDone();\n"
 		;
-		
+
 		#if (debug && shaderDebug)
-		function debugReg(r:format.agal.Data.Reg) {
-			var str = r.t == ROut ? "out" : Std.string(r.t).charAt(1).toLowerCase() + r.index;
-			if( r.swiz != null )
-				str += "." + r.swiz.join("").toLowerCase();
-			return str;
-		}
-		function debugOp(op:format.agal.Data.Opcode) {
-			var pl = Type.enumParameters(op);
-			var str = Type.enumConstructor(op).substr(1).toLowerCase() + " " + debugReg(pl[0]);
-			switch( op ) {
-			case OKil(_): return str;
-			case OTex(_, pt, tex): return str + ", tex" + tex.index + "[" + debugReg(pl[1]) + "]" + (tex.flags.length == 0  ? "" : " <" + tex.flags.join(",") + ">");
-			default:
-			}
-			str += ", " + debugReg(pl[1]);
-			if( pl[2] != null ) str += ", " + debugReg(pl[2]);
-			return str;
-		}
 		trace("VERTEX");
 		for( o in vscode.code )
-			trace(debugOp(o));
+			trace(format.agal.Tools.opStr(o));
 		trace("FRAGMENT");
 		for( o in fscode.code )
-			trace(debugOp(o));
+			trace(format.agal.Tools.opStr(o));
 		// trace("INIT CODE");
 		// for( s in initCode.split("\n") )
 		// 	trace(s);

@@ -52,4 +52,25 @@ class Tools {
 		return b;
 	}
 
+	public static function regStr( r : Data.Reg ) {
+		var str = Std.string(r.t).charAt(1).toLowerCase() + r.index;
+		if( str == "o0" ) str = "out";
+		if( r.swiz != null )
+			str += "." + r.swiz.join("").toLowerCase();
+		return str;
+	}
+
+	public static function opStr( op : Data.Opcode ) {
+		var pl = Type.enumParameters(op);
+		var str = Type.enumConstructor(op).substr(1).toLowerCase() + " " + regStr(pl[0]);
+		switch( op ) {
+		case OKil(_): return str;
+		case OTex(_, pt, tex): return str + ", tex" + tex.index + "[" + regStr(pl[1]) + "]" + (tex.flags.length == 0  ? "" : " <" + tex.flags.join(",") + ">");
+		default:
+		}
+		str += ", " + regStr(pl[1]);
+		if( pl[2] != null ) str += ", " + regStr(pl[2]);
+		return str;
+	}
+
 }
