@@ -153,6 +153,13 @@ class Build {
 			"bindDone();\n"
 		;
 
+		var unbindCode = null;
+		if( v.fragment.tex.length > 0 ) {
+			unbindCode = "super.unbind();\n";
+			for( t in v.fragment.tex )
+				unbindCode += "unbindTex(" + t.index + ");\n";
+		}
+
 		#if (debug && shaderDebug)
 		trace("VERTEX");
 		for( o in vscode.code )
@@ -170,6 +177,9 @@ class Build {
 			"function override__bind(buf) {"+bindCode+"};",
 			"function init( vertex : {" + vs.vars.join(",") + "}, fragment : {" + fs.vars.join(",") + "} ) {" + initCode + "};",
 		];
+		if( unbindCode != null )
+			decls.push("function override__unbind() {" + unbindCode + "};");
+
 		return Context.parse("{" + decls.join("\n")+"}",shader.pos);
 	}
 

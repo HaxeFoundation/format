@@ -87,6 +87,17 @@ package format.hxsl;
 		throw "needs subclass";
 	}
 
+	public function unbind() {
+		while( regIndex-- > 0 )
+			c.setVertexBufferAt(regIndex,null);
+	}
+
+	public function draw( vbuf, ibuf ) {
+		bind(vbuf);
+		c.drawTriangles(ibuf);
+		unbind();
+	}
+
 	public function dispose() {
 		if( p == null ) return;
 		p.dispose();
@@ -108,6 +119,10 @@ package format.hxsl;
 
 	function texture( index : Int, t : flash.display3D.textures.TextureBase ) {
 		c.setTextureAt(index, t);
+	}
+
+	inline function unbindTex(index) {
+		c.setTextureAt(index, null);
 	}
 
 	function done() {
