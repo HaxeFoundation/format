@@ -1,3 +1,6 @@
+2011-03-05: 1.19.1
+	hxsl/agal : bugfixes & optimizations
+
 2011-02-28: 1.19
 	amf : added Array support
 	agal : added Data, Writer
