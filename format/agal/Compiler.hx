@@ -92,12 +92,12 @@ class Compiler {
 	function delta( r : Reg, n : Int, ?s) {
 		return { t : r.t, index : r.index + n, swiz : (s == null) ? r.swiz : s };
 	}
-	
+
 	function swizOpt( r : Reg, s ) {
 		if( r.swiz == null ) r.swiz = s;
 		return r;
 	}
-	
+
 	function swizBits( s : Swizzle ) {
 		if( s == null )
 			return 15;
@@ -132,10 +132,10 @@ class Compiler {
 				}
 			compileTo(d, e.e);
 		}
-		
+
 		var old = code;
 		code = uniqueReg();
-		
+
 
 		var maxRegs = format.agal.Tools.getProps(RTemp, !c.vertex).count;
 		temps = [];
@@ -144,7 +144,7 @@ class Compiler {
 		tempMax = maxRegs;
 		packRegisters = false;
 		compileLiveness(regAssign);
-		
+
 		if( tempMax > maxRegs ) {
 			code = old;
 			code = uniqueReg();
@@ -156,7 +156,7 @@ class Compiler {
 				error("This shader uses to many temporary variables for his calculus", c.pos);
 		}
 
-		
+
 		// DEBUG
 		/*
 		#if debug
@@ -183,7 +183,7 @@ class Compiler {
 		}
 		#end
 		*/
-		
+
 		// remove no-ops
 		var i = 0;
 		while( i < code.length ) {
@@ -204,13 +204,13 @@ class Compiler {
 			code : code,
 		};
 	}
-	
+
 	// AGAL is using 1.3 shader profile, so does not allow exotic write mask
 	function isUnsupportedWriteMask( r : Reg ) {
 		var s = r.swiz;
 		return s != null && s.length > 1 && (s[0] != X || s[1] != Y || (s.length > 2 && (s[2] != Z || (s.length > 3 && s[3] != W))));
 	}
-	
+
 	function uniqueReg() {
 		function cp(r:Reg) {
 			return { t : r.t, index : r.index, swiz : r.swiz };
@@ -223,21 +223,13 @@ class Compiler {
 			case OTex(d, v, fl):
 				c.push(OTex(cp(d), cp(v), fl));
 			case OMov(d, v), ORcp(d, v), OFrc(d, v), OSqt(d, v), ORsq(d, v), OLog(d, v), OExp(d, v), ONrm(d, v), OSin(d, v), OCos(d, v), OAbs(d, v), ONeg(d, v), OSat(d, v):
-				if( isUnsupportedWriteMask(d) )
-					for( k in 0...d.swiz.length )
-						c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [delta(d,0,[d.swiz[k]]), delta(v,0,[v.swiz[k]])]));
-				else
-					c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(v)]));
+				c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(v)]));
 			case OAdd(d, a, b), OSub(d, a, b), OMul(d, a, b), ODiv(d, a, b), OMin(d, a, b), OMax(d, a, b), OPow(d, a, b), OCrs(d, a, b), ODp3(d, a, b), OSge(d, a, b), OSlt(d, a, b), ODp4(d,a,b), OM33(d, a, b),  OM44(d, a, b), OM34(d,a,b):
-				if( isUnsupportedWriteMask(d) )
-					for( k in 0...d.swiz.length )
-						c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [delta(d,0,[d.swiz[k]]), delta(a,0,[a.swiz[k]]), delta(b,0,[b.swiz[k]])]));
-				else
-					c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(a), cp(b)]));
+				c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(a), cp(b)]));
 			};
 		return c;
 	}
-	
+
 	function compileLiveness( reg : Reg -> Bool -> Void ) {
 		for( i in 0...code.length ) {
 			codePos = i;
@@ -263,11 +255,15 @@ class Compiler {
 			}
 		}
 	}
-	
+
 	function regLive( r : Reg, write : Bool ) {
 		if( r.t != RTemp ) return;
 		var t = temps[r.index];
 		if( write ) {
+			#if debug
+			if( isUnsupportedWriteMask(r.swiz) )
+				throw "assert";
+			#end
 			// alloc register
 			if( t == null ) {
 				t = { liveBits : [], writeBits : 0, bitsDefPos : [ -1, -1, -1, -1], assignedTo : -1, assignedComps : null };
@@ -303,7 +299,7 @@ class Compiler {
 			}
 		}
 	}
-	
+
 	function changeReg( r : Reg, t : Temp ) {
 		r.index = t.assignedTo;
 		if( r.swiz != null ) {
@@ -311,9 +307,13 @@ class Compiler {
 			for( c in r.swiz )
 				s.push(t.assignedComps[Type.enumIndex(c)]);
 			r.swiz = s;
+			#if debug
+			if( isUnsupportedWriteMask(s) )
+				throw "assert";
+			#end
 		}
 	}
-	
+
 	function bitCount(i) {
 		var n = 0;
 		while( i > 0 ) {
@@ -389,7 +389,7 @@ class Compiler {
 		// this is supposed to favor parallelism
 		startRegister = found + 1;
 	}
-	
+
 	function project( dst : Reg, r1 : Reg, r2 : Reg ) {
 		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [X] }, r1, r2));
 		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [Y] }, r1, delta(r2, 1)));
@@ -451,7 +451,7 @@ class Compiler {
 				code.push(OMov(delta(dst,i), delta(src,i)));
 		}
 	}
-	
+
 	// we have to make sure that we don't have MXX macros when one of the sources is a temp var
 	// or else that might break our temp optimization algorithm because each column might be
 	// assigned to a different temporary, and since we can't read+write on the same source without

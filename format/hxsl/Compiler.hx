@@ -36,12 +36,12 @@ class Compiler {
 	var delayed : Array<{ idx : Int, callb : Void -> Void }>;
 	var tempCount : Int;
 
-	public var doinline : { transpose : Bool, int : Bool };
+	public var config : { inlTranspose : Bool, inlInt : Bool, allowAllWMasks : Bool };
 
 	public function new() {
 		tempCount = 0;
 		vars = new Hash();
-		doinline = { transpose : true, int : true };
+		config = { inlTranspose : true, inlInt : true, allowAllWMasks : false };
 		indexes = [0, 0, 0, 0, 0, 0];
 		ops = new Array();
 		for( o in initOps() )
@@ -225,7 +225,7 @@ class Compiler {
 				var min = -1;
 				for( s in swiz ) {
 					var k = Type.enumIndex(s);
-					if( k <= min ) error("Invalid write mask", v.p);
+					if( k <= min || (!config.allowAllWMasks && swiz.length > 1 && k != min + 1) ) error("Unsupported write mask", v.p);
 					min = k;
 				}
 			}
@@ -804,7 +804,7 @@ class Compiler {
 					e.p = p;
 					return e;
 				}
-				if( doinline.transpose ) {
+				if( config.inlTranspose ) {
 					var v = switch( e.d ) {
 					case CVar(v, _): v;
 					default: error("You cannot transpose a complex expression", e.p);
@@ -831,7 +831,7 @@ class Compiler {
 			}
 		case CInt:
 			// inline int(t) as t - frc(t)
-			if( doinline.int ) {
+			if( config.inlInt ) {
 				if( !isFloat(e.t) )
 					unify(e.t, TFloat4, e.p); // force error
 				var v = allocTemp(e.t, p);
