@@ -32,6 +32,8 @@ private typedef Temp = {
 	var liveBits : Array<Int>;
 	var bitsDefPos : Array<Int>;
 	var assignedTo : Int;
+	var writeBits : Int;
+	var assignedComps : Swizzle;
 }
 
 class Compiler {
@@ -39,11 +41,10 @@ class Compiler {
 	var code : Array<Opcode>;
 	var tempCount : Int;
 	var tempMax : Int;
-	var curPos : Position;
 	var temps : Array<Temp>;
 	var codePos : Int;
-	var assignRegisters : Bool;
 	var startRegister : Int;
+	var packRegisters : Bool;
 
 	public function new() {
 	}
@@ -108,10 +109,8 @@ class Compiler {
 
 	public function compile( c : Code ) : Data {
 		code = [];
-		tempMax = format.agal.Tools.getProps(RTemp, !c.vertex).count;
 		tempCount = c.tempSize;
 		for( e in c.exprs ) {
-			curPos = e.e.p;
 			if( e.v == null ) {
 				// assume dest not check
 				compileTo({ t : ROut, index : -1, swiz : null }, e.e);
@@ -133,20 +132,30 @@ class Compiler {
 				}
 			compileTo(d, e.e);
 		}
-		#if debug
-		var old = code.copy();  // used by DEBUG below
-		#end
 		
-		uniqueReg();
+		var old = code;
+		code = uniqueReg();
 		
-		curPos = c.pos;
-		temps = [];
-		assignRegisters = false;
-		compileLiveness();
 
-		assignRegisters = true;
+		var maxRegs = format.agal.Tools.getProps(RTemp, !c.vertex).count;
+		temps = [];
+		compileLiveness(regLive);
 		startRegister = 0;
-		compileLiveness();
+		tempMax = maxRegs;
+		packRegisters = false;
+		compileLiveness(regAssign);
+		
+		if( tempMax > maxRegs ) {
+			code = old;
+			code = uniqueReg();
+			startRegister = 0;
+			tempMax = maxRegs;
+			packRegisters = true;
+			compileLiveness(regAssign);
+			if( tempMax > maxRegs )
+				error("This shader uses to many temporary variables for his calculus", c.pos);
+		}
+
 		
 		// DEBUG
 		/*
@@ -189,120 +198,196 @@ class Compiler {
 				// TODO : group dp4/dp3 into m44/m34/m44 ?
 			}
 		}
-			
+
 		return {
 			fragmentShader : !c.vertex,
 			code : code,
 		};
 	}
 	
+	// AGAL is using 1.3 shader profile, so does not allow exotic write mask
+	function isUnsupportedWriteMask( r : Reg ) {
+		var s = r.swiz;
+		return s != null && s.length > 1 && (s[0] != X || s[1] != Y || (s.length > 2 && (s[2] != Z || (s.length > 3 && s[3] != W))));
+	}
+	
 	function uniqueReg() {
 		function cp(r:Reg) {
 			return { t : r.t, index : r.index, swiz : r.swiz };
 		}
+		var c = [];
 		for( i in 0...code.length )
-			code[i] = switch( code[i] ) {
-			case OKil(r): OKil(cp(r));
-			case OTex(d, v, fl): OTex(cp(d), cp(v), fl);
+			switch( code[i] ) {
+			case OKil(r):
+				c.push(OKil(cp(r)));
+			case OTex(d, v, fl):
+				c.push(OTex(cp(d), cp(v), fl));
 			case OMov(d, v), ORcp(d, v), OFrc(d, v), OSqt(d, v), ORsq(d, v), OLog(d, v), OExp(d, v), ONrm(d, v), OSin(d, v), OCos(d, v), OAbs(d, v), ONeg(d, v), OSat(d, v):
-				Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(v)]);
+				if( isUnsupportedWriteMask(d) )
+					for( k in 0...d.swiz.length )
+						c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [delta(d,0,[d.swiz[k]]), delta(v,0,[v.swiz[k]])]));
+				else
+					c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(v)]));
 			case OAdd(d, a, b), OSub(d, a, b), OMul(d, a, b), ODiv(d, a, b), OMin(d, a, b), OMax(d, a, b), OPow(d, a, b), OCrs(d, a, b), ODp3(d, a, b), OSge(d, a, b), OSlt(d, a, b), ODp4(d,a,b), OM33(d, a, b),  OM44(d, a, b), OM34(d,a,b):
-				Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(a), cp(b)]);
+				if( isUnsupportedWriteMask(d) )
+					for( k in 0...d.swiz.length )
+						c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [delta(d,0,[d.swiz[k]]), delta(a,0,[a.swiz[k]]), delta(b,0,[b.swiz[k]])]));
+				else
+					c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(a), cp(b)]));
 			};
+		return c;
 	}
 	
-	function compileLiveness() {
+	function compileLiveness( reg : Reg -> Bool -> Void ) {
 		for( i in 0...code.length ) {
 			codePos = i;
 			switch( code[i] ) {
 			case OKil(r):
-				oread(r);
-			case OTex(d, v, _), OMov(d, v), ORcp(d, v), OFrc(d,v),OSqt(d,v), ORsq(d,v), OLog(d,v),OExp(d,v), ONrm(d,v), OSin(d,v), OCos(d,v), OAbs(d,v), ONeg(d,v), OSat(d,v):
-				oread(v);
-				owrite(d);
+				reg(r, false);
+			case OMov(d, v):
+				reg(v, false);
+				// small optimization in order to trigger no-op moves
+				if( v.t == RTemp && d.t == RTemp ) startRegister = v.index;
+				reg(d, true);
+			case OTex(d, v, _), ORcp(d, v), OFrc(d,v),OSqt(d,v), ORsq(d,v), OLog(d,v),OExp(d,v), ONrm(d,v), OSin(d,v), OCos(d,v), OAbs(d,v), ONeg(d,v), OSat(d,v):
+				reg(v,false);
+				reg(d,true);
 			case OAdd(d, a, b), OSub(d, a, b), OMul(d, a, b), ODiv(d, a, b), OMin(d, a, b), OMax(d, a, b),
 				OPow(d, a, b), OCrs(d, a, b), ODp3(d, a, b), OSge(d, a, b), OSlt(d, a, b), ODp4(d,a,b):
-				oread(a);
-				oread(b);
-				owrite(d);
+				reg(a,false);
+				reg(b,false);
+				reg(d,true);
 			case OM33(d, a, b),  OM44(d, a, b), OM34(d,a,b):
 				if( a.t == RTemp || b.t == RTemp ) throw "assert";
-				owrite(d);
+				reg(d,true);
 			}
 		}
 	}
 	
-	function oread( r : Reg ) {
+	function regLive( r : Reg, write : Bool ) {
 		if( r.t != RTemp ) return;
 		var t = temps[r.index];
-		if( t == null ) throw "assert";
-		var s = if( r.swiz == null ) [X, Y, Z, W] else r.swiz;
-		if( assignRegisters ) {
-			if( t.assignedTo < 0 ) throw "assert";
-			r.index = t.assignedTo;
-			return;
-		}
-		// if we need to read some components at some time
-		// make sure that we reserve all the components as soon
-		// as the first one is written
-		var minPos = null;
-		var mask = 0;
-		for( s in s ) {
-			var bit = Type.enumIndex(s);
-			var pos = t.bitsDefPos[bit];
-			if( minPos == null || pos < minPos ) minPos = pos;
-			mask |= 1 << bit;
-		}
-		if( minPos < 0 ) throw "assert";
-		for( p in minPos+1...codePos ) {
-			var k = t.liveBits[p];
-			if( k == null ) k = 0;
-			t.liveBits[p] = k | mask;
+		if( write ) {
+			// alloc register
+			if( t == null ) {
+				t = { liveBits : [], writeBits : 0, bitsDefPos : [ -1, -1, -1, -1], assignedTo : -1, assignedComps : null };
+				temps[r.index] = t;
+			}
+			// set last-write per-component codepos
+			if( r.swiz == null ) {
+				for( i in 0...4 )
+					t.bitsDefPos[i] = codePos;
+			} else {
+				for( s in r.swiz )
+					t.bitsDefPos[Type.enumIndex(s)] = codePos;
+			}
+		} else {
+			if( t == null ) throw "assert";
+			var s = if( r.swiz == null ) [X, Y, Z, W] else r.swiz;
+			// if we need to read some components at some time
+			// make sure that we reserve all the components as soon
+			// as the first one is written
+			var minPos = null;
+			var mask = 0;
+			for( s in s ) {
+				var bit = Type.enumIndex(s);
+				var pos = t.bitsDefPos[bit];
+				if( minPos == null || pos < minPos ) minPos = pos;
+				mask |= 1 << bit;
+			}
+			if( minPos < 0 ) throw "assert";
+			for( p in minPos+1...codePos ) {
+				var k = t.liveBits[p];
+				if( k == null ) k = 0;
+				t.liveBits[p] = k | mask;
+			}
 		}
 	}
+	
+	function changeReg( r : Reg, t : Temp ) {
+		r.index = t.assignedTo;
+		if( r.swiz != null ) {
+			var s = [];
+			for( c in r.swiz )
+				s.push(t.assignedComps[Type.enumIndex(c)]);
+			r.swiz = s;
+		}
+	}
+	
+	function bitCount(i) {
+		var n = 0;
+		while( i > 0 ) {
+			n += i & 1;
+			i >>= 1;
+		}
+		return n;
+	}
 
-	function owrite( r : Reg ) {
+	function regAssign( r : Reg, write : Bool ) {
 		if( r.t != RTemp ) return;
 		var t = temps[r.index];
-		if( assignRegisters ) {
-			// if we are already live, use our id
-			if( t.liveBits[codePos] != null ) {
-				r.index = t.assignedTo;
-				return;
-			}
-			// allocate a new temp id by looking the other live variable components
-			var tid = -1;
-			var found = false;
-			// make sure that we reserve all the components we need
-			var reserved = t.liveBits[codePos + 1];
-			if( reserved == null ) reserved = 0;
-			var mask = swizBits(r.swiz) | reserved;
-			while( !found ) {
-				found = true;
-				tid++;
-				for( t in temps ) {
-					var bits = t.liveBits[codePos];
-					if( bits != null && bits & mask != 0 && t.assignedTo == tid ) {
-						found = false;
-						break;
-					}
-				}
-			}
-			t.assignedTo = tid;
-			r.index = tid;
-			if( tid >= tempMax ) error("Maximum number of temp vars reached", curPos);
+		// if we are reading or already live, use our current id
+		if( !write || t.liveBits[codePos] != null ) {
+			changeReg(r, t);
 			return;
 		}
-		if( t == null ) {
-			t = { liveBits : [], bitsDefPos : [ -1, -1, -1, -1], assignedTo : -1 };
-			temps[r.index] = t;
+		// make sure that we reserve all the components we will write
+		var mask = 0;
+		for( i in 0...4 )
+			if( t.bitsDefPos[i] >= codePos )
+				mask |= 1 << i;
+		var ncomps = bitCount(mask);
+		// allocate a new temp id by looking the other live variable components
+		var found, reserved;
+		if( packRegisters ) startRegister = 0; // always find best-fit
+		for( td in 0...tempMax ) {
+			var tid = (startRegister + td) % tempMax;
+			var count = ncomps;
+			found = tid;
+			reserved = [];
+			for( t in temps ) {
+				// already assigned to another temp
+				if( t.assignedTo != tid ) continue;
+				var bits = t.liveBits[codePos];
+				// not live
+				if( bits == null ) continue;
+				// don't allow to reserve more than one component on a used
+				// register since it might trigger invalid write mask in case
+				// both are written at once
+				if( ncomps > 1 ) {
+					found = null;
+					break;
+				}
+				// if we can't reserve enough components, try next temp
+				count += t.writeBits;
+				reserved.push(t);
+				if( count > 4 ) {
+					found = null;
+					break;
+				}
+			}
+			if( found != null )
+				break;
 		}
-		if( r.swiz == null )
-			for( i in 0...4 )
-				t.bitsDefPos[i] = codePos;
-		else
-			for( s in r.swiz )
-				t.bitsDefPos[Type.enumIndex(s)] = codePos;
+		if( found == null ) {
+			found = tempMax++;
+			reserved = [];
+		}
+		t.assignedTo = found;
+		t.writeBits = ncomps;
+		var comps = [X, Y, Z, W];
+		for( t in reserved )
+			for( s in t.assignedComps )
+				comps.remove(s);
+		t.assignedComps = [];
+		for( i in 0...4 )
+			if( mask & (1 << i) != 0 )
+				t.assignedComps[i] = comps.shift();
+		changeReg(r, t);
+		// next assign will most like use another register
+		// even if this one is no longer used
+		// this is supposed to favor parallelism
+		startRegister = found + 1;
 	}
 	
 	function project( dst : Reg, r1 : Reg, r2 : Reg ) {
