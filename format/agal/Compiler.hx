@@ -468,6 +468,16 @@ class Compiler {
 			var r = compileSrc(e);
 			mov(dst, r, e.t);
 		case COp(op, e1, e2):
+			if( dst.t == RVar )
+				switch( op ) {
+				// these operations cannot directly write to a var
+				case CCross, CPow:
+					var t = allocTemp(e.t);
+					compileTo(t, e);
+					mov(dst, t, e.t);
+					return;
+				default:
+				}
 			var v1 = compileSrc(e1);
 			var v2 = compileSrc(e2);
 			// it is not allowed to apply an operation on two constants or two vars at the same time : use a temp var
