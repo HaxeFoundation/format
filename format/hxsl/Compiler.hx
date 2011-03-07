@@ -172,6 +172,7 @@ class Compiler {
 			switch( e.d ) {
 			case CUnop(op, _):
 				if( op == CKill ) {
+					checkRead(e);
 					cur.exprs.push( { v : null, e : e } );
 					return;
 				}
