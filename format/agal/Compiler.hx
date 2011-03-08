@@ -260,10 +260,6 @@ class Compiler {
 		if( r.t != RTemp ) return;
 		var t = temps[r.index];
 		if( write ) {
-			#if debug
-			if( isUnsupportedWriteMask(r.swiz) )
-				throw "assert";
-			#end
 			// alloc register
 			if( t == null ) {
 				t = { liveBits : [], writeBits : 0, bitsDefPos : [ -1, -1, -1, -1], assignedTo : -1, assignedComps : null };
@@ -307,10 +303,6 @@ class Compiler {
 			for( c in r.swiz )
 				s.push(t.assignedComps[Type.enumIndex(c)]);
 			r.swiz = s;
-			#if debug
-			if( isUnsupportedWriteMask(s) )
-				throw "assert";
-			#end
 		}
 	}
 
