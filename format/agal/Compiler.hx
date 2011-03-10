@@ -521,10 +521,12 @@ class Compiler {
 					return;
 				}
 			case CLen:
-				// compile length(x) as x.dot(x)
+				// compile length(x) as sqrt(x.dot(x))
 				var t = allocTemp(p.t);
+				var tx = delta(t,0,[X]);
 				mov(t, v, p.t);
-				code.push((p.t == TFloat4 ? ODp4 : ODp3)(dst, t, t));
+				code.push((p.t == TFloat4 ? ODp4 : ODp3)(tx, t, t));
+				code.push(OSqt(dst,tx));
 				return;
 			default:
 			}
