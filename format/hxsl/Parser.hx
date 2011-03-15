@@ -90,10 +90,8 @@ class Parser {
 		}
 		return null;
 	}
-	
+
 	function allocVar( v, t, p ) : ParsedVar {
-		if( hvars.exists(v) )
-			error("Duplicate variable name", p);
 		hvars.set(v, p);
 		return { n : v, t : t == null ? null : getType(t, p), p : p };
 	}
@@ -146,20 +144,24 @@ class Parser {
 			hvars.remove(v.n);
 		return cur;
 	}
-	
-	
+
+
 	function addAssign( e1 : ParsedValue, e2 : ParsedValue, p : Position ) {
 		cur.exprs.push( { v : e1, e : e2, p : p } );
 	}
-	
+
 	function parseExpr( e : Expr ) {
 		switch( e.expr ) {
 		case EBlock(el):
 			var vold = new Hash();
 			for( v in hvars.keys() )
 				vold.set(v, hvars.get(v));
+			var eold = cur.exprs;
+			cur.exprs = [];
 			for( e in el )
 				parseExpr(e);
+			eold.push({ v : null, e : { v : PBlock(cur.exprs), p : e.pos }, p : e.pos });
+			cur.exprs = eold;
 			hvars = vold;
 		case EBinop(op, e1, e2):
 			switch( op ) {
@@ -298,7 +300,7 @@ class Parser {
 		error("Unsupported value expression", e.pos);
 		return null;
 	}
-	
+
 	function parseInt( e : Expr ) {
 		return switch( e.expr ) {
 		case EConst(c): switch( c ) { case CInt(i): Std.parseInt(i); default: null; }
@@ -352,11 +354,11 @@ class Parser {
 			e.expr;
 		}, pos : e.pos };
 	}
-	
+
 	inline function makeUnop( op, e, p ) {
 		return { v : PUnop(op, e), p : p };
 	}
-	
+
 	inline function makeOp( op, e1, e2, p ) {
 		return { v : POp(op, e1, e2), p : p };
 	}
@@ -441,12 +443,12 @@ class Parser {
 		case "max": checkParams(2); return makeOp(CMax, v[0], v[1], p);
 		case "dp","dp3","dp4","dot": checkParams(2); return makeOp(CDot, v[0], v[1], p);
 		case "crs", "cross": checkParams(2); return makeOp(CCross, v[0], v[1], p);
-		
+
 		case "lt", "slt": checkParams(2); return makeOp(CLt, v[0], v[1], p);
 		case "gte", "sge": checkParams(2); return makeOp(CGte, v[0], v[1], p);
 		case "gt", "sgt": checkParams(2); return makeOp(CLt, v[1], v[0], p);
 		case "lte", "sle": checkParams(2); return makeOp(CGte, v[1], v[0], p);
-		
+
 		default:
 		}
 		return error("Unknown operation '" + n + "'", p);

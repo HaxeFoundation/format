@@ -146,6 +146,7 @@ enum ParsedValueDecl {
 	PIf( cond : ParsedValue, e1 : ParsedValue, e2 : ParsedValue );
 	PVector( el : Array<ParsedValue> );
 	PRow( e : ParsedValue, index : Int );
+	PBlock( el : Array<ParsedExpr> );
 }
 
 typedef ParsedValue = {
@@ -159,11 +160,17 @@ typedef ParsedVar = {
 	var p : Position;
 }
 
+typedef ParsedExpr = {
+	var v : Null<ParsedValue>;
+	var e : ParsedValue;
+	var p : Position;
+}
+
 typedef ParsedCode = {
 	var vertex : Bool;
 	var pos : Position;
 	var args : Array<ParsedVar>;
-	var exprs : Array<{ v : Null<ParsedValue>, e : ParsedValue, p : Position }>;
+	var exprs : Array<ParsedExpr>;
 }
 
 typedef ParsedHxsl = {

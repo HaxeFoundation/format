@@ -168,6 +168,20 @@ class Compiler {
 
 	function compileAssign( v : Null<ParsedValue>, e : ParsedValue, p : Position ) {
 		if( v == null ) {
+			switch( e.v ) {
+			case PBlock(el):
+				var old = new Hash();
+				for( v in vars.keys() )
+					old.set(v, vars.get(v));
+				for( e in el )
+					compileAssign(e.v, e.e, e.p);
+				for( v in vars )
+					if( v.kind == VTmp && old.get(v.name) != v && !v.read )
+						warn("Unused local variable '" + v.name + "'", v.pos);
+				vars = old;
+				return;
+			default:
+			}
 			var e = compileValue(e);
 			switch( e.d ) {
 			case CUnop(op, _):
@@ -253,7 +267,7 @@ class Compiler {
 	}
 
 	function allocVar( name, k, t, p ) {
-		if( vars.exists(name) ) error("Duplicate variable '" + name + "'", p);
+		if( vars.exists(name) && k != VTmp ) error("Duplicate variable '" + name + "'", p);
 		var tkind = Type.enumIndex(k);
 		var v : Variable = {
 			name : name,
@@ -493,6 +507,8 @@ class Compiler {
 
 	function compileValue( e : ParsedValue ) : CodeValue {
 		switch( e.v ) {
+		case PBlock(_):
+			throw "assert";
 		case PVar(vname):
 			var v = vars.get(vname);
 			if( v == null ) error("Unknown variable '" + vname + "'", e.p);
