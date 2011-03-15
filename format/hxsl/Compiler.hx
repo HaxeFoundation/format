@@ -454,6 +454,10 @@ class Compiler {
 				return false;
 		return true;
 	}
+	
+	function isUnsupportedWriteMask( s : Array<Comp> ) {
+		return s != null && s.length > 1 && (s[0] != X || s[1] != Y || (s.length > 2 && (s[2] != Z || (s.length > 3 && s[3] != W))));
+	}
 
 	function checkRead( e : CodeValue ) {
 		switch( e.d ) {
@@ -655,8 +659,13 @@ class Compiler {
 			addAssign( { d : CVar(v, [c]), t : TFloat, p : e.p }, e, p);
 		}
 		// assign constants if any
-		if( write.length > 0 )
-			addAssign( { d : CVar(v, write), t : Tools.makeFloat(write.length), p : p }, allocConst(consts,p), p);
+		if( write.length > 0 ) {
+			if( isUnsupportedWriteMask(write) )
+				for( i in 0...write.length )
+					addAssign( { d : CVar(v, [write[i]]), t : TFloat, p : p }, allocConst([consts[i]], p), p);
+			else
+				addAssign( { d : CVar(v, write), t : Tools.makeFloat(write.length), p : p }, allocConst(consts, p), p);
+		}
 		// return temporary
 		return { d : CVar(v), t : v.type, p : p };
 	}
