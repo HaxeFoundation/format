@@ -33,16 +33,16 @@ class Parser {
 
 	var vertex : Function;
 	var fragment : Function;
+	var helpers : Hash<Function>;
 	var input : Array<ParsedVar>;
 	var vars : Array<ParsedVar>;
-	var hvars : Hash<Position>;
 	var cur : ParsedCode;
+	var allowReturn : Bool;
 
 	public function new() {
-		hvars = new Hash();
+		helpers = new Hash();
 		input = [];
 		vars = [];
-		hvars.set("out", null);
 	}
 
 	function error(msg:String, p) : Dynamic {
@@ -61,9 +61,14 @@ class Parser {
 		if( vertex == null ) error("Missing vertex function", e.pos);
 		if( fragment == null ) error("Missing fragment function", e.pos);
 		if( input.length == 0 ) error("Missing input variable", e.pos);
-		var vs = buildShader(vertex, true);
-		var fs = buildShader(fragment, false);
-		return { input : input, vertex : vs, fragment : fs, vars : vars, pos : e.pos };
+		allowReturn = false;
+		var vs = buildShader(vertex);
+		var fs = buildShader(fragment);
+		var help = new Hash();
+		allowReturn = true;
+		for( h in helpers.keys() )
+			help.set(h, buildShader(helpers.get(h)));
+		return { input : input, vertex : vs, fragment : fs, vars : vars, pos : e.pos, helpers : help };
 	}
 
 	function getType( t : ComplexType, pos ) {
@@ -92,7 +97,6 @@ class Parser {
 	}
 
 	function allocVar( v, t, p ) : ParsedVar {
-		hvars.set(v, p);
 		return { n : v, t : t == null ? null : getType(t, p), p : p };
 	}
 
@@ -119,16 +123,18 @@ class Parser {
 			switch( f.name ) {
 			case "vertex": vertex = f;
 			case "fragment": fragment = f;
-			default: error("Invalid function '" + f.name + "'", e.pos);
+			default:
+				if( helpers.exists(f.name) )
+					error("Duplicate function '" + f.name + "'", e.pos);
+				helpers.set(f.name, f);
 			}
 		default:
 			error("Unsupported declaration", e.pos);
 		};
 	}
 
-	function buildShader( f : Function, vertex ) {
+	function buildShader( f : Function ) {
 		cur = {
-			vertex : vertex,
 			pos : f.expr.pos,
 			args : [],
 			exprs : [],
@@ -140,8 +146,6 @@ class Parser {
 			cur.args.push(allocVar(p.name, p.type, pos));
 		}
 		parseExpr(f.expr);
-		for( v in cur.args )
-			hvars.remove(v.n);
 		return cur;
 	}
 
@@ -153,16 +157,17 @@ class Parser {
 	function parseExpr( e : Expr ) {
 		switch( e.expr ) {
 		case EBlock(el):
-			var vold = new Hash();
-			for( v in hvars.keys() )
-				vold.set(v, hvars.get(v));
 			var eold = cur.exprs;
+			var old = allowReturn;
+			var last = el[el.length - 1];
 			cur.exprs = [];
-			for( e in el )
+			for( e in el ) {
+				allowReturn = old && (e == last);
 				parseExpr(e);
+			}
+			allowReturn = old;
 			eold.push({ v : null, e : { v : PBlock(cur.exprs), p : e.pos }, p : e.pos });
 			cur.exprs = eold;
-			hvars = vold;
 		case EBinop(op, e1, e2):
 			switch( op ) {
 			case OpAssign:
@@ -210,6 +215,11 @@ class Parser {
 				var expr = replaceVar(v, EConst(Constant.CInt(Std.string(i))), expr);
 				parseExpr(expr);
 			}
+		case EReturn(r):
+			if( r == null ) error("Return must return a value", e.pos);
+			if( !allowReturn ) error("Return only allowed as final expression in helper methods", e.pos);
+			var v = parseValue(r);
+			cur.exprs.push( { v : null, e : { v : PReturn(v), p : e.pos }, p : e.pos } );
 		default:
 			error("Unsupported expression", e.pos);
 		}
@@ -233,7 +243,6 @@ class Parser {
 		case EConst(c):
 			switch( c ) {
 			case CType(i), CIdent(i):
-				if( !hvars.exists(i) ) error("Unknown identifier '" + i + "'", e.pos);
 				return { v : PVar(i), p : e.pos };
 			case CInt(v):
 				return { v : PConst(v), p : e.pos };
@@ -364,6 +373,14 @@ class Parser {
 	}
 
 	function makeCall( n : String, params : Array<Expr>, p : Position ) {
+
+		if( helpers.exists(n) ) {
+			var vl = [];
+			for( p in params )
+				vl.push(parseValue(p));
+			return { v : PCall(n, vl), p : p };
+		}
+		
 		// texture handling
 		if( n == "get" && params.length >= 2 ) {
 			var v = parseValue(params.shift());

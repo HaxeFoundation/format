@@ -33,7 +33,6 @@ class Compiler {
 	var vars : Hash<Variable>;
 	var indexes : Array<Int>;
 	var ops : Array<Array<{ p1 : VarType, p2 : VarType, r : VarType }>>;
-	var delayed : Array<{ idx : Int, callb : Void -> Void }>;
 	var tempCount : Int;
 
 	public var config : { inlTranspose : Bool, inlInt : Bool, allowAllWMasks : Bool };
@@ -108,15 +107,15 @@ class Compiler {
 		for( v in h.vars )
 			allocVar(v.n, VVar, v.t, v.p);
 
-		var vertex = compileShader(h.vertex);
-		var fragment = compileShader(h.fragment);
+		var vertex = compileShader(h.vertex,true);
+		var fragment = compileShader(h.fragment,false);
 
 		return { input : input, vertex : vertex, fragment : fragment };
 	}
 
-	function compileShader( c : ParsedCode ) : Code {
+	function compileShader( c : ParsedCode, vertex : Bool ) : Code {
 		cur = {
-			vertex : c.vertex,
+			vertex : vertex,
 			pos : c.pos,
 			consts : [],
 			args : [],
@@ -127,29 +126,14 @@ class Compiler {
 		for( v in c.args )
 			switch( v.t ) {
 			case TTexture(_):
-				if( c.vertex ) error("You can't use a texture inside a vertex shader", v.p);
+				if( cur.vertex ) error("You can't use a texture inside a vertex shader", v.p);
 				cur.tex.push(allocVar(v.n, VTexture, v.t, v.p));
 			default:
 				cur.args.push(allocVar(v.n, VParam, v.t, v.p));
 			}
 
-		delayed = [];
 		for( e in c.exprs )
 			compileAssign(e.v, e.e, e.p);
-
-		while( true ) {
-			var curd = delayed;
-			if( curd.length == 0 ) break;
-			delayed = [];
-			var delta = 0;
-			for( d in curd ) {
-				var insert = d.idx + delta;
-				var next = cur.exprs.splice(insert, cur.exprs.length - insert);
-				d.callb();
-				delta += cur.exprs.length - insert;
-				cur.exprs = cur.exprs.concat(next);
-			}
-		}
 
 		cur.tempSize = indexes[Type.enumIndex(VTmp)];
 		checkVars();
@@ -248,10 +232,6 @@ class Compiler {
 			error("Invalid assign", p);
 		}
 		cur.exprs.push( { v : v, e : e } );
-	}
-
-	function addDelayed( callb ) {
-		delayed.push( { idx : cur.exprs.length, callb : callb } );
 	}
 
 	function swizBits( s : Array<Comp>, t : VarType ) {
@@ -507,7 +487,7 @@ class Compiler {
 
 	function compileValue( e : ParsedValue ) : CodeValue {
 		switch( e.v ) {
-		case PBlock(_):
+		case PBlock(_), PReturn(_):
 			throw "assert";
 		case PVar(vname):
 			var v = vars.get(vname);
@@ -642,6 +622,9 @@ class Compiler {
 				unify(v.t, TMatrix(4, 4, { t : null } ), v.p);
 			}
 			throw "assert"; // unreachable
+		case PCall(n,vl):
+			error("TODO", e.p);
+			throw "assert";
 		};
 	}
 
