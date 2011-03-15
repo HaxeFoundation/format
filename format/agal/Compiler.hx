@@ -339,7 +339,7 @@ class Compiler {
 			reserved = [];
 			for( t in temps ) {
 				// already assigned to another temp
-				if( t.assignedTo != tid ) continue;
+				if( t == null || t.assignedTo != tid ) continue;
 				var bits = t.liveBits[codePos];
 				// not live
 				if( bits == null ) continue;
