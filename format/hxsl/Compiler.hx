@@ -34,6 +34,9 @@ class Compiler {
 	var indexes : Array<Int>;
 	var ops : Array<Array<{ p1 : VarType, p2 : VarType, r : VarType }>>;
 	var tempCount : Int;
+	var helpers : Hash<Data.ParsedCode>;
+	var ret : { v : CodeValue };
+	var allowTextureRead : Bool;
 
 	public var config : { inlTranspose : Bool, inlInt : Bool, allowAllWMasks : Bool };
 
@@ -91,6 +94,8 @@ class Compiler {
 		switch( t ) {
 		case TMatrix(r, c, t):
 			return "M" + r + "" + c + (t.t ? "T" : "");
+		case TTexture(cube):
+			return cube ? "CubeTexture" : "Texture";
 		default:
 			return Std.string(t).substr(1);
 		}
@@ -99,6 +104,8 @@ class Compiler {
 
 	public function compile( h : ParsedHxsl ) {
 		allocVar("out", VOut, TFloat4, h.pos);
+		
+		helpers = h.helpers;
 
 		var input = [];
 		for( v in h.input )
@@ -149,20 +156,31 @@ class Compiler {
 
 		return cur;
 	}
+	
+	function saveVars() {
+		var old = new Hash();
+		for( v in vars.keys() )
+			old.set(v, vars.get(v));
+		return old;
+	}
 
 	function compileAssign( v : Null<ParsedValue>, e : ParsedValue, p : Position ) {
 		if( v == null ) {
 			switch( e.v ) {
 			case PBlock(el):
-				var old = new Hash();
-				for( v in vars.keys() )
-					old.set(v, vars.get(v));
+				var old = saveVars();
 				for( e in el )
 					compileAssign(e.v, e.e, e.p);
 				for( v in vars )
 					if( v.kind == VTmp && old.get(v.name) != v && !v.read )
 						warn("Unused local variable '" + v.name + "'", v.pos);
 				vars = old;
+				return;
+			case PReturn(v):
+				if( ret == null ) error("Unexpected return", e.p);
+				if( ret.v != null ) error("Duplicate return", e.p);
+				ret.v = compileValue(v);
+				checkRead(ret.v);
 				return;
 			default:
 			}
@@ -469,7 +487,8 @@ class Compiler {
 				if( !cur.vertex ) error("You cannot read input variable in fragment shader", e.p);
 				v.read = true;
 			case VTexture:
-				error("You can't read from a texture", e.p);
+				if( !allowTextureRead )
+					error("You can't read from a texture", e.p);
 			}
 		case COp(_, e1, e2):
 			checkRead(e1);
@@ -623,8 +642,44 @@ class Compiler {
 			}
 			throw "assert"; // unreachable
 		case PCall(n,vl):
-			error("TODO", e.p);
-			throw "assert";
+			var h = helpers.get(n);
+			if( h == null ) error("Unknown function '" + n + "'", e.p);
+			var vals = [];
+			allowTextureRead = true;
+			for( v in vl )
+				vals.push(compileValue(v));
+			allowTextureRead = false;
+			if( h.args.length != vl.length ) error("Function " + n + " requires " + h.args.length + " arguments", e.p);
+			var old = saveVars();
+			vars = new Hash();
+			// init args
+			for( i in 0...h.args.length ) {
+				var value = vals[i];
+				var a = h.args[i];
+				unify(value.t, a.t, value.p);
+				switch( a.t ) {
+				case TTexture(_):
+					switch( value.d ) {
+					case CVar(v, _):
+						// copy variable
+						vars.set(a.n, v);
+					default:
+						error("Invalid texture access", value.p);
+					}
+				default:
+					var v = allocVar(a.n, VTmp, a.t, a.p);
+					addAssign( { d : CVar(v), t : v.type, p : v.pos }, value, value.p );
+				}
+			}
+			// compile block
+			ret = { v : null };
+			for( e in h.exprs )
+				compileAssign(e.v, e.e, e.p);
+			if( ret.v == null )
+				error("Missing return", h.pos);
+			checkVars();
+			vars = old;
+			return { d : ret.v.d, t : ret.v.t, p : e.p };
 		};
 	}
 
@@ -682,6 +737,11 @@ class Compiler {
 					return true;
 				}
 				return( t1.t == t2.t );
+			default:
+			}
+		case TTexture(c1):
+			switch( t2 ) {
+			case TTexture(c2): return c1 == c2;
 			default:
 			}
 		default:
