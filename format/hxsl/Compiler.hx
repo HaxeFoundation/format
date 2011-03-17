@@ -163,6 +163,13 @@ class Compiler {
 			old.set(v, vars.get(v));
 		return old;
 	}
+	
+	function closeBlock( old : Hash<Variable> ) {
+		for( v in vars )
+			if( v.kind == VTmp && old.get(v.name) != v && !v.read )
+				warn("Unused local variable '" + v.name + "'", v.pos);
+		vars = old;
+	}
 
 	function compileAssign( v : Null<ParsedValue>, e : ParsedValue, p : Position ) {
 		if( v == null ) {
@@ -171,10 +178,7 @@ class Compiler {
 				var old = saveVars();
 				for( e in el )
 					compileAssign(e.v, e.e, e.p);
-				for( v in vars )
-					if( v.kind == VTmp && old.get(v.name) != v && !v.read )
-						warn("Unused local variable '" + v.name + "'", v.pos);
-				vars = old;
+				closeBlock(old);
 				return;
 			case PReturn(v):
 				if( ret == null ) error("Unexpected return", e.p);
@@ -651,7 +655,12 @@ class Compiler {
 			allowTextureRead = false;
 			if( h.args.length != vl.length ) error("Function " + n + " requires " + h.args.length + " arguments", e.p);
 			var old = saveVars();
-			vars = new Hash();
+			// only allow access to globals/output from within out helper functions
+			for( v in old )
+				switch( v.kind ) {
+				case VTmp, VTexture, VParam: vars.remove(v.name);
+				case VOut, VInput, VVar:
+				}
 			// init args
 			for( i in 0...h.args.length ) {
 				var value = vals[i];
@@ -677,8 +686,7 @@ class Compiler {
 				compileAssign(e.v, e.e, e.p);
 			if( ret.v == null )
 				error("Missing return", h.pos);
-			checkVars();
-			vars = old;
+			closeBlock(old);
 			return { d : ret.v.d, t : ret.v.t, p : e.p };
 		};
 	}
