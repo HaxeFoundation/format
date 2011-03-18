@@ -359,7 +359,7 @@ class Compiler {
 		// transform mov to dead registers into no-ops
 		switch( code[codePos] ) {
 		case OMov(dst, src):
-			if( dst.t == RTemp ) {
+			if( dst.t == RTemp && src.t == RTemp ) {
 				var t = temps[dst.index];
 				if( t.liveBits[codePos + 1] == null ) {
 					code[codePos] = OMov(dst, dst); // no-op, will be removed later
