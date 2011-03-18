@@ -32,8 +32,8 @@ private typedef Temp = {
 	var liveBits : Array<Int>;
 	var bitsDefPos : Array<Int>;
 	var assignedTo : Int;
-	var writeBits : Int;
 	var assignedComps : Swizzle;
+	var invAssignedComps : Array<Int>;
 }
 
 class Compiler {
@@ -42,6 +42,7 @@ class Compiler {
 	var tempCount : Int;
 	var tempMax : Int;
 	var temps : Array<Temp>;
+	var regs : Array<Array<Temp>>;
 	var codePos : Int;
 	var startRegister : Int;
 	var packRegisters : Bool;
@@ -132,31 +133,12 @@ class Compiler {
 				}
 			compileTo(d, e.e);
 		}
-
+		
 		var old = code;
-		code = uniqueReg();
-
-
-		var maxRegs = format.agal.Tools.getProps(RTemp, !c.vertex).count;
-		temps = [];
-		compileLiveness(regLive);
-		startRegister = 0;
-		tempMax = maxRegs;
-		packRegisters = false;
-		compileLiveness(regAssign);
-
-		if( tempMax > maxRegs ) {
-			code = old;
-			code = uniqueReg();
-			startRegister = 0;
-			tempMax = maxRegs;
-			packRegisters = true;
-			compileLiveness(regAssign);
-			if( tempMax > maxRegs )
-				error("This shader uses to many temporary variables for his calculus", c.pos);
-		}
-
-
+	
+		if( !assignRegisters(false,c.vertex) && !assignRegisters(true,c.vertex) )
+			error("This shader uses to many temporary variables for his calculus", c.pos);
+		
 		// DEBUG
 		/*
 		#if debug
@@ -210,6 +192,27 @@ class Compiler {
 		var s = r.swiz;
 		return s != null && s.length > 1 && (s[0] != X || s[1] != Y || (s.length > 2 && (s[2] != Z || (s.length > 3 && s[3] != W))));
 	}
+	
+	function assignRegisters( pack, vertex ) {
+		var maxRegs = format.agal.Tools.getProps(RTemp, !vertex).count;
+		var old = code;
+		code = uniqueReg();
+		temps = [];
+		regs = [];
+		for( i in 0...maxRegs )
+			regs[i] = [];
+		startRegister = -1;
+		packRegisters = pack;
+		compileLiveness(regLive);
+		tempMax = maxRegs;
+		startRegister = 0;
+		compileLiveness(regAssign);
+		if( tempMax > maxRegs ) {
+			code = old;
+			return false;
+		}
+		return true;
+	}
 
 	function uniqueReg() {
 		function cp(r:Reg) {
@@ -262,7 +265,7 @@ class Compiler {
 		if( write ) {
 			// alloc register
 			if( t == null ) {
-				t = { liveBits : [], writeBits : 0, bitsDefPos : [ -1, -1, -1, -1], assignedTo : -1, assignedComps : null };
+				t = { liveBits : [], bitsDefPos : [ -1, -1, -1, -1], assignedTo : -1, assignedComps : null, invAssignedComps : [] };
 				temps[r.index] = t;
 			}
 			// set last-write per-component codepos
@@ -273,6 +276,24 @@ class Compiler {
 				for( s in r.swiz )
 					t.bitsDefPos[Type.enumIndex(s)] = codePos;
 			}
+			// copy-propagation
+			t.assignedTo = -1;
+			if( startRegister >= 0 ) {
+				switch( code[codePos] ) {
+				case OMov(d, v):
+					t.assignedTo = startRegister;
+					// build component swizzle map
+					var s = d.swiz;
+					if( s == null ) s = [X, Y, Z, W];
+					var ss = v.swiz;
+					if( ss == null ) ss = [X, Y, Z, W];
+					t.assignedComps = [];
+					for( i in 0...s.length )
+						t.assignedComps[Type.enumIndex(s[i])] = ss[i];
+				default:
+				}
+				startRegister = -1;
+			}
 		} else {
 			if( t == null ) throw "assert";
 			var s = if( r.swiz == null ) [X, Y, Z, W] else r.swiz;
@@ -280,13 +301,25 @@ class Compiler {
 			// make sure that we reserve all the components as soon
 			// as the first one is written
 			var minPos = null;
-			var mask = 0;
+			var mask = 0, writes = 0;
 			for( s in s ) {
 				var bit = Type.enumIndex(s);
 				var pos = t.bitsDefPos[bit];
+				if( pos != minPos ) writes++;
 				if( minPos == null || pos < minPos ) minPos = pos;
 				mask |= 1 << bit;
 			}
+			
+			// copy-propagation
+			if( t.assignedTo >= 0 && writes == 1 ) {
+				r.index = t.assignedTo;
+				r.swiz = [];
+				for( c in s )
+					r.swiz.push(t.assignedComps[Type.enumIndex(c)]);
+				regLive(r, write);
+				return;
+			}
+			
 			if( minPos < 0 ) throw "assert";
 			for( p in minPos+1...codePos ) {
 				var k = t.liveBits[p];
@@ -323,6 +356,18 @@ class Compiler {
 			changeReg(r, t);
 			return;
 		}
+		// transform mov to dead registers into no-ops
+		switch( code[codePos] ) {
+		case OMov(dst, src):
+			if( dst.t == RTemp ) {
+				var t = temps[dst.index];
+				if( t.liveBits[codePos + 1] == null ) {
+					code[codePos] = OMov(dst, dst); // no-op, will be removed later
+					return;
+				}
+			}
+		default:
+		}
 		// make sure that we reserve all the components we will write
 		var mask = 0;
 		for( i in 0...4 )
@@ -330,56 +375,67 @@ class Compiler {
 				mask |= 1 << i;
 		var ncomps = bitCount(mask);
 		// allocate a new temp id by looking the other live variable components
-		var found, reserved;
-		if( packRegisters ) startRegister = 0; // always find best-fit
+		var found = null, reservedMask, foundUsage = 10;
 		for( td in 0...tempMax ) {
-			var tid = (startRegister + td) % tempMax;
-			var count = ncomps;
-			found = tid;
-			reserved = [];
-			for( t in temps ) {
-				// already assigned to another temp
-				if( t == null || t.assignedTo != tid ) continue;
-				var bits = t.liveBits[codePos];
-				// not live
-				if( bits == null ) continue;
-				// don't allow to reserve more than one component on a used
-				// register since it might trigger invalid write mask in case
-				// both are written at once
-				if( ncomps > 1 ) {
-					found = null;
-					break;
-				}
-				// if we can't reserve enough components, try next temp
-				count += t.writeBits;
-				reserved.push(t);
-				if( count > 4 ) {
-					found = null;
-					break;
-				}
+			var rid = (startRegister + td) % tempMax;
+			var reg = regs[rid];
+			
+			// check current reserved components
+			var rmask = 0;
+			var available = 4;
+			for( i in 0...4 ) {
+				var t = reg[i];
+				if( t == null ) continue;
+				var b = t.liveBits[codePos];
+				if( b == null || b & (1 << t.invAssignedComps[i]) == 0 ) continue;
+				rmask |= 1 << i;
+				available--;
 			}
-			if( found != null )
-				break;
+			
+			// not enough components available
+			if( available < ncomps )
+				continue;
+			// not first X components available
+			// this is necessary for write masks
+			if( ncomps > 1 && rmask & (1 << ncomps - 1) != 0 )
+				continue;
+			// if we have found a previous register that is better fit
+			if( packRegisters && found != null && foundUsage <= available - ncomps )
+				continue;
+			found = rid;
+			foundUsage = available - ncomps;
+			reservedMask = rmask;
+			// continue to look for best match
+			if( !packRegisters ) break;
 		}
 		if( found == null ) {
+			reservedMask = 0;
 			found = tempMax++;
-			reserved = [];
+			regs.push([]);
 		}
+		var reg = regs[found];
 		t.assignedTo = found;
-		t.writeBits = ncomps;
-		var comps = [X, Y, Z, W];
-		for( t in reserved )
-			for( s in t.assignedComps )
-				comps.remove(s);
+		// list free components
+		var all = [X, Y, Z, W];
+		var comps = [];
+		for( i in 0...4 )
+			if( reservedMask & (1 << i) == 0 )
+				comps.push(all[i]);
+		// create component map
 		t.assignedComps = [];
 		for( i in 0...4 )
-			if( mask & (1 << i) != 0 )
-				t.assignedComps[i] = comps.shift();
+			if( mask & (1 << i) != 0 ) {
+				// if one single component, allocate from the end to keep free first registers
+				var c = ncomps == 1 ? comps.pop() : comps.shift();
+				t.assignedComps[i] = c;
+				t.invAssignedComps[Type.enumIndex(c)] = i;
+				reg[Type.enumIndex(c)] = t;
+			}
 		changeReg(r, t);
 		// next assign will most like use another register
 		// even if this one is no longer used
 		// this is supposed to favor parallelism
-		startRegister = found + 1;
+		if( !packRegisters ) startRegister = found + 1;
 	}
 
 	function project( dst : Reg, r1 : Reg, r2 : Reg ) {
