@@ -200,7 +200,7 @@ class Parser {
 			}
 			error("Unsupported call", e.pos);
 		case EFor(v, it, expr):
-			var min = null, max = null;
+			var min : Null<Int> = null, max : Null<Int> = null;
 			switch( it.expr ) {
 			case EBinop(op, e1, e2):
 				if( op == OpInterval ) {
@@ -310,7 +310,7 @@ class Parser {
 		return null;
 	}
 
-	function parseInt( e : Expr ) {
+	function parseInt( e : Expr ) : Null<Int> {
 		return switch( e.expr ) {
 		case EConst(c): switch( c ) { case CInt(i): Std.parseInt(i); default: null; }
 		case EUnop(op, _, e):
