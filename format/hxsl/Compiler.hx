@@ -102,9 +102,9 @@ class Compiler {
 
 	}
 
-	public function compile( h : ParsedHxsl ) {
+	public function compile( h : ParsedHxsl ) : Data {
 		allocVar("out", VOut, TFloat4, h.pos);
-		
+
 		helpers = h.helpers;
 
 		var input = [];
@@ -156,14 +156,14 @@ class Compiler {
 
 		return cur;
 	}
-	
+
 	function saveVars() {
 		var old = new Hash();
 		for( v in vars.keys() )
 			old.set(v, vars.get(v));
 		return old;
 	}
-	
+
 	function closeBlock( old : Hash<Variable> ) {
 		for( v in vars )
 			if( v.kind == VTmp && old.get(v.name) != v && !v.read )
@@ -470,7 +470,7 @@ class Compiler {
 				return false;
 		return true;
 	}
-	
+
 	function isUnsupportedWriteMask( s : Array<Comp> ) {
 		return s != null && s.length > 1 && (s[0] != X || s[1] != Y || (s.length > 2 && (s[2] != Z || (s.length > 3 && s[3] != W))));
 	}

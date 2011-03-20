@@ -133,6 +133,12 @@ typedef Code = {
 	var tempSize : Int;
 }
 
+typedef Data = {
+	var vertex : Code;
+	var fragment : Code;
+	var input : Array<Variable>;
+}
+
 // parsed hxsl
 
 enum ParsedValueDecl {
