@@ -29,7 +29,7 @@ import format.agal.Data;
 import format.hxsl.Data;
 
 private typedef Temp = {
-	var liveBits : Array<Int>;
+	var liveBits : Array<Null<Int>>;
 	var bitsDefPos : Array<Int>;
 	var assignedTo : Int;
 	var assignedComps : Swizzle;
@@ -300,7 +300,7 @@ class Compiler {
 			// if we need to read some components at some time
 			// make sure that we reserve all the components as soon
 			// as the first one is written
-			var minPos = null;
+			var minPos : Null<Int> = null;
 			var mask = 0, writes = 0;
 			for( s in s ) {
 				var bit = Type.enumIndex(s);
@@ -375,7 +375,7 @@ class Compiler {
 				mask |= 1 << i;
 		var ncomps = bitCount(mask);
 		// allocate a new temp id by looking the other live variable components
-		var found = null, reservedMask, foundUsage = 10;
+		var found : Null<Int> = null, reservedMask = 0, foundUsage = 10;
 		for( td in 0...tempMax ) {
 			var rid = (startRegister + td) % tempMax;
 			var reg = regs[rid];
