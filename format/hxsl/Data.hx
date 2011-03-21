@@ -61,6 +61,8 @@ enum VarType {
 	TFloat2;
 	TFloat3;
 	TFloat4;
+	TColor3;
+	TColor;
 	TMatrix( r : Int, c : Int, transpose : { t : Null<Bool> } );
 	TTexture( cube : Bool );
 }
@@ -217,8 +219,8 @@ class Tools {
 		return switch( t ) {
 		case TFloat: 1;
 		case TFloat2: 2;
-		case TFloat3: 3;
-		case TFloat4: 4;
+		case TFloat3, TColor3: 3;
+		case TFloat4, TColor: 4;
 		case TTexture(_): 0;
 		case TMatrix(w,h,_): w*h;
 		}

@@ -70,6 +70,10 @@ class Parser {
 			help.set(h, buildShader(helpers.get(h)));
 		return { input : input, vertex : vs, fragment : fs, vars : vars, pos : e.pos, helpers : help };
 	}
+	
+	public dynamic function includeFile( file : String ) : Null<Expr> {
+		return null;
+	}
 
 	function getType( t : ComplexType, pos ) {
 		switch(t) {
@@ -87,6 +91,8 @@ class Parser {
 			case "M43": TMatrix(4, 3, { t : null } );
 			case "Texture": TTexture(false);
 			case "CubeTexture": TTexture(true);
+			case "Color3": TColor3;
+			case "Color": TColor;
 			default:
 				error("Unknown type '" + p.name + "'", pos);
 			}
@@ -119,6 +125,7 @@ class Parser {
 				else
 					vars.push(allocVar(v.name, v.type, p));
 			}
+			return;
 		case EFunction(f):
 			switch( f.name ) {
 			case "vertex": vertex = f;
@@ -128,9 +135,40 @@ class Parser {
 					error("Duplicate function '" + f.name + "'", e.pos);
 				helpers.set(f.name, f);
 			}
+			return;
+		case ECall(f, pl):
+			switch( f.expr ) {
+			case EConst(c):
+				switch( c ) {
+				case CIdent(s):
+					if( s == "include" && pl.length == 1 ) {
+						switch( pl[0].expr ) {
+						case EConst(c):
+							switch( c ) {
+							case CString(str):
+								var f = includeFile(str);
+								if( f == null )
+									error("Failed to include file", pl[0].pos);
+								switch( f.expr ) {
+								case EBlock(el):
+									for( e in el )
+										parseDecl(e);
+								default:
+									parseDecl(f);
+								}
+								return;
+							default:
+							}
+						default:
+						}
+					}
+				default:
+				}
+			default:
+			}
 		default:
-			error("Unsupported declaration", e.pos);
 		};
+		error("Unsupported declaration", e.pos);
 	}
 
 	function buildShader( f : Function ) {

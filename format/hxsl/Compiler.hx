@@ -581,8 +581,8 @@ class Compiler {
 			var count = switch( v.t ) {
 			case TFloat: 1;
 			case TFloat2: 2;
-			case TFloat3: 3;
-			case TFloat4: 4;
+			case TFloat3, TColor3: 3;
+			case TFloat4, TColor: 4;
 			case TMatrix(_), TTexture(_): 0;
 			}
 			// allow all components access on input and varying values only
@@ -783,6 +783,10 @@ class Compiler {
 			case TTexture(c2): return c1 == c2;
 			default:
 			}
+		case TFloat3, TColor3:
+			return (t2 == TFloat3 || t2 == TColor3);
+		case TFloat4, TColor:
+			return (t2 == TFloat4 || t2 == TColor);
 		default:
 		}
 		return false;
@@ -1026,7 +1030,7 @@ class Compiler {
 
 	function isFloat( t : VarType ) {
 		return switch( t ) {
-		case TFloat, TFloat2, TFloat3, TFloat4: true;
+		case TFloat, TFloat2, TFloat3, TFloat4, TColor3, TColor: true;
 		default: false;
 		};
 	}
@@ -1040,6 +1044,10 @@ class Compiler {
 				return r2 == r && c2 == c && ( t1.t == null || t2.t == null || t1.t == t2.t );
 			default:
 			}
+		case TFloat3, TColor3:
+			return (t2 == TFloat3 || t2 == TColor3);
+		case TFloat4, TColor:
+			return (t2 == TFloat4 || t2 == TColor);
 		default:
 		}
 		return false;

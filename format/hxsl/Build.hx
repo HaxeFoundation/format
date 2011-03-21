@@ -40,6 +40,7 @@ class Build {
 		return switch( t ) {
 		case TFloat: "Float";
 		case TFloat2, TFloat3, TFloat4: "flash.geom.Vector3D";
+		case TColor3, TColor: "Int";
 		case TMatrix(_): "flash.geom.Matrix3D";
 		case TTexture(cube): "flash.display3D.textures." + (cube ? "CubeTexture" : "Texture");
 		};
@@ -68,13 +69,13 @@ class Build {
 			case TFloat2:
 				inf.setup.push(n + ".x");
 				inf.setup.push(n + ".y");
-				inf.setup.push("0");
-				inf.setup.push("0");
+				inf.setup.push("1.");
+				inf.setup.push("1.");
 			case TFloat3:
 				inf.setup.push(n + ".x");
 				inf.setup.push(n + ".y");
 				inf.setup.push(n + ".z");
-				inf.setup.push("0");
+				inf.setup.push("1.");
 			case TFloat4:
 				inf.setup.push(n + ".x");
 				inf.setup.push(n + ".y");
@@ -90,6 +91,16 @@ class Build {
 					}
 			case TTexture(_):
 				inf.tmp.push("texture(" + c.index + "," + n + ");");
+			case TColor3:
+				inf.setup.push("((" + n + ">>16) & 0xFF) / 255.0");
+				inf.setup.push("((" + n + ">>8) & 0xFF) / 255.0");
+				inf.setup.push("(" + n + " & 0xFF) / 255.0");
+				inf.setup.push("1.");
+			case TColor:
+				inf.setup.push("((" + n + ">>16) & 0xFF) / 255.0");
+				inf.setup.push("((" + n + ">>8) & 0xFF) / 255.0");
+				inf.setup.push("(" + n + " & 0xFF) / 255.0");
+				inf.setup.push("(" + n + ">>>24) / 255.0");
 			}
 		}
 		for( c in shader.consts ) {
@@ -119,7 +130,12 @@ class Build {
 		if( shader == null )
 			Context.error("Missing @:shader metadata", cl.pos);
 
-		var v = try new Parser().parse(shader) catch( e : Error ) haxe.macro.Context.error(e.message, e.pos);
+		var p = new Parser();
+		p.includeFile = function(file) {
+			var f = Context.resolvePath(file);
+			return Context.parse("{"+neko.io.File.getContent(f)+"}", Context.makePosition( { min : 0, max : 0, file : f } ));
+		};
+		var v = try p.parse(shader) catch( e : Error ) haxe.macro.Context.error(e.message, e.pos);
 		var c = new Compiler();
 		c.warn = Context.warning;
 		var v = try c.compile(v) catch( e : Error ) haxe.macro.Context.error(e.message, e.pos);
