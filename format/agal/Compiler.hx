@@ -46,6 +46,7 @@ class Compiler {
 	var codePos : Int;
 	var startRegister : Int;
 	var packRegisters : Bool;
+	var vertex : Bool;
 
 	public function new() {
 	}
@@ -111,33 +112,16 @@ class Compiler {
 	public function compile( c : Code ) : Data {
 		code = [];
 		tempCount = c.tempSize;
-		for( e in c.exprs ) {
-			if( e.v == null ) {
-				// assume dest not check
-				compileTo({ t : ROut, index : -1, swiz : null }, e.e);
-				continue;
-			}
-			var d = switch( e.v.d ) {
-			case CVar(v, swiz): reg(v,swiz);
-			default: throw "assert";
-			}
-			// fragment shader does not allow direct operations to output
-			if( !c.vertex && d.t == ROut )
-				switch( e.e.d ) {
-				case COp(_), CTex(_), CUnop(_):
-					var t = allocTemp(e.v.t);
-					compileTo(t, e.e);
-					mov(d, t, e.v.t);
-					continue;
-				case CVar(_), CSwiz(_):
-				}
-			compileTo(d, e.e);
-		}
+		vertex = c.vertex;
+		for( e in c.exprs )
+			compileExpr(e.e, e.v);
 		
 		var old = code;
-	
-		if( !assignRegisters(false,c.vertex) && !assignRegisters(true,c.vertex) )
-			error("This shader uses to many temporary variables for his calculus", c.pos);
+		if( !assignRegisters(false, c.vertex) ) {
+			code = old;
+			if( !assignRegisters(true,c.vertex) )
+				error("This shader uses to many temporary variables for his calculus", c.pos);
+		}
 		
 		// DEBUG
 		/*
@@ -186,6 +170,29 @@ class Compiler {
 			code : code,
 		};
 	}
+	
+	function compileExpr( e : CodeValue, v : CodeValue ) {
+		if( v == null ) {
+			// assume dest not check
+			compileTo({ t : ROut, index : -1, swiz : null }, e);
+			return;
+		}
+		var d = switch( v.d ) {
+		case CVar(v, swiz): reg(v,swiz);
+		default: throw "assert";
+		}
+		// fragment shader does not allow direct operations to output
+		if( !vertex && d.t == ROut )
+			switch( e.d ) {
+			case COp(_), CTex(_), CUnop(_):
+				var t = allocTemp(v.t);
+				compileTo(t, e);
+				mov(d, t, v.t);
+				return;
+			case CVar(_), CSwiz(_), CBlock(_):
+			}
+		compileTo(d, e);
+	}
 
 	// AGAL is using 1.3 shader profile, so does not allow exotic write mask
 	function isUnsupportedWriteMask( r : Reg ) {
@@ -195,7 +202,6 @@ class Compiler {
 	
 	function assignRegisters( pack, vertex ) {
 		var maxRegs = format.agal.Tools.getProps(RTemp, !vertex).count;
-		var old = code;
 		code = uniqueReg();
 		temps = [];
 		regs = [];
@@ -207,11 +213,7 @@ class Compiler {
 		tempMax = maxRegs;
 		startRegister = 0;
 		compileLiveness(regAssign);
-		if( tempMax > maxRegs ) {
-			code = old;
-			return false;
-		}
-		return true;
+		return tempMax <= maxRegs;
 	}
 
 	function uniqueReg() {
@@ -435,7 +437,7 @@ class Compiler {
 		// next assign will most like use another register
 		// even if this one is no longer used
 		// this is supposed to favor parallelism
-		if( !packRegisters ) startRegister = found + 1;
+		if( packRegisters ) startRegister = 0 else startRegister = found + 1;
 	}
 
 	function project( dst : Reg, r1 : Reg, r2 : Reg ) {
@@ -629,6 +631,10 @@ class Compiler {
 				case TFilterLinear: TFilterLinear;
 				});
 			code.push(OTex(dst, vtmp, { index : v.index, flags : tflags } ));
+		case CBlock(el, v):
+			for( e in el )
+				compileExpr(e.e, e.v);
+			compileTo(dst,v);
 		}
 	}
 
@@ -643,6 +649,10 @@ class Compiler {
 			var t = allocTemp(e.t);
 			compileTo(t, e);
 			return t;
+		case CBlock(el, v):
+			for( e in el )
+				compileExpr(e.e, e.v);
+			return compileSrc(v);
 		}
 	}
 

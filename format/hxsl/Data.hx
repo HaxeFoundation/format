@@ -115,6 +115,7 @@ enum CodeValueDecl {
 	CUnop( op : CodeUnop, e : CodeValue );
 	CTex( v : Variable, acc : CodeValue, flags : Array<TexFlag> );
 	CSwiz( e : CodeValue, swiz : Array<Comp> );
+	CBlock( exprs : Array<{ v : CodeValue, e : CodeValue }>, v : CodeValue );
 }
 
 typedef CodeValue = {

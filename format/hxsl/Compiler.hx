@@ -505,6 +505,8 @@ class Compiler {
 			checkRead(v);
 		case CSwiz(v, _):
 			checkRead(v);
+		case CBlock(_, v):
+			checkRead(v);
 		}
 	}
 
@@ -709,6 +711,8 @@ class Compiler {
 		// declare a new temporary
 		var v = allocTemp(Tools.makeFloat(values.length),p);
 		// assign expressions first
+		var old = cur.exprs;
+		cur.exprs = [];
 		var write = [];
 		for( i in 0...values.length ) {
 			var e = exprs[i];
@@ -729,7 +733,10 @@ class Compiler {
 				addAssign( { d : CVar(v, write), t : Tools.makeFloat(write.length), p : p }, allocConst(consts, p), p);
 		}
 		// return temporary
-		return { d : CVar(v), t : v.type, p : p };
+		var ret = { d : CVar(v), t : v.type, p : p };
+		var sub = { d : CBlock(cur.exprs, ret), t : ret.t, p : p };
+		cur.exprs = old;
+		return sub;
 	}
 
 	function tryUnify( t1 : VarType, t2 : VarType ) {
