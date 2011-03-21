@@ -704,13 +704,16 @@ class Compiler {
 				}
 			}
 			// compile block
+			var rold = ret;
 			ret = { v : null };
 			for( e in h.exprs )
 				compileAssign(e.v, e.e, e.p);
-			if( ret.v == null )
+			var v = ret.v;
+			if( v == null )
 				error("Missing return", h.pos);
+			ret = rold;
 			closeBlock(old);
-			return { d : ret.v.d, t : ret.v.t, p : e.p };
+			return { d : v.d, t : v.t, p : e.p };
 		};
 	}
 
