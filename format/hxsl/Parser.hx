@@ -260,6 +260,7 @@ class Parser {
 			case OpLte: "lte";
 			case OpGt: "gt";
 			case OpGte: "gte";
+			case OpMod: "mod";
 			default: error("Unsupported operation", e.pos);
 			};
 			return makeCall(op, [e1, e2], e.pos);
@@ -459,6 +460,7 @@ class Parser {
 		case "pow": checkParams(2); return makeOp(CPow, v[0], v[1], p);
 		case "min": checkParams(2); return makeOp(CMin, v[0], v[1], p);
 		case "max": checkParams(2); return makeOp(CMax, v[0], v[1], p);
+		case "mod": checkParams(2); return makeOp(CMod, v[0], v[1], p);
 		case "dp","dp3","dp4","dot": checkParams(2); return makeOp(CDot, v[0], v[1], p);
 		case "crs", "cross": checkParams(2); return makeOp(CCross, v[0], v[1], p);
 

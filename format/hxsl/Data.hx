@@ -89,6 +89,7 @@ enum CodeOp {
 	CDot;
 	CLt;
 	CGte;
+	CMod;
 }
 
 enum CodeUnop {

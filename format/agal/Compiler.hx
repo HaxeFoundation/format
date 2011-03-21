@@ -514,6 +514,12 @@ class Compiler {
 		return code.pop();
 	}
 
+	function modGenerate( dst : Reg, a : Reg, b : Reg ) {
+		code.push(OMul(dst, a, b));
+		code.push(OFrc(dst, dst));
+		return ODiv(dst, dst, b);
+	}
+	
 	function compileTo( dst : Reg, e : CodeValue ) {
 		switch( e.d ) {
 		case CVar(_), CSwiz(_):
@@ -568,6 +574,7 @@ class Compiler {
 			case CPow: OPow;
 			case CGte: OSge;
 			case CLt: OSlt;
+			case CMod: modGenerate;
 			})(dst, v1, v2));
 		case CUnop(op, p):
 			var v = compileSrc(p);
