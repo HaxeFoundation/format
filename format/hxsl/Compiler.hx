@@ -215,7 +215,7 @@ class Compiler {
 			if( v.t == null ) v.t = e.t;
 		default:
 		}
-		var v = compileValue(v);
+		var v = compileValue(v,true);
 		unify(e.t, v.t, e.p);
 		addAssign(v, e, p);
 	}
@@ -239,6 +239,15 @@ class Compiler {
 				vr.write |= bits;
 			case VTmp:
 				vr.write |= bits;
+				vr.assign = null;
+				switch( e.d ) {
+				case CVar(v2, s2):
+					if( v2.kind != VTmp && bits == fullBits(vr.type) ) {
+						if( s2 == null ) s2 = [X, Y, Z, W];
+						vr.assign = { v : v2, s : s2 };
+					}
+				default:
+				}
 			case VTexture:
 				error("You can't write to a texture", v.p);
 			}
@@ -275,10 +284,11 @@ class Compiler {
 			name : name,
 			type : t,
 			kind : k,
-			read : false,
 			index : indexes[tkind],
-			write : if( k == null ) fullBits(t) else switch( k ) { case VInput, VParam: fullBits(t); default: 0; },
 			pos : p,
+			read : false,
+			write : if( k == null ) fullBits(t) else switch( k ) { case VInput, VParam: fullBits(t); default: 0; },
+			assign : null,
 		};
 		#if neko
 		var me = this;
@@ -343,6 +353,7 @@ class Compiler {
 			read : true,
 			write : 0,
 			pos : p,
+			assign : null,
 		};
 		return { d : CVar(v, swiz), t : Tools.makeFloat(swiz.length), p : p };
 	}
@@ -510,14 +521,23 @@ class Compiler {
 		}
 	}
 
-	function compileValue( e : ParsedValue ) : CodeValue {
+	function compileValue( e : ParsedValue, ?isTarget ) : CodeValue {
 		switch( e.v ) {
 		case PBlock(_), PReturn(_):
 			throw "assert";
 		case PVar(vname):
 			var v = vars.get(vname);
 			if( v == null ) error("Unknown variable '" + vname + "'", e.p);
-			return { d : CVar(v), t : v.type, p : e.p };
+			var swiz = null;
+			var t = v.type;
+			if( isTarget )
+				v.assign = null;
+			else if( v.assign != null ) {
+				v.read = true;
+				swiz = v.assign.s;
+				v = v.assign.v;
+			}
+			return { d : CVar(v,swiz), t : t, p : e.p };
 		case PConst(i):
 			return allocConst([i], e.p);
 		case PLocal(v):
@@ -527,7 +547,7 @@ class Compiler {
 			// compile e[row].col
 			if( s.length == 1 ) switch( v.v ) {
 			case PRow(v, index):
-				var v = compileValue(v);
+				var v = compileValue(v,isTarget);
 				switch( v.t ) {
 				case TMatrix(r, c, t):
 					if( t.t == null ) t.t = false;
@@ -556,7 +576,7 @@ class Compiler {
 				}
 			default:
 			}
-			var v = compileValue(v);
+			var v = compileValue(v,isTarget);
 			// check swizzling according to value type
 			var count = switch( v.t ) {
 			case TFloat: 1;
@@ -600,7 +620,8 @@ class Compiler {
 			if( v == null ) error("Unknown texture '" + vname + "'", e.p);
 			var acc = compileValue(acc);
 			switch( v.type ) {
-			case TTexture(cube): unify(acc.t, cube?TFloat3:TFloat2, acc.p);
+			case TTexture(cube):
+				unify(acc.t, cube?TFloat3:(Lambda.has(flags,TSingle) ? TFloat : TFloat2), acc.p);
 			default: error("'"+vname + "' is not a texture", e.p);
 			}
 			return { d : CTex(v, acc, flags), t : TFloat4, p : e.p };
@@ -785,9 +806,44 @@ class Compiler {
 			error(typeStr(t1) + " should be " +typeStr(t2), p);
 		}
 	}
+	
+	function makeConstOp( op : CodeOp, v1 : String, v2 : String, p : Position ) {
+		var me = this;
+		function makeConst(f:Float->Float->Float) {
+			var r = f(Std.parseFloat(v1), Std.parseFloat(v2));
+			if( r + 1 == r ) r = 0; // NaN / Infinite
+			return { v : PConst(Std.string(r)), p : p };
+		}
+		return switch( op ) {
+		case CAdd: makeConst(function(x, y) return x + y);
+		case CSub: makeConst(function(x, y) return x - y);
+		case CMul: makeConst(function(x, y) return x * y);
+		case CMin: makeConst(function(x, y) return x < y ? x : y);
+		case CMax: makeConst(function(x, y) return x < y ? y : x);
+		case CLt: makeConst(function(x, y) return x < y ? 1 : 0);
+		case CGte: makeConst(function(x, y) return x >= y ? 1 : 0);
+		case CDot: makeConst(function(x, y) return x * y);
+		case CDiv: makeConst(function(x, y) return x / y);
+		case CPow: makeConst(function(x, y) return Math.pow(x,y));
+		case CCross: null;
+		};
+	}
+	
 
 	function makeOp( op : CodeOp, e1 : ParsedValue, e2 : ParsedValue, p : Position ) {
 
+		switch( e1.v ) {
+		case PConst(v1):
+			switch( e2.v ) {
+			case PConst(v2):
+				var c = makeConstOp(op, v1, v2, p);
+				if( c != null )
+					return compileValue(c);
+			default:
+			}
+		default:
+		}
+		
 		switch( op ) {
 		// optimize 1 / sqrt(x) && 1 / x
 		case CDiv:
@@ -871,10 +927,43 @@ class Compiler {
 		return null;
 	}
 
+	function makeConstUnop( op : CodeUnop, v : String, p : Position ) {
+		var me = this;
+		function makeConst(f:Float->Float) {
+			var r = f(Std.parseFloat(v));
+			if( r + 1 == r ) r = 0; // NaN / Infinite
+			return { v : PConst(Std.string(r)), p : p };
+		}
+		return switch( op ) {
+		case CNorm, CTrans, CKill: null; // invalid
+		case CInt: makeConst(function(x) return Std.int(x));
+		case CFrac: makeConst(function(x) return x % 1.);
+		case CExp: makeConst(Math.exp);
+		case CAbs: makeConst(Math.abs);
+		case CRsq: makeConst(function(x) return 1 / Math.sqrt(x));
+		case CRcp: makeConst(function(x) return 1 / x);
+		case CLog: makeConst(Math.log);
+		case CSqrt: makeConst(Math.sqrt);
+		case CSin: makeConst(Math.sin);
+		case CCos: makeConst(Math.cos);
+		case CSat: makeConst(Math.cos);
+		case CNeg: makeConst(function(x) return -x);
+		case CLen: makeConst(function(x) return x);
+		};
+	}
+	
 	function makeUnop( op : CodeUnop, e : ParsedValue, p : Position ) {
 
+		// compile constant expression
+		switch( e.v ) {
+		case PConst(v):
+			var c = makeConstUnop(op, v, p);
+			if( c != null )
+				return compileValue(c);
+		default:
+		}
+		
 		var e = compileValue(e);
-
 		var rt = e.t;
 		switch( op ) {
 		case CNorm: rt = TFloat3;

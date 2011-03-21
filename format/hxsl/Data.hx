@@ -37,6 +37,7 @@ enum TexFlag {
 	TClamp;	// default
 	TFilterNearest;
 	TFilterLinear; // default
+	TSingle;
 }
 
 enum Comp {
@@ -69,9 +70,11 @@ typedef Variable = {
 	var type : VarType;
 	var kind : VarKind;
 	var index : Int;
+	var pos : Position;
+	// internal-usage only
 	var read : Bool;
 	var write : Int;
-	var pos : Position;
+	var assign : { v : Variable, s : Array<Comp> };
 }
 
 enum CodeOp {

@@ -390,8 +390,8 @@ class Parser {
 			};
 			var t = parseValue(params.shift());
 			var flags = [];
-			var idents = ["mm_no","mm_near","mm_lineae","centroid","wrap","clamp","nearest","linear"];
-			var values = [TMipMapDisable,TMipMapNearest,TMipMapLinear,TCentroidSample,TWrap,TClamp,TFilterNearest,TFilterLinear];
+			var idents = ["mm_no","mm_near","mm_lineae","centroid","wrap","clamp","nearest","linear","single"];
+			var values = [TMipMapDisable,TMipMapNearest,TMipMapLinear,TCentroidSample,TWrap,TClamp,TFilterNearest,TFilterLinear,TSingle];
 			for( p in params ) {
 				switch( p.expr ) {
 				case EConst(c):
@@ -405,6 +405,7 @@ class Parser {
 							case TCentroidSample: [TCentroidSample];
 							case TClamp, TWrap: [TClamp, TWrap];
 							case TFilterLinear, TFilterNearest: [TFilterLinear, TFilterNearest];
+							case TSingle: [TSingle];
 							}
 							for( s in sim )
 								if( flags.remove(s) ) {

@@ -30,7 +30,7 @@ import format.hxsl.Data;
 
 private typedef Temp = {
 	var liveBits : Array<Null<Int>>;
-	var bitsDefPos : Array<Int>;
+	var lastWritePos : Array<Int>;
 	var assignedTo : Int;
 	var assignedComps : Swizzle;
 	var invAssignedComps : Array<Int>;
@@ -124,8 +124,7 @@ class Compiler {
 		}
 		
 		// DEBUG
-		/*
-		#if debug
+		#if (debug && shaderCompDebug)
 		for( i in 0...temps.length ) {
 			var bits = temps[i].liveBits;
 			var lifes = [];
@@ -138,7 +137,10 @@ class Compiler {
 				var start = p;
 				while( bits[p] == k )
 					p++;
-				lifes.push(start + "-"+ (p - 1)+" : "+k);
+				if( start == p - 1 )
+					lifes.push(start +" : " + k);
+				else
+					lifes.push(start + "-"+ (p - 1)+" : "+k);
 			}
 			trace("T" + i + " " + Std.string(lifes));
 		}
@@ -148,7 +150,6 @@ class Compiler {
 			trace("@"+i+"   "+StringTools.rpad(a," ",30) + (a == b ? "" : b));
 		}
 		#end
-		*/
 
 		// remove no-ops
 		var i = 0;
@@ -267,16 +268,16 @@ class Compiler {
 		if( write ) {
 			// alloc register
 			if( t == null ) {
-				t = { liveBits : [], bitsDefPos : [ -1, -1, -1, -1], assignedTo : -1, assignedComps : null, invAssignedComps : [] };
+				t = { liveBits : [], lastWritePos : [ -1, -1, -1, -1], assignedTo : -1, assignedComps : null, invAssignedComps : [] };
 				temps[r.index] = t;
 			}
 			// set last-write per-component codepos
 			if( r.swiz == null ) {
 				for( i in 0...4 )
-					t.bitsDefPos[i] = codePos;
+					t.lastWritePos[i] = codePos;
 			} else {
 				for( s in r.swiz )
-					t.bitsDefPos[Type.enumIndex(s)] = codePos;
+					t.lastWritePos[Type.enumIndex(s)] = codePos;
 			}
 			// copy-propagation
 			t.assignedTo = -1;
@@ -306,7 +307,7 @@ class Compiler {
 			var mask = 0, writes = 0;
 			for( s in s ) {
 				var bit = Type.enumIndex(s);
-				var pos = t.bitsDefPos[bit];
+				var pos = t.lastWritePos[bit];
 				if( pos != minPos ) writes++;
 				if( minPos == null || pos < minPos ) minPos = pos;
 				mask |= 1 << bit;
@@ -328,6 +329,7 @@ class Compiler {
 				if( k == null ) k = 0;
 				t.liveBits[p] = k | mask;
 			}
+			t.liveBits[codePos] = 0; // mark that we use it
 		}
 	}
 
@@ -354,14 +356,14 @@ class Compiler {
 		if( r.t != RTemp ) return;
 		var t = temps[r.index];
 		// if we are reading or already live, use our current id
-		if( !write || t.liveBits[codePos] != null ) {
+		if( !write || t.liveBits[codePos] > 0 ) {
 			changeReg(r, t);
 			return;
 		}
 		// transform mov to dead registers into no-ops
 		switch( code[codePos] ) {
 		case OMov(dst, src):
-			if( dst.t == RTemp && src.t == RTemp ) {
+			if( dst.t == RTemp && (src.t == RTemp || src.t == RConst) ) {
 				var t = temps[dst.index];
 				if( t.liveBits[codePos + 1] == null ) {
 					code[codePos] = OMov(dst, dst); // no-op, will be removed later
@@ -373,7 +375,7 @@ class Compiler {
 		// make sure that we reserve all the components we will write
 		var mask = 0;
 		for( i in 0...4 )
-			if( t.bitsDefPos[i] >= codePos )
+			if( t.lastWritePos[i] >= codePos )
 				mask |= 1 << i;
 		var ncomps = bitCount(mask);
 		// allocate a new temp id by looking the other live variable components
@@ -619,7 +621,8 @@ class Compiler {
 				if( cube ) tflags.push(TCube);
 			default:
 			}
-			for( f in flags )
+			for( f in flags ) {
+				if( f == TSingle ) continue;
 				tflags.push(switch(f) {
 				case TMipMapDisable: TMipMapDisable;
 				case TMipMapNearest: TMipMapNearest;
@@ -629,7 +632,9 @@ class Compiler {
 				case TClamp: TClamp;
 				case TFilterNearest: TFilterNearest;
 				case TFilterLinear: TFilterLinear;
+				case TSingle: null;
 				});
+			}
 			code.push(OTex(dst, vtmp, { index : v.index, flags : tflags } ));
 		case CBlock(el, v):
 			for( e in el )
