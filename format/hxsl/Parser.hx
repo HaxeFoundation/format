@@ -70,7 +70,7 @@ class Parser {
 			help.set(h, buildShader(helpers.get(h)));
 		return { input : input, vertex : vs, fragment : fs, vars : vars, pos : e.pos, helpers : help };
 	}
-	
+
 	public dynamic function includeFile( file : String ) : Null<Expr> {
 		return null;
 	}
@@ -419,7 +419,7 @@ class Parser {
 				vl.push(parseValue(p));
 			return { v : PCall(n, vl), p : p };
 		}
-		
+
 		// texture handling
 		if( n == "get" && params.length >= 2 ) {
 			var v = parseValue(params.shift());
@@ -429,7 +429,7 @@ class Parser {
 			};
 			var t = parseValue(params.shift());
 			var flags = [];
-			var idents = ["mm_no","mm_near","mm_lineae","centroid","wrap","clamp","nearest","linear","single"];
+			var idents = ["mm_no","mm_near","mm_linear","centroid","wrap","clamp","nearest","linear","single"];
 			var values = [TMipMapDisable,TMipMapNearest,TMipMapLinear,TCentroidSample,TWrap,TClamp,TFilterNearest,TFilterLinear,TSingle];
 			for( p in params ) {
 				switch( p.expr ) {
