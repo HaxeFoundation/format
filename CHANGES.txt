@@ -1,6 +1,7 @@
-2011-03-17: 1.19.2
-	hxsl : bugfixes, added helper functions
+2011-05-17: 1.19.2
+	hxsl : bugfixes, added helper functions and % operator
 	hxsl : better register allocation
+	hxsl : optimizations (const propagation)
 
 2011-03-05: 1.19.1
 	hxsl/agal : bugfixes & optimizations
