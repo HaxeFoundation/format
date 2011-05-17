@@ -116,8 +116,8 @@ class Parser {
 					switch( v.type ) {
 					case TAnonymous(fl):
 						for( f in fl )
-							switch( f.type ) {
-							case FVar(t): input.push(allocVar(f.name,t,p));
+							switch( f.kind ) {
+							case FVar(t,_): input.push(allocVar(f.name,t,p));
 							default: error("Invalid input variable type", p);
 							}
 					default: error("Invalid type for shader input : should be anonymous", p);
@@ -126,14 +126,14 @@ class Parser {
 					vars.push(allocVar(v.name, v.type, p));
 			}
 			return;
-		case EFunction(f):
-			switch( f.name ) {
+		case EFunction(name,f):
+			switch( name ) {
 			case "vertex": vertex = f;
 			case "fragment": fragment = f;
 			default:
-				if( helpers.exists(f.name) )
-					error("Duplicate function '" + f.name + "'", e.pos);
-				helpers.set(f.name, f);
+				if( helpers.exists(name) )
+					error("Duplicate function '" + name + "'", e.pos);
+				helpers.set(name, f);
 			}
 			return;
 		case ECall(f, pl):

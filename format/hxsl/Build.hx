@@ -117,7 +117,7 @@ class Build {
 	}
 	#end
 
-	@:macro public static function shader() {
+	@:macro public static function shader( fields ) {
 		var cl = Context.getLocalClass().get();
 		var shader = null;
 		for( m in cl.meta.get() )
@@ -188,15 +188,45 @@ class Build {
 		// 	trace(s);
 		#end
 		var decls = [
-			"function override__getVertexData() return format.agal.Tools.ofString('" + vsbytes + "');",
-			"function override__getFragmentData() return format.agal.Tools.ofString('" + fsbytes + "');",
-			"function override__bind(buf) {"+bindCode+"};",
-			"function init( vertex : {" + vs.vars.join(",") + "}, fragment : {" + fs.vars.join(",") + "} ) {" + initCode + "};",
+			"override function getVertexData() return format.agal.Tools.ofString('" + vsbytes + "')",
+			"override function getFragmentData() return format.agal.Tools.ofString('" + fsbytes + "')",
+			"override function bind(buf) {"+bindCode+"}",
+			"public function init( vertex : {" + vs.vars.join(",") + "}, fragment : {" + fs.vars.join(",") + "} ) {" + initCode + "}",
 		];
 		if( unbindCode != null )
-			decls.push("function override__unbind() {" + unbindCode + "};");
+			decls.push("override function unbind() {" + unbindCode + "}");
 
-		return Context.parse("{" + decls.join("\n")+"}",shader.pos);
+		var e = Context.parse("{ var x : {" + decls.join("\n") + "}; }", shader.pos);
+		var fdecls = switch( e.expr ) {
+			case EBlock(el):
+				switch( el[0].expr ) {
+				case EVars(vl):
+					switch( vl[0].type) {
+					case TAnonymous(fl): fl;
+					default: null;
+					}
+				default: null;
+				}
+			default: null;
+		};
+		if( fdecls == null ) throw "assert";
+			
+		switch( fields.expr ) {
+		case EVars(vl):
+			switch( vl[0].type ) {
+			case TAnonymous(fl):
+				for ( f in fdecls ) {
+					f.pos = shader.pos;
+					fl.push(f);
+				}
+			default:
+				throw "assert";
+			}
+		default:
+			throw "assert";
+		}
+	
+		return fields;
 	}
 
 }
