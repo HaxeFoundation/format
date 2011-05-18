@@ -117,7 +117,7 @@ class Build {
 	}
 	#end
 
-	@:macro public static function shader( fields ) {
+	@:macro public static function shader() : Array<Field> {
 		var cl = Context.getLocalClass().get();
 		var shader = null;
 		for( m in cl.meta.get() )
@@ -210,23 +210,8 @@ class Build {
 			default: null;
 		};
 		if( fdecls == null ) throw "assert";
-			
-		switch( fields.expr ) {
-		case EVars(vl):
-			switch( vl[0].type ) {
-			case TAnonymous(fl):
-				for ( f in fdecls ) {
-					f.pos = shader.pos;
-					fl.push(f);
-				}
-			default:
-				throw "assert";
-			}
-		default:
-			throw "assert";
-		}
-	
-		return fields;
+		
+		return Context.getBuildFields().concat(fdecls);
 	}
 
 }
