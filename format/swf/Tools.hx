@@ -79,7 +79,8 @@ class Tools {
 		var infos = switch( t ) {
 		case TShowFrame: [];
 		case TBackgroundColor(color): [StringTools.hex(color,6)];
-		case TShape(id,version,data): ["id",id,"version",version,"data",hex(data,max)];
+		case TShape(id, version, data): ["id", id, "version", version, "data", hex(data, max)];
+		case TMorphShape(id,version,data): ["id",id,"version",version,"data",hex(data,max)];
 		case TBinaryData(id,data): ["id",id,"data",hex(data,max)];
 		case TClip(id,frames,tags): ["id",id,"frames",frames];
 		case TPlaceObject2(po): [Std.string(po)];

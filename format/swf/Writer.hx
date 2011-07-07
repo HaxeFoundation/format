@@ -338,7 +338,6 @@ class Writer {
 				TagId.DefineShape2,
 				TagId.DefineShape3,
 				TagId.DefineShape4,
-				TagId.DefineMorphShape2
 				][ver],
 				data.length + 2
 			);
@@ -398,7 +397,7 @@ class Writer {
 				o.write(bytes[pos++]);
 				o.writeByte(0);
 			}
-			
+
 		case TClip(id,frames,tags):
 			var t = openTMP();
 			for( t in tags )
@@ -490,6 +489,11 @@ class Writer {
 
 		case TSound(data):
 			writeSound(data);
+
+		case TMorphShape(id, ver, data):
+			writeTID(ver == 1 ? TagId.DefineMorphShape : TagId.DefineMorphShape2, data.length + 2);
+			o.writeUInt16(id);
+			o.write(data);
 
 		}
 	}

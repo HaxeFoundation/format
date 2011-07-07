@@ -400,8 +400,6 @@ class Reader {
 			readShape(len,3);
 		case TagId.DefineShape4:
 			readShape(len,4);
-		case TagId.DefineMorphShape2:
-			readShape(len,5);
 		case TagId.SetBackgroundColor:
 			i.bigEndian = true;
 			var color = i.readUInt24();
@@ -473,6 +471,12 @@ class Reader {
 			TBinaryData(id, i.read(len - 6));
 		case TagId.DefineSound:
 			readSound(len);
+		case TagId.DefineMorphShape:
+			var id = i.readUInt16();
+			TMorphShape(id,1,i.read(len - 2));
+		case TagId.DefineMorphShape2:
+			var id = i.readUInt16();
+			TMorphShape(id,2,i.read(len - 2));
 		default:
 			var data = i.read(len);
 			TUnknown(id,data);
