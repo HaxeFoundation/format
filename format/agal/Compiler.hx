@@ -596,6 +596,12 @@ class Compiler {
 				code.push(OSqt(dst,tx));
 				return;
 			default:
+				// if our parameter is a const, we need to copy to a temp var
+				if( v.t == RConst ) {
+					var t = allocTemp(p.t);
+					mov(t, v, p.t);
+					v = t;
+				}
 			}
 			code.push((switch(op) {
 			case CRcp: ORcp;
