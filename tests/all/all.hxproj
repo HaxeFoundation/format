@@ -21,7 +21,7 @@
     <option flashStrict="True" />
     <option mainClass="" />
     <option enabledebug="False" />
-    <option additional="params.hxml&#xA;&#xA;--next&#xA;-swf all9.swf&#xA;params.hxml&#xA;format.hxsl.Shader&#xA;&#xA;--next&#xA;-neko all.n&#xA;params.hxml&#xA;&#xA;--next&#xA;-js all.js&#xA;params.hxml&#xA;&#xA;--next&#xA;-php php&#xA;params.hxml&#xA;&#xA;--next&#xA;-cpp cpp&#xA;params.hxml" />
+    <option additional="params.hxml&#xA;&#xA;--next&#xA;-swf all9.swf&#xA;params.hxml&#xA;format.hxsl.Shader&#xA;format.tools.MemoryInput&#xA;&#xA;--next&#xA;-neko all.n&#xA;params.hxml&#xA;&#xA;--next&#xA;-js all.js&#xA;params.hxml&#xA;&#xA;--next&#xA;-php php&#xA;params.hxml&#xA;&#xA;--next&#xA;-cpp cpp&#xA;params.hxml" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>

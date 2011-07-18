@@ -8,6 +8,7 @@ params.hxml
 -swf all9.swf
 params.hxml
 format.hxsl.Shader
+format.tools.MemoryInput
 --next
 -neko all.n
 params.hxml
