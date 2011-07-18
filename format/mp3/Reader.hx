@@ -79,8 +79,8 @@ class Reader {
       id3v2_version = i.readUInt16();
       id3v2_flags = i.readByte();
 
-      // to read the size of the flag excluding the header, 
-      // we have to read 4x 7bits, each by reading a byte and 
+      // to read the size of the flag excluding the header,
+      // we have to read 4x 7bits, each by reading a byte and
       // ignoring the MSB
       //
       // (however the MSB should already be 0)
@@ -156,7 +156,7 @@ class Reader {
                var f = readFrame();
                if (f != null)
                   frames.push(f);
-            
+
             case FT_NONE:
                // should not happen
          }
@@ -175,8 +175,8 @@ class Reader {
       var version = bits.readBits(2);
       var layer = bits.readBits(2);
 
-      var hasCrc = !bits.read(); // prot = false means crc=1
-      
+      var hasCrc = !bits.readBit(); // prot = false means crc=1
+
       // check validity early before processing next byte
       if (version == MPEG.Reserved || layer == CLayer.LReserved)
          return null;
@@ -189,10 +189,10 @@ class Reader {
       var samplingRateIdx = bits.readBits(2);
       var samplingRate = Tools.getSamplingRate(version, samplingRateIdx);
 
-      var isPadded = bits.read();
+      var isPadded = bits.readBit();
 
       // private bit (free use)
-      var privateBit = bits.read();
+      var privateBit = bits.readBit();
 
       // check validity again before processing next byte
       if (bitrate == BR_Bad || bitrate == BR_Free || samplingRate == SR_Bad)
@@ -201,13 +201,13 @@ class Reader {
       #if DDEBUG neko.Lib.print('.'); #end
 
       var channelMode = bits.readBits(2);
-      
-      // mode extension bits
-      var isIntensityStereo = bits.read();
-      var isMSStereo = bits.read();
 
-      var isCopyrighted = bits.read();
-      var isOriginal = bits.read();
+      // mode extension bits
+      var isIntensityStereo = bits.readBit();
+      var isMSStereo = bits.readBit();
+
+      var isCopyrighted = bits.readBit();
+      var isOriginal = bits.readBit();
       var emphasis = bits.readBits(2);
 
       #if DDEBUG neko.Lib.print('.'); #end
@@ -222,10 +222,10 @@ class Reader {
          version : MPEG.num2Enum(version),
          layer : CLayer.num2Enum(layer),
          hasCrc : hasCrc,
-         
+
          // check this
          crc16 : crc16,
-         
+
          bitrate : bitrate,
          samplingRate : samplingRate,
          isPadded : isPadded,
@@ -252,7 +252,7 @@ class Reader {
 
       if (header == null || Tools.isInvalidFrameHeader(header))
          return null;
-      
+
       #if DDEBUG
          neko.Lib.print('f[' + Tools.getSampleDataSizeHdr(header) + "]");
       #end
@@ -261,7 +261,7 @@ class Reader {
          var data = i.read(Tools.getSampleDataSizeHdr(header));
          samples += Tools.getSampleCountHdr(header);
          sampleSize += data.length;
-         
+
          return {
             header : header,
             data : data
@@ -269,11 +269,11 @@ class Reader {
       }
       catch (e : haxe.io.Eof) {
          return null;
-      }  
+      }
    }
-   
+
    /**
-    * Reads the MP3 data. 
+    * Reads the MP3 data.
     *
     * Currently returns all valid frames.
     */

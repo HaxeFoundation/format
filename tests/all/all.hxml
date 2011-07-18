@@ -1,39 +1,22 @@
-# Neko
--neko all.n
--main All
--cp ../..
-
---next
-# Flash
+-cp .
 -swf all8.swf
--main All
--debug
--cp ../..
-
+-swf-version 8
+-swf-header 800:600:30:FFFFFF
+--flash-strict
+params.hxml
 --next
-# Flash9
--swf9 all9.swf
--main All
--debug
--cp ../..
-
+-swf all9.swf
+params.hxml
+format.hxsl.Shader
 --next
-# JS
+-neko all.n
+params.hxml
+--next
 -js all.js
--main All
--debug
--cp ../..
-
+params.hxml
 --next
-# PHP
 -php php
--main All
--cp ../..
-
+params.hxml
 --next
-# Flash10
--swf9 all10.swf
--main All
--debug
--cp ../..
--swf-version 10
+-cpp cpp
+params.hxml

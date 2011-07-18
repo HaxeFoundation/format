@@ -1,5 +1,6 @@
 2011-06-07: 1.19.3
 	swf : added TMorpShape
+	tools : little change in BitsInput, added MemoryInput
 
 2011-05-17: 1.19.2
 	hxsl : bugfixes, added helper functions and % operator

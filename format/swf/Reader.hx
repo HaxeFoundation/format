@@ -82,8 +82,8 @@ class Reader {
 	function readMatrix() : Matrix {
 		bits.reset();
 		return {
-			scale : if( bits.read() ) readMatrixPart() else null,
-			rotate : if( bits.read() ) readMatrixPart() else null,
+			scale : if( bits.readBit() ) readMatrixPart() else null,
+			rotate : if( bits.readBit() ) readMatrixPart() else null,
 			translate : readMatrixPart(),
 		};
 	}
@@ -108,8 +108,8 @@ class Reader {
 
 	function readCXA() : CXA {
 		bits.reset();
-		var add = bits.read();
-		var mult = bits.read();
+		var add = bits.readBit();
+		var mult = bits.readBit();
 		var nbits = bits.readBits(4);
 		return {
 			nbits : nbits,
@@ -357,8 +357,8 @@ class Reader {
 			case 3: SR44k;
 			default: throw error();
 		};
-		var is16bit = bits.read();
-		var isStereo = bits.read();
+		var is16bit = bits.readBit();
+		var isStereo = bits.readBit();
 		var soundSamples = i.readInt32(); // number of pairs in case of stereo
 		var sdata = switch (soundFormat) {
 			case SFMP3:

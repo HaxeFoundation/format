@@ -60,7 +60,7 @@ class BitsInput {
 		return readBits(n);
 	}
 
-	public function read() {
+	public function readBit() {
 		if( nbits == 0 ) {
 			bits = i.readByte();
 			nbits = 8;
