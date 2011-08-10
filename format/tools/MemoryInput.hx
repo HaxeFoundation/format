@@ -53,11 +53,15 @@ class MemoryInput extends haxe.io.Input {
 	}
 
 	public override inline function readFloat() {
-		return flash.Memory.getFloat(pos += 4);
+		var r = flash.Memory.getFloat(pos);
+		pos += 4;
+		return r;
 	}
 
 	public override inline function readDouble() {
-		return flash.Memory.getDouble(pos += 8);
+		var r = flash.Memory.getDouble(pos);
+		pos += 8;
+		return r;
 	}
 
 	public override inline function readInt8() {
