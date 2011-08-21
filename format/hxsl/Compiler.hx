@@ -292,7 +292,7 @@ class Compiler {
 		};
 		#if neko
 		var me = this;
-		untyped v.__string = function() return neko.NativeString.ofString(this.name + ":"+me.typeStr(this.type));
+		untyped v.__string = function() return neko.NativeString.ofString(__this__.name + ":"+me.typeStr(__this__.type));
 		#end
 		vars.set(name, v);
 		indexes[tkind] += Tools.regSize(t);
