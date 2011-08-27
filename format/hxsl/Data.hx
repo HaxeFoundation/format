@@ -196,14 +196,7 @@ typedef ParsedHxsl = {
 	var helpers : Hash<ParsedCode>;
 }
 
-class Error {
-	public var message : String;
-	public var pos : Position;
-	public function new(msg, p) {
-		this.message = msg;
-		this.pos = p;
-	}
-}
+typedef Error = haxe.macro.Expr.Error;
 
 class Tools {
 

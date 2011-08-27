@@ -119,6 +119,7 @@ class Build {
 
 	@:macro public static function shader() : Array<Field> {
 		var cl = Context.getLocalClass().get();
+		var fields = Context.getBuildFields();
 		var shader = null;
 		for( m in cl.meta.get() )
 			if( m.name == ":shader" ) {
@@ -127,6 +128,20 @@ class Build {
 				shader = m.params[0];
 				break;
 			}
+		if( shader == null ) {
+			for( f in fields )
+				if( f.name == "SRC" ) {
+					switch( f.kind ) {
+					case FVar(_, e):
+						if( e != null ) {
+							shader = e;
+							fields.remove(f);
+							break;
+						}
+					default:
+					}
+				}
+		}
 		if( shader == null )
 			Context.error("Missing @:shader metadata", cl.pos);
 
@@ -210,8 +225,8 @@ class Build {
 			default: null;
 		};
 		if( fdecls == null ) throw "assert";
-		
-		return Context.getBuildFields().concat(fdecls);
+
+		return fields.concat(fdecls);
 	}
 
 }
