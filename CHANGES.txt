@@ -1,3 +1,8 @@
+2011-09-12: 1.19.4
+	hxsl : minor fix preventing compilation with 2.08
+	hxsl : allowed static var SRC shader decl
+	agal : bugfix with molehill beta
+
 2011-06-07: 1.19.3
 	swf : added TMorpShape
 	tools : little change in BitsInput, added MemoryInput
