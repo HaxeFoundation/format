@@ -29,11 +29,11 @@ private class Iter {
 }
 
 class Templo {
-	
-	var String : Value;
-	var Array : Value;
+
+	var _String : Value;
+	var _Array : Value;
 	var vm : format.neko.VM;
-	
+
 	public function new(ivm) {
 		var me = this;
 		this.vm = ivm;
@@ -58,23 +58,23 @@ class Templo {
 				return null;
 			};
 		})));
-		String = VObject(pstring);
-		Array = VObject(parray);
+		_String = VObject(pstring);
+		_Array = VObject(parray);
 	}
-	
+
 	function open() {
 		return VAbstract(new ABuffer());
 	}
-	
+
 	function add( b : Value, v : Value ) {
 		vm.abstract(b, ABuffer).add(vm.valueToString(v));
 		return VNull;
 	}
-	
+
 	function close( b : Value ) {
 		return VString(vm.abstract(b,ABuffer).toString());
 	}
-	
+
 	function split( s : Value, sep : Value ) : Value {
 		switch( s ) {
 		case VString(s):
@@ -98,7 +98,7 @@ class Templo {
 		}
 		return null;
 	}
-	
+
 	function iter( v : Value ) : Value {
 		var it : Iterator<Dynamic>;
 		var size : Null<Int> = null;
@@ -117,7 +117,7 @@ class Templo {
 			throw "The value must be iterable";
 		return VProxy(new Iter(it,size));
 	}
-	
+
 	function loop( vi : Value, callb : Value, b : Value,  ctx : Value ) {
 		var i : Iter;
 		switch(vi) {
@@ -143,12 +143,12 @@ class Templo {
 		}
 		return VNull;
 	}
-	
+
 	function use( file : Value, buf : Value, ctx : Value, content : Value ) {
 		throw "TODO";
 		return null;
 	}
-	
+
 	function macros( file : Value, m : Value ) {
 		throw "TODO";
 		return null;
@@ -160,8 +160,8 @@ class Templo {
 		var vapi = new ValueObject();
 		var field = function(n, v) vapi.fields.set(vm.hashField(n), v);
 		var fun = function(n, v) field(n, VFunction(v));
-		field("String", api.String);
-		field("Array", api.Array);
+		field("String", api._String);
+		field("Array", api._Array);
 		fun("open", VFun0(api.open));
 		fun("add", VFun2(api.add));
 		fun("close", VFun1(api.close));
