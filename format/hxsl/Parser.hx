@@ -237,20 +237,32 @@ class Parser {
 			default:
 			}
 			error("Unsupported call", e.pos);
-		case EFor(v, it, expr):
-			var min : Null<Int> = null, max : Null<Int> = null;
+		case EFor(it, expr):
+			var min : Null<Int> = null, max : Null<Int> = null, vname : String = null;
 			switch( it.expr ) {
-			case EBinop(op, e1, e2):
-				if( op == OpInterval ) {
-					min = parseInt(e1);
-					max = parseInt(e2);
+			case EIn(v,it):
+				switch( v.expr ) {
+				case EConst(c):
+					switch( c ) {
+					case CIdent(i), CType(i): vname = i;
+					default:
+					}
+				default:
+				}
+				switch( it.expr ) {
+				case EBinop(op, e1, e2):
+					if( op == OpInterval ) {
+						min = parseInt(e1);
+						max = parseInt(e2);
+					}
+				default:
 				}
 			default:
 			}
-			if( min == null || max == null )
+			if( min == null || max == null || vname == null )
 				error("For iterator should be in the form 1...5", it.pos);
 			for( i in min...max ) {
-				var expr = replaceVar(v, EConst(Constant.CInt(Std.string(i))), expr);
+				var expr = replaceVar(vname, EConst(Constant.CInt(Std.string(i))), expr);
 				parseExpr(expr);
 			}
 		case EReturn(r):
@@ -382,8 +394,8 @@ class Parser {
 			EVars(vl2);
 		case ECall(e, el):
 			ECall(replaceVar(v, by, e), Lambda.array(Lambda.map(el, callback(replaceVar, v, by))));
-		case EFor(x, it, e):
-			EFor(x, replaceVar(v, by, it), replaceVar(v, by, e));
+		case EFor(it, e):
+			EFor(replaceVar(v, by, it), replaceVar(v, by, e));
 		case EBlock(el):
 			EBlock(Lambda.array(Lambda.map(el, callback(replaceVar, v, by))));
 		case EArrayDecl(el):
@@ -398,6 +410,8 @@ class Parser {
 			EType(replaceVar(v, by, e), f);
 		case EArray(e1, e2):
 			EArray(replaceVar(v, by, e1), replaceVar(v, by, e2));
+		case EIn(a,b):
+			EIn(replaceVar(v,by,a),replaceVar(v,by,b));
 		case EWhile(_), EUntyped(_), ETry(_), EThrow(_), ESwitch(_), EReturn(_), EObjectDecl(_), ENew(_), EFunction(_), EDisplay(_), EDisplayNew(_), EContinue, ECast(_), EBreak:
 			e.expr;
 		}, pos : e.pos };
