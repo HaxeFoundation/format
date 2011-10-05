@@ -1,3 +1,7 @@
+2011-10-05: 1.19.5
+	hxsl : fix for haxe 2.08
+	tar : bugfix
+
 2011-09-12: 1.19.4
 	hxsl : minor fix preventing compilation with 2.08
 	hxsl : allowed static var SRC shader decl
