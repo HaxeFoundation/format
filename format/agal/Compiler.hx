@@ -115,14 +115,14 @@ class Compiler {
 		vertex = c.vertex;
 		for( e in c.exprs )
 			compileExpr(e.e, e.v);
-		
+
 		var old = code;
 		if( !assignRegisters(false, c.vertex) ) {
 			code = old;
 			if( !assignRegisters(true,c.vertex) )
 				error("This shader uses to many temporary variables for his calculus", c.pos);
 		}
-		
+
 		// DEBUG
 		#if (debug && shaderCompDebug)
 		for( i in 0...temps.length ) {
@@ -171,7 +171,7 @@ class Compiler {
 			code : code,
 		};
 	}
-	
+
 	function compileExpr( e : CodeValue, v : CodeValue ) {
 		if( v == null ) {
 			// assume dest not check
@@ -200,7 +200,7 @@ class Compiler {
 		var s = r.swiz;
 		return s != null && s.length > 1 && (s[0] != X || s[1] != Y || (s.length > 2 && (s[2] != Z || (s.length > 3 && s[3] != W))));
 	}
-	
+
 	function assignRegisters( pack, vertex ) {
 		var maxRegs = format.agal.Tools.getProps(RTemp, !vertex).count;
 		code = uniqueReg();
@@ -224,13 +224,15 @@ class Compiler {
 		var c = [];
 		for( i in 0...code.length )
 			switch( code[i] ) {
+			case OUnused:
+				c.push(OUnused);
 			case OKil(r):
 				c.push(OKil(cp(r)));
 			case OTex(d, v, fl):
 				c.push(OTex(cp(d), cp(v), fl));
 			case OMov(d, v), ORcp(d, v), OFrc(d, v), OSqt(d, v), ORsq(d, v), OLog(d, v), OExp(d, v), ONrm(d, v), OSin(d, v), OCos(d, v), OAbs(d, v), ONeg(d, v), OSat(d, v):
 				c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(v)]));
-			case OAdd(d, a, b), OSub(d, a, b), OMul(d, a, b), ODiv(d, a, b), OMin(d, a, b), OMax(d, a, b), OPow(d, a, b), OCrs(d, a, b), ODp3(d, a, b), OSge(d, a, b), OSlt(d, a, b), ODp4(d,a,b), OM33(d, a, b),  OM44(d, a, b), OM34(d,a,b):
+			case OAdd(d, a, b), OSub(d, a, b), OMul(d, a, b), ODiv(d, a, b), OMin(d, a, b), OMax(d, a, b), OPow(d, a, b), OCrs(d, a, b), ODp3(d, a, b), OSge(d, a, b), OSlt(d, a, b), OSne(d,a,b), OSeq(d,a,b), ODp4(d,a,b), OM33(d, a, b),  OM44(d, a, b), OM34(d,a,b):
 				c.push(Type.createEnum(Opcode, Type.enumConstructor(code[i]), [cp(d), cp(a), cp(b)]));
 			};
 		return c;
@@ -240,6 +242,8 @@ class Compiler {
 		for( i in 0...code.length ) {
 			codePos = i;
 			switch( code[i] ) {
+			case OUnused:
+				// nothing
 			case OKil(r):
 				reg(r, false);
 			case OMov(d, v):
@@ -251,7 +255,7 @@ class Compiler {
 				reg(v,false);
 				reg(d,true);
 			case OAdd(d, a, b), OSub(d, a, b), OMul(d, a, b), ODiv(d, a, b), OMin(d, a, b), OMax(d, a, b),
-				OPow(d, a, b), OCrs(d, a, b), ODp3(d, a, b), OSge(d, a, b), OSlt(d, a, b), ODp4(d,a,b):
+				OPow(d, a, b), OCrs(d, a, b), ODp3(d, a, b), OSge(d, a, b), OSlt(d, a, b), OSne(d,a,b), OSeq(d,a,b), ODp4(d,a,b):
 				reg(a,false);
 				reg(b,false);
 				reg(d,true);
@@ -312,7 +316,7 @@ class Compiler {
 				if( minPos == null || pos < minPos ) minPos = pos;
 				mask |= 1 << bit;
 			}
-			
+
 			// copy-propagation
 			if( t.assignedTo >= 0 && writes == 1 ) {
 				r.index = t.assignedTo;
@@ -322,7 +326,7 @@ class Compiler {
 				regLive(r, write);
 				return;
 			}
-			
+
 			if( minPos < 0 ) throw "assert";
 			for( p in minPos+1...codePos ) {
 				var k = t.liveBits[p];
@@ -383,7 +387,7 @@ class Compiler {
 		for( td in 0...tempMax ) {
 			var rid = (startRegister + td) % tempMax;
 			var reg = regs[rid];
-			
+
 			// check current reserved components
 			var rmask = 0;
 			var available = 4;
@@ -395,7 +399,7 @@ class Compiler {
 				rmask |= 1 << i;
 				available--;
 			}
-			
+
 			// not enough components available
 			if( available < ncomps )
 				continue;
@@ -519,7 +523,7 @@ class Compiler {
 		code.push(OFrc(dst, dst));
 		return ODiv(dst, dst, b);
 	}
-	
+
 	function compileTo( dst : Reg, e : CodeValue ) {
 		switch( e.d ) {
 		case CVar(_), CSwiz(_):
@@ -573,6 +577,8 @@ class Compiler {
 			case CSub: OSub;
 			case CPow: OPow;
 			case CGte: OSge;
+			case CEq: OSeq;
+			case CNeq: OSne;
 			case CLt: OSlt;
 			case CMod: modGenerate;
 			})(dst, v1, v2));
@@ -640,11 +646,11 @@ class Compiler {
 				case TMipMapDisable: TMipMapDisable;
 				case TMipMapNearest: TMipMapNearest;
 				case TMipMapLinear: TMipMapLinear;
-				case TCentroidSample: TCentroidSample;
 				case TWrap: TWrap;
 				case TClamp: TClamp;
 				case TFilterNearest: TFilterNearest;
 				case TFilterLinear: TFilterLinear;
+				case TLodBias(v): TLodBias(v);
 				case TSingle: null;
 				});
 			}

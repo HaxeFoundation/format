@@ -66,7 +66,7 @@ class Compiler {
 		for( o in Lambda.map(Type.getEnumConstructs(CodeOp), function(c) return Type.createEnum(CodeOp, c)) )
 			ops.push({ op : o, types : switch( o ) {
 				case CAdd, CSub, CDiv, CPow, CMod: floats;
-				case CMin, CMax, CLt, CGte: floats;
+				case CMin, CMax, CLt, CGte, CEq, CNeq: floats;
 				case CDot: [ { p1 : TFloat4, p2 : TFloat4, r : TFloat }, { p1 : TFloat3, p2 : TFloat3, r : TFloat } ];
 				case CCross: [ { p1 : TFloat3, p2 : TFloat3, r : TFloat3 }];
 				case CMul: floats.concat([
@@ -829,6 +829,8 @@ class Compiler {
 		case CMax: makeConst(function(x, y) return x < y ? y : x);
 		case CLt: makeConst(function(x, y) return x < y ? 1 : 0);
 		case CGte: makeConst(function(x, y) return x >= y ? 1 : 0);
+		case CEq: makeConst(function(x, y) return x == y ? 1 : 0);
+		case CNeq: makeConst(function(x, y) return x != y ? 1 : 0);
 		case CDot: makeConst(function(x, y) return x * y);
 		case CDiv: makeConst(function(x, y) return x / y);
 		case CPow: makeConst(function(x, y) return Math.pow(x,y));

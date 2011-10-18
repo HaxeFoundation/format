@@ -32,12 +32,12 @@ enum TexFlag {
 	TMipMapDisable; // default
 	TMipMapNearest;
 	TMipMapLinear;
-	TCentroidSample;
 	TWrap;
 	TClamp;	// default
 	TFilterNearest;
 	TFilterLinear; // default
 	TSingle;
+	TLodBias( v : Float );
 }
 
 enum Comp {
@@ -92,6 +92,8 @@ enum CodeOp {
 	CLt;
 	CGte;
 	CMod;
+	CEq;
+	CNeq;
 }
 
 enum CodeUnop {

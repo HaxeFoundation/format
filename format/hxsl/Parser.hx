@@ -309,6 +309,8 @@ class Parser {
 			case OpLt: "lt";
 			case OpLte: "lte";
 			case OpGt: "gt";
+			case OpEq: "eq";
+			case OpNotEq: "neq";
 			case OpGte: "gte";
 			case OpMod: "mod";
 			default: error("Unsupported operation", e.pos);
@@ -414,6 +416,8 @@ class Parser {
 			EIn(replaceVar(v,by,a),replaceVar(v,by,b));
 		case EWhile(_), EUntyped(_), ETry(_), EThrow(_), ESwitch(_), EReturn(_), EObjectDecl(_), ENew(_), EFunction(_), EDisplay(_), EDisplayNew(_), EContinue, ECast(_), EBreak:
 			e.expr;
+		case ECheckType(e,t):
+			ECheckType(replaceVar(v, by, e),t);
 		}, pos : e.pos };
 	}
 
@@ -443,8 +447,8 @@ class Parser {
 			};
 			var t = parseValue(params.shift());
 			var flags = [];
-			var idents = ["mm_no","mm_near","mm_linear","centroid","wrap","clamp","nearest","linear","single"];
-			var values = [TMipMapDisable,TMipMapNearest,TMipMapLinear,TCentroidSample,TWrap,TClamp,TFilterNearest,TFilterLinear,TSingle];
+			var idents = ["mm_no","mm_near","mm_linear","wrap","clamp","nearest","linear","single","lod(v)"];
+			var values = [TMipMapDisable,TMipMapNearest,TMipMapLinear,TWrap,TClamp,TFilterNearest,TFilterLinear,TSingle];
 			for( p in params ) {
 				switch( p.expr ) {
 				case EConst(c):
@@ -455,10 +459,10 @@ class Parser {
 							var v = values[ip];
 							var sim = switch( v ) {
 							case TMipMapDisable, TMipMapLinear, TMipMapNearest: [TMipMapDisable, TMipMapLinear, TMipMapNearest];
-							case TCentroidSample: [TCentroidSample];
 							case TClamp, TWrap: [TClamp, TWrap];
 							case TFilterLinear, TFilterNearest: [TFilterLinear, TFilterNearest];
 							case TSingle: [TSingle];
+							case TLodBias(_): [];
 							}
 							for( s in sim )
 								if( flags.remove(s) ) {
@@ -469,6 +473,27 @@ class Parser {
 								}
 							flags.push(v);
 							continue;
+						}
+					default:
+					}
+				case ECall(c,pl):
+					switch( c.expr ) {
+					case EConst(c):
+						switch( c ) {
+						case CIdent(v):
+							if( v == "lod" && pl.length == 1 ) {
+								switch( pl[0].expr ) {
+								case EConst(c):
+									switch( c ) {
+									case CInt(v), CFloat(v):
+										flags.push(TLodBias(Std.parseFloat(v)));
+										continue;
+									default:
+									}
+								default:
+								}
+							}
+						default:
 						}
 					default:
 					}
@@ -520,6 +545,8 @@ class Parser {
 		case "gte", "sge": checkParams(2); return makeOp(CGte, v[0], v[1], p);
 		case "gt", "sgt": checkParams(2); return makeOp(CLt, v[1], v[0], p);
 		case "lte", "sle": checkParams(2); return makeOp(CGte, v[1], v[0], p);
+		case "eq", "seq": checkParams(2); return makeOp(CEq, v[1], v[0], p);
+		case "neq", "sne": checkParams(2); return makeOp(CNeq, v[1], v[0], p);
 
 		default:
 		}

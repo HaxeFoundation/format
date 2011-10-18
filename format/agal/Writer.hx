@@ -94,7 +94,7 @@ class Writer {
 	}
 
 	function texFlagsBits( a : Array<TexFlag> ) {
-		var dim = 0, special = 0, wrap = 0, mipmap = 0, filter = 1;
+		var dim = 0, wrap = 0, mipmap = 0, filter = 1, bias = 0;
 		if( a != null )
 			for( f in a )
 				switch( f ) {
@@ -104,13 +104,17 @@ class Writer {
 				case TMipMapDisable: mipmap = 0;
 				case TMipMapNearest: mipmap = 1;
 				case TMipMapLinear: mipmap = 2;
-				case TCentroidSample: special |= 1;
 				case TWrap: wrap = 1;
 				case TClamp: wrap = 0;
 				case TFilterNearest: filter = 0;
 				case TFilterLinear: filter = 1;
+				case TLodBias(v):
+					var v = Std.int(v*8);
+					if( v < -128 ) v = -128 else if( v > 127 ) v = 127;
+					if( v < 0 ) v = 0x100 - v;
+					bias = v;
 				}
-		return (dim << 4) | (special << 8) | (wrap << 12) | (mipmap << 16) | (filter << 20);
+		return { flags : (dim << 4) | (wrap << 12) | (mipmap << 16) | (filter << 20), bias : bias };
 	}
 
 	function writeSrc( s : Reg ) {
@@ -128,10 +132,11 @@ class Writer {
 	}
 
 	function writeTex( t : Tex ) {
+		var bits = texFlagsBits(t.flags);
 		o.writeUInt16(t.index);
-		o.writeUInt16(0); // not used
+		o.writeUInt16(bits.bias);
 		o.writeByte(5); // register type
-		o.writeInt24( texFlagsBits(t.flags) );
+		o.writeInt24(bits.flags);
 	}
 
 }

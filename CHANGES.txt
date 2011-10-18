@@ -1,3 +1,6 @@
+2011-??-??: 1.20
+	hxsl + agal : added seq, sne, lod bias, removed centroid
+
 2011-10-05: 1.19.5
 	hxsl : fix for haxe 2.08
 	tar : bugfix

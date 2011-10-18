@@ -57,6 +57,9 @@ enum Opcode {
 	OTex( dst : Reg, pt : Reg, tex : Tex );
 	OSge( dst : Reg, a : Reg, b : Reg );
 	OSlt( dst : Reg, a : Reg, b : Reg );
+	OUnused;
+	OSeq( dst : Reg, a : Reg, b : Reg );
+	OSne( dst : Reg, a : Reg, b : Reg );
 }
 
 typedef Reg = {
@@ -94,11 +97,11 @@ enum TexFlag {
 	TMipMapDisable; // default
 	TMipMapNearest;
 	TMipMapLinear;
-	TCentroidSample;
 	TWrap;
 	TClamp;	// default
 	TFilterNearest;
 	TFilterLinear; // default
+	TLodBias( v : Float );
 }
 
 typedef Data = {
