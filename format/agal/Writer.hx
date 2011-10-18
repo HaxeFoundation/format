@@ -111,7 +111,7 @@ class Writer {
 				case TLodBias(v):
 					var v = Std.int(v*8);
 					if( v < -128 ) v = -128 else if( v > 127 ) v = 127;
-					if( v < 0 ) v = 0x100 - v;
+					if( v < 0 ) v = 0x100 + v;
 					bias = v;
 				}
 		return { flags : (dim << 4) | (wrap << 12) | (mipmap << 16) | (filter << 20), bias : bias };
