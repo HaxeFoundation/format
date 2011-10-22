@@ -186,7 +186,7 @@ class Compiler {
 		if( !vertex && d.t == ROut )
 			switch( e.d ) {
 			case COp(_), CTex(_), CUnop(_):
-				var t = allocTemp(v.t);0
+				var t = allocTemp(v.t);
 				compileTo(t, e);
 				mov(d, t, v.t);
 				return;
