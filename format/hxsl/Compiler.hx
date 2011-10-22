@@ -486,25 +486,29 @@ class Compiler {
 		return s != null && s.length > 1 && (s[0] != X || s[1] != Y || (s.length > 2 && (s[2] != Z || (s.length > 3 && s[3] != W))));
 	}
 
+	function checkReadVar( v : Variable, swiz, p : Position ) {
+		switch( v.kind ) {
+		case VOut: error("Output cannot be read", p);
+		case VVar: if( cur.vertex ) error("You cannot read variable in vertex shader", p); v.read = true;
+		case VParam: v.read = true;
+		case VTmp:
+			if( v.write == 0 ) error("Variable '"+v.name+"' has not been initialized", p);
+			var bits = swizBits(swiz, v.type);
+			if( v.write & bits != bits ) error("Some fields of '"+v.name+"' have not been initialized", p);
+			v.read = true;
+		case VInput:
+			if( !cur.vertex ) error("You cannot read input variable in fragment shader", p);
+			v.read = true;
+		case VTexture:
+			if( !allowTextureRead )
+				error("You can't read from a texture", p);
+		}
+	}
+	
 	function checkRead( e : CodeValue ) {
 		switch( e.d ) {
 		case CVar(v, swiz):
-			switch( v.kind ) {
-			case VOut: error("Output cannot be read", e.p);
-			case VVar: if( cur.vertex ) error("You cannot read variable in vertex shader", e.p); v.read = true;
-			case VParam: v.read = true;
-			case VTmp:
-				if( v.write == 0 ) error("Variable '"+v.name+"' has not been initialized", e.p);
-				var bits = swizBits(swiz, v.type);
-				if( v.write & bits != bits ) error("Some fields of '"+v.name+"' have not been initialized", e.p);
-				v.read = true;
-			case VInput:
-				if( !cur.vertex ) error("You cannot read input variable in fragment shader", e.p);
-				v.read = true;
-			case VTexture:
-				if( !allowTextureRead )
-					error("You can't read from a texture", e.p);
-			}
+			checkReadVar(v,swiz,e.p);
 		case COp(_, e1, e2):
 			checkRead(e1);
 			checkRead(e2);
@@ -518,6 +522,9 @@ class Compiler {
 			checkRead(v);
 		case CBlock(_, v):
 			checkRead(v);
+		case CAccess(v1, v2, c):
+			checkReadVar(v1,null,e.p);
+			checkReadVar(v2,[c],e.p);
 		}
 	}
 	
@@ -575,7 +582,7 @@ class Compiler {
 			return { v : PCall(n, ol), p : e.p };
 		case PIf(ec, e1, e2):
 			return { v : PIf(optimizeValue(ec), optimizeValue(e1), optimizeValue(e2)), p : e.p };
-		case PVar(_), PLocal(_), PConst(_):
+		case PVar(_), PLocal(_), PConst(_), PAccess(_):
 		}
 		return e;
 	}
@@ -596,7 +603,23 @@ class Compiler {
 				swiz = v.assign.s;
 				v = v.assign.v;
 			}
-			return { d : CVar(v,swiz), t : t, p : e.p };
+			return { d : CVar(v, swiz), t : t, p : e.p };
+		case PAccess(vname, eindex):
+			var v = vars.get(vname);
+			if( v == null ) error("Unknown variable '" + vname + "'", e.p);
+			var t = switch( v.type ) {
+			case TArray(t, _): t;
+			default: error("You can only index Array variables", e.p);
+			}
+			var eindex = compileValue(eindex);
+			unify(eindex.t, TFloat, eindex.p);
+			switch(eindex.d) {
+			case CVar(v2, swiz):
+				return { d : CAccess(v, v2, swiz == null ? X : swiz[0]), t : t, p : e.p };
+			default:
+				error("You can only index using another variable", eindex.p);
+				return null;
+			}
 		case PConst(i):
 			return allocConst([i], e.p);
 		case PLocal(v):
@@ -642,7 +665,7 @@ class Compiler {
 			case TFloat2: 2;
 			case TFloat3, TColor3: 3;
 			case TFloat4, TColor: 4;
-			case TMatrix(_), TTexture(_): 0;
+			case TMatrix(_), TTexture(_), TArray(_): 0;
 			}
 			// allow all components access on input and varying values only
 			switch( v.d ) {

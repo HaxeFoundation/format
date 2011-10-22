@@ -43,6 +43,7 @@ class Build {
 		case TColor3, TColor: "Int";
 		case TMatrix(_): "flash.geom.Matrix3D";
 		case TTexture(cube): "flash.display3D.textures." + (cube ? "CubeTexture" : "Texture");
+		case TArray(t, size): "format.hxsl.Shader.Array<" + realType(t) + ","+size+">";
 		};
 	}
 
@@ -59,49 +60,60 @@ class Build {
 		for( c in shader.args.concat(shader.tex) ) {
 			var t = realType(c.type);
 			inf.vars.push(c.name + " : " + t);
-			var n = (shader.vertex?"vertex":"fragment") + "." + c.name;
-			switch( c.type ) {
-			case TFloat:
-				inf.setup.push(n);
-				inf.setup.push(n);
-				inf.setup.push(n);
-				inf.setup.push(n);
-			case TFloat2:
-				inf.setup.push(n + ".x");
-				inf.setup.push(n + ".y");
-				inf.setup.push("1.");
-				inf.setup.push("1.");
-			case TFloat3:
-				inf.setup.push(n + ".x");
-				inf.setup.push(n + ".y");
-				inf.setup.push(n + ".z");
-				inf.setup.push("1.");
-			case TFloat4:
-				inf.setup.push(n + ".x");
-				inf.setup.push(n + ".y");
-				inf.setup.push(n + ".z");
-				inf.setup.push(n + ".w");
-			case TMatrix(w,h,t):
-				var tmp = "raw_" + c.name;
-				inf.tmp.push("var " + tmp + " = " + n + ".rawData;");
-				for( y in 0...w )
-					for( x in 0...h ) {
-						var index = if( t.t ) y + x * 4 else x + y * 4;
-						inf.setup.push(tmp + "[" + index + "]");
-					}
-			case TTexture(_):
-				inf.tmp.push("texture(" + c.index + "," + n + ");");
-			case TColor3:
-				inf.setup.push("((" + n + ">>16) & 0xFF) / 255.0");
-				inf.setup.push("((" + n + ">>8) & 0xFF) / 255.0");
-				inf.setup.push("(" + n + " & 0xFF) / 255.0");
-				inf.setup.push("1.");
-			case TColor:
-				inf.setup.push("((" + n + ">>16) & 0xFF) / 255.0");
-				inf.setup.push("((" + n + ">>8) & 0xFF) / 255.0");
-				inf.setup.push("(" + n + " & 0xFF) / 255.0");
-				inf.setup.push("(" + n + ">>>24) / 255.0");
+			function add( n : String, t : VarType )	{
+				switch( t ) {
+				case TFloat:
+					inf.setup.push(n);
+					inf.setup.push(n);
+					inf.setup.push(n);
+					inf.setup.push(n);
+				case TFloat2:
+					inf.setup.push(n + ".x");
+					inf.setup.push(n + ".y");
+					inf.setup.push("1.");
+					inf.setup.push("1.");
+				case TFloat3:
+					inf.setup.push(n + ".x");
+					inf.setup.push(n + ".y");
+					inf.setup.push(n + ".z");
+					inf.setup.push("1.");
+				case TFloat4:
+					inf.setup.push(n + ".x");
+					inf.setup.push(n + ".y");
+					inf.setup.push(n + ".z");
+					inf.setup.push(n + ".w");
+				case TMatrix(w,h,t):
+					var tmp = "raw_" + c.name;
+					inf.tmp.push("var " + tmp + " = " + n + ".rawData;");
+					for( y in 0...w )
+						for( x in 0...h ) {
+							var index = if( t.t ) y + x * 4 else x + y * 4;
+							inf.setup.push(tmp + "[" + index + "]");
+						}
+				case TTexture(_):
+					inf.tmp.push("texture(" + c.index + "," + n + ");");
+				case TColor3:
+					inf.setup.push("((" + n + ">>16) & 0xFF) / 255.0");
+					inf.setup.push("((" + n + ">>8) & 0xFF) / 255.0");
+					inf.setup.push("(" + n + " & 0xFF) / 255.0");
+					inf.setup.push("1.");
+				case TColor:
+					inf.setup.push("((" + n + ">>16) & 0xFF) / 255.0");
+					inf.setup.push("((" + n + ">>8) & 0xFF) / 255.0");
+					inf.setup.push("(" + n + " & 0xFF) / 255.0");
+					inf.setup.push("(" + n + ">>>24) / 255.0");
+				case TArray(t, count):
+					inf.tmp.push("for( _i in 0..." + count + " ) {");
+					var old = inf.setup;
+					inf.setup = [];
+					add(n + "[_i]", t);
+					for( e in inf.setup )
+						inf.tmp.push("add(" + e + ");");
+					inf.setup = old;
+					inf.tmp.push("}");
+				}
 			}
+			add( (shader.vertex?"vertex":"fragment") + "." + c.name, c.type);
 		}
 		for( c in shader.consts ) {
 			for( f in c )
@@ -136,6 +148,7 @@ class Build {
 						if( e != null ) {
 							shader = e;
 							fields.remove(f);
+							haxe.macro.Compiler.removeField(Context.getLocalClass().toString(), "SRC", true);
 							break;
 						}
 					default:

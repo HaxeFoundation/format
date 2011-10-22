@@ -55,6 +55,9 @@ class Tools {
 	public static function regStr( r : Data.Reg ) {
 		var str = Std.string(r.t).charAt(1).toLowerCase() + r.index;
 		if( str == "o0" ) str = "out";
+		var acc = r.access;
+		if( acc != null )
+			str = regStr( { t : acc.t, index : acc.offset, access : null, swiz : null } ) + "[" + str + "." + Std.string(acc.comp).toLowerCase() + "]";
 		if( r.swiz != null )
 			str += "." + r.swiz.join("").toLowerCase();
 		return str;

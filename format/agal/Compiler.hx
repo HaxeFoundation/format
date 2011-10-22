@@ -190,7 +190,7 @@ class Compiler {
 				compileTo(t, e);
 				mov(d, t, v.t);
 				return;
-			case CVar(_), CSwiz(_), CBlock(_):
+			case CVar(_), CSwiz(_), CBlock(_), CAccess(_):
 			}
 		compileTo(d, e);
 	}
@@ -526,7 +526,7 @@ class Compiler {
 
 	function compileTo( dst : Reg, e : CodeValue ) {
 		switch( e.d ) {
-		case CVar(_), CSwiz(_):
+		case CVar(_), CSwiz(_), CAccess(_):
 			var r = compileSrc(e);
 			mov(dst, r, e.t);
 		case COp(op, e1, e2):
@@ -677,6 +677,10 @@ class Compiler {
 			for( e in el )
 				compileExpr(e.e, e.v);
 			return compileSrc(v);
+		case CAccess(v1, v2, c):
+			var r1 = reg(v1);
+			var r2 = reg(v2);
+			return { t : r2.t, index : r2.index, access : { t : r1.t, comp : convertSwiz([c])[0], offset : r1.index }, swiz : initSwiz(e.t) };
 		}
 	}
 

@@ -26,6 +26,8 @@
  */
 package format.hxsl;
 
+typedef Array<T,Const> = flash.Vector<T>
+
 @:autoBuild(format.hxsl.Build.shader()) class Shader {
 
 	var c : flash.display3D.Context3D;

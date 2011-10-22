@@ -65,6 +65,7 @@ enum VarType {
 	TColor;
 	TMatrix( r : Int, c : Int, transpose : { t : Null<Bool> } );
 	TTexture( cube : Bool );
+	TArray( t : VarType, size : Int );
 }
 
 typedef Variable = {
@@ -121,6 +122,7 @@ enum CodeValueDecl {
 	CVar( v : Variable, ?swiz : Array<Comp> );
 	COp( op : CodeOp, e1 : CodeValue, e2 : CodeValue );
 	CUnop( op : CodeUnop, e : CodeValue );
+	CAccess( v : Variable, idx : Variable, c : Comp );
 	CTex( v : Variable, acc : CodeValue, flags : Array<TexFlag> );
 	CSwiz( e : CodeValue, swiz : Array<Comp> );
 	CBlock( exprs : Array<{ v : CodeValue, e : CodeValue }>, v : CodeValue );
@@ -164,6 +166,7 @@ enum ParsedValueDecl {
 	PBlock( el : Array<ParsedExpr> );
 	PReturn( e : ParsedValue );
 	PCall( n : String, vl : Array<ParsedValue> );
+	PAccess( v : String, e : ParsedValue );
 }
 
 typedef ParsedValue = {
@@ -217,7 +220,11 @@ class Tools {
 		case TFloat3, TColor3: 3;
 		case TFloat4, TColor: 4;
 		case TTexture(_): 0;
-		case TMatrix(w,h,_): w*h;
+		case TMatrix(w, h, _): w * h;
+		case TArray(t, count):
+			var size = floatSize(t);
+			if( size < 4 ) size = 4;
+			return size * count;
 		}
 	}
 

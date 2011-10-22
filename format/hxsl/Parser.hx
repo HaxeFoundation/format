@@ -78,6 +78,24 @@ class Parser {
 	function getType( t : ComplexType, pos ) {
 		switch(t) {
 		case TPath(p):
+			if( p.params.length == 1 ) {
+				switch( p.params[0] ) {
+				case TPExpr(e):
+					switch( e.expr ) {
+					case EConst(c):
+						switch( c ) {
+						case CInt(i):
+							p.params = [];
+							var i = Std.parseInt(i);
+							if( i > 0 )
+								return TArray(getType(t,pos), i);
+						default:
+						}
+					default:
+					}
+				default:
+				}
+			}
 			if( p.pack.length > 0 || p.sub != null || p.params.length > 0 )
 				error("Unsupported type", pos);
 			return switch( p.name ) {
@@ -349,14 +367,19 @@ class Parser {
 		case EArray(e1, e2):
 			var e1 = parseValue(e1);
 			var e2 = parseValue(e2);
-			var i = switch(e2.v) {
+			switch(e2.v) {
 			case PConst(v):
 				var i = Std.parseInt(v);
-				if( Std.string(i) == v ) i else null;
-			default: null;
+				if( Std.string(i) == v )
+					return { v : PRow(e1, i), p : e.pos };
+			default:
+				switch(e1.v) {
+				case PVar(v):
+					return { v : PAccess(v, e2), p : e.pos };
+				default:
+				}
 			}
-			if( i == null ) error("Matrix row needs to be a constant integer", e2.p);
-			return { v : PRow(e1, i), p : e.pos };
+			error("Matrix row needs to be a constant integer", e2.p);
 		default:
 		}
 		error("Unsupported value expression", e.pos);
