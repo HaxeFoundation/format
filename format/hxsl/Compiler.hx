@@ -183,12 +183,12 @@ class Compiler {
 			case PReturn(v):
 				if( ret == null ) error("Unexpected return", e.p);
 				if( ret.v != null ) error("Duplicate return", e.p);
-				ret.v = compileValue(v);
+				ret.v = compileValueOpt(v);
 				checkRead(ret.v);
 				return;
 			default:
 			}
-			var e = compileValue(e);
+			var e = compileValueOpt(e);
 			switch( e.d ) {
 			case CUnop(op, _):
 				if( op == CKill ) {
@@ -209,13 +209,13 @@ class Compiler {
 			}
 			error("assert",p);
 		}
-		var e = compileValue(e);
+		var e = compileValueOpt(e);
 		switch( v.v ) {
 		case PLocal(v):
 			if( v.t == null ) v.t = e.t;
 		default:
 		}
-		var v = compileValue(v,true);
+		var v = compileValueOpt(v,true);
 		unify(e.t, v.t, e.p);
 		addAssign(v, e, p);
 	}
@@ -520,7 +520,66 @@ class Compiler {
 			checkRead(v);
 		}
 	}
+	
+	function compileValueOpt(e,?target) {
+		return compileValue(optimizeValue(e),target);
+	}
 
+	function optimizeValue( e : ParsedValue ) : ParsedValue {
+		switch( e.v ) {
+		case PBlock(_), PReturn(_): throw "assert";
+		case POp(op, e1, e2):
+			var o1 = optimizeValue(e1);
+			var o2 = optimizeValue(e2);
+			switch( o1.v ) {
+			case PConst(v1):
+				switch( o2.v ) {
+				case PConst(v2):
+					var c = makeConstOp(op, v1, v2, e.p);
+					if( c != null )
+						return c;
+				default:
+				}
+			default:
+			}
+			if( o1 != e1 || o2 != e2 )
+				return { v : POp(op, o1, o2), p : e.p };
+		case PUnop(op, e1):
+			var o1 = optimizeValue(e1);
+			switch( o1.v ) {
+			case PConst(v):
+				var c = makeConstUnop(op, v, o1.p);
+				if( c != null )
+					return c;
+			default:
+			}
+			if( e1 != o1 )
+				return { v : PUnop(op, o1), p : e.p };
+		case PVector(el):
+			var ol = new Array();
+			for( e in el )
+				ol.push(optimizeValue(e));
+			return { v : PVector(ol), p : e.p };
+		case PTex(v, acc, flags):
+			return { v : PTex(v, optimizeValue(acc), flags), p : e.p };
+		case PSwiz(e1, swiz):
+			var o1 = optimizeValue(e1);
+			if( o1 != e1 )
+				return { v : PSwiz(o1, swiz), p : e.p };
+		case PRow(e1, idx):
+			return { v : PRow(optimizeValue(e1), idx), p : e.p };
+		case PCall(n, el):
+			var ol = new Array();
+			for( e in el )
+				ol.push(optimizeValue(e));
+			return { v : PCall(n, ol), p : e.p };
+		case PIf(ec, e1, e2):
+			return { v : PIf(optimizeValue(ec), optimizeValue(e1), optimizeValue(e2)), p : e.p };
+		case PVar(_), PLocal(_), PConst(_):
+		}
+		return e;
+	}
+	
 	function compileValue( e : ParsedValue, ?isTarget ) : CodeValue {
 		switch( e.v ) {
 		case PBlock(_), PReturn(_):
@@ -841,19 +900,6 @@ class Compiler {
 	
 
 	function makeOp( op : CodeOp, e1 : ParsedValue, e2 : ParsedValue, p : Position ) {
-
-		switch( e1.v ) {
-		case PConst(v1):
-			switch( e2.v ) {
-			case PConst(v2):
-				var c = makeConstOp(op, v1, v2, p);
-				if( c != null )
-					return compileValue(c);
-			default:
-			}
-		default:
-		}
-		
 		switch( op ) {
 		// optimize 1 / sqrt(x) && 1 / x
 		case CDiv:
@@ -963,16 +1009,6 @@ class Compiler {
 	}
 	
 	function makeUnop( op : CodeUnop, e : ParsedValue, p : Position ) {
-
-		// compile constant expression
-		switch( e.v ) {
-		case PConst(v):
-			var c = makeConstUnop(op, v, p);
-			if( c != null )
-				return compileValue(c);
-		default:
-		}
-		
 		var e = compileValue(e);
 		var rt = e.t;
 		switch( op ) {
