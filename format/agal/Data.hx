@@ -66,6 +66,7 @@ typedef Reg = {
 	var t : RegType;
 	var index : Int;
 	var swiz : Swizzle;
+	var access : Null<{ t : RegType, comp : C, offset : Int }>;
 }
 
 typedef Swizzle = Null<Array<C>>; // length 1-4

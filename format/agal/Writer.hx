@@ -123,12 +123,21 @@ class Writer {
 			o.writeUInt30(0);
 			return;
 		}
-		// indirect mode not supported : reg[r0.x + off] ?
-		o.writeUInt16( s.index );
-		o.writeByte(0); // indirect offset
-		o.writeByte( swizzleBits(s.swiz) );
-		o.writeByte( regType(s.t) );
-		o.writeUInt24(0); // indirect bits
+		if( s.access == null ) {
+			o.writeUInt16( s.index );
+			o.writeByte(0);
+			o.writeByte( swizzleBits(s.swiz) );
+			o.writeByte( regType(s.t) );
+			o.writeUInt24(0);
+		} else {
+			o.writeUInt16( s.index );
+			o.writeByte( s.access.offset );
+			o.writeByte( swizzleBits(s.swiz) );
+			o.writeByte( regType(s.t) );
+			o.writeByte( regType(s.access.t) );
+			o.writeByte( Type.enumIndex(s.access.comp) );
+			o.writeByte( 0x80 );
+		}
 	}
 
 	function writeTex( t : Tex ) {

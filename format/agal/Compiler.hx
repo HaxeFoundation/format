@@ -58,7 +58,7 @@ class Compiler {
 	function allocTemp( t ) {
 		var index = tempCount;
 		tempCount += Tools.regSize(t);
-		return { t : RTemp, index : index, swiz : initSwiz(t) };
+		return { t : RTemp, index : index, swiz : initSwiz(t), access : null };
 	}
 
 	function initSwiz( t : VarType ) {
@@ -88,11 +88,11 @@ class Compiler {
 		case VInput: RAttr;
 		case VTexture: throw "assert";
 		}
-		return { t : t, index : v.index, swiz : swiz };
+		return { t : t, index : v.index, swiz : swiz, access : null };
 	}
 
 	function delta( r : Reg, n : Int, ?s) {
-		return { t : r.t, index : r.index + n, swiz : (s == null) ? r.swiz : s };
+		return { t : r.t, index : r.index + n, swiz : (s == null) ? r.swiz : s, access : r.access };
 	}
 
 	function swizOpt( r : Reg, s ) {
@@ -120,7 +120,7 @@ class Compiler {
 		if( !assignRegisters(false, c.vertex) ) {
 			code = old;
 			if( !assignRegisters(true,c.vertex) )
-				error("This shader uses to many temporary variables for his calculus", c.pos);
+				error("This shader uses too many temporary variables for his calculus", c.pos);
 		}
 
 		// DEBUG
@@ -175,7 +175,7 @@ class Compiler {
 	function compileExpr( e : CodeValue, v : CodeValue ) {
 		if( v == null ) {
 			// assume dest not check
-			compileTo({ t : ROut, index : -1, swiz : null }, e);
+			compileTo({ t : ROut, index : -1, swiz : null, access : null }, e);
 			return;
 		}
 		var d = switch( v.d ) {
@@ -186,7 +186,7 @@ class Compiler {
 		if( !vertex && d.t == ROut )
 			switch( e.d ) {
 			case COp(_), CTex(_), CUnop(_):
-				var t = allocTemp(v.t);
+				var t = allocTemp(v.t);0
 				compileTo(t, e);
 				mov(d, t, v.t);
 				return;
@@ -218,8 +218,8 @@ class Compiler {
 	}
 
 	function uniqueReg() {
-		function cp(r:Reg) {
-			return { t : r.t, index : r.index, swiz : r.swiz };
+		function cp(r:Reg) : Reg {
+			return { t : r.t, index : r.index, swiz : r.swiz, access : r.access == null ? null : { t : r.access.t, offset : r.access.offset, comp : r.access.comp } };
 		}
 		var c = [];
 		for( i in 0...code.length )
@@ -447,16 +447,16 @@ class Compiler {
 	}
 
 	function project( dst : Reg, r1 : Reg, r2 : Reg ) {
-		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [X] }, r1, r2));
-		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [Y] }, r1, delta(r2, 1)));
-		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [Z] }, r1, delta(r2, 2)));
-		return ODp4( { t : dst.t, index : dst.index, swiz : [W] }, r1, delta(r2, 3));
+		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [X], access : null }, r1, r2));
+		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [Y], access : null }, r1, delta(r2, 1)));
+		code.push(ODp4( { t : dst.t, index : dst.index, swiz : [Z], access : null }, r1, delta(r2, 2)));
+		return ODp4( { t : dst.t, index : dst.index, swiz : [W], access : null }, r1, delta(r2, 3));
 	}
 
 	function project3( dst : Reg, r1 : Reg, r2 : Reg ) {
-		code.push(ODp3( { t : dst.t, index : dst.index, swiz : [X] }, r1, r2));
-		code.push(ODp3( { t : dst.t, index : dst.index, swiz : [Y] }, r1, delta(r2, 1)));
-		return ODp3( { t : dst.t, index : dst.index, swiz : [Z] }, r1, delta(r2, 2));
+		code.push(ODp3( { t : dst.t, index : dst.index, swiz : [X], access : null }, r1, r2));
+		code.push(ODp3( { t : dst.t, index : dst.index, swiz : [Y], access : null }, r1, delta(r2, 1)));
+		return ODp3( { t : dst.t, index : dst.index, swiz : [Z], access : null }, r1, delta(r2, 2));
 	}
 
 	function matrix44multiply( rt : VarType, dst : Reg, r1 : Reg, r2 : Reg ) {
@@ -668,7 +668,7 @@ class Compiler {
 			return reg(v, swiz);
 		case CSwiz(e, swiz):
 			var v = compileSrc(e);
-			return { t : v.t, swiz : convertSwiz(swiz), index : v.index };
+			return { t : v.t, swiz : convertSwiz(swiz), index : v.index, access : v.access };
 		case COp(_), CTex(_), CUnop(_):
 			var t = allocTemp(e.t);
 			compileTo(t, e);
