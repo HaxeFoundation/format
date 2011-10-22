@@ -143,7 +143,7 @@ class Build {
 				}
 		}
 		if( shader == null )
-			Context.error("Missing @:shader metadata", cl.pos);
+			Context.error("Missing SRC shader", cl.pos);
 
 		var p = new Parser();
 		p.includeFile = function(file) {
@@ -160,6 +160,12 @@ class Build {
 
 		var vscode = c.compile(v.vertex);
 		var fscode = c.compile(v.fragment);
+		
+		var max = 200;
+		if( vscode.code.length > max )
+			Context.error("This vertex shader uses " + vscode.code.length + " opcodes but only " + max + " are allowed by Flash11", v.vertex.pos);
+		if( fscode.code.length > max )
+			Context.error("This fragment shader uses " + fscode.code.length + " opcodes but only " + max + " are allowed by Flash11", v.fragment.pos);
 
 		var o = new haxe.io.BytesOutput();
 		new format.agal.Writer(o).write(vscode);
