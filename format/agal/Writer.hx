@@ -133,8 +133,8 @@ class Writer {
 			o.writeUInt16( s.index );
 			o.writeByte( s.access.offset );
 			o.writeByte( swizzleBits(s.swiz) );
-			o.writeByte( regType(s.t) );
 			o.writeByte( regType(s.access.t) );
+			o.writeByte( regType(s.t) );
 			o.writeByte( Type.enumIndex(s.access.comp) );
 			o.writeByte( 0x80 );
 		}
