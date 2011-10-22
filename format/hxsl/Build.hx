@@ -51,78 +51,79 @@ class Build {
 		var inf = {
 			vars : [],
 			setup : [],
-			tmp : [],
 		};
 		if( shader.vertex )
-			inf.tmp.push("start(true);");
+			inf.setup.push("start(true);");
 		else
-			inf.tmp.push("start(false);");
+			inf.setup.push("start(false);");
+		var vcount = 0;
+		function add(v) {
+			inf.setup.push("add("+v+");");
+			vcount++;
+		}
 		for( c in shader.args.concat(shader.tex) ) {
 			var t = realType(c.type);
 			inf.vars.push(c.name + " : " + t);
-			function add( n : String, t : VarType )	{
+			function addType( n : String, t : VarType )	{
 				switch( t ) {
 				case TFloat:
-					inf.setup.push(n);
-					inf.setup.push(n);
-					inf.setup.push(n);
-					inf.setup.push(n);
+					add(n);
+					add(n);
+					add(n);
+					add(n);
 				case TFloat2:
-					inf.setup.push(n + ".x");
-					inf.setup.push(n + ".y");
-					inf.setup.push("1.");
-					inf.setup.push("1.");
+					add(n + ".x");
+					add(n + ".y");
+					add("1.");
+					add("1.");
 				case TFloat3:
-					inf.setup.push(n + ".x");
-					inf.setup.push(n + ".y");
-					inf.setup.push(n + ".z");
-					inf.setup.push("1.");
+					add(n + ".x");
+					add(n + ".y");
+					add(n + ".z");
+					add("1.");
 				case TFloat4:
-					inf.setup.push(n + ".x");
-					inf.setup.push(n + ".y");
-					inf.setup.push(n + ".z");
-					inf.setup.push(n + ".w");
+					add(n + ".x");
+					add(n + ".y");
+					add(n + ".z");
+					add(n + ".w");
 				case TMatrix(w,h,t):
 					var tmp = "raw_" + c.name;
-					inf.tmp.push("var " + tmp + " = " + n + ".rawData;");
+					inf.setup.push("var " + tmp + " = " + n + ".rawData;");
 					for( y in 0...w )
 						for( x in 0...h ) {
 							var index = if( t.t ) y + x * 4 else x + y * 4;
-							inf.setup.push(tmp + "[" + index + "]");
+							add(tmp + "[" + index + "]");
 						}
 				case TTexture(_):
-					inf.tmp.push("texture(" + c.index + "," + n + ");");
+					inf.setup.push("texture(" + c.index + "," + n + ");");
 				case TColor3:
-					inf.setup.push("((" + n + ">>16) & 0xFF) / 255.0");
-					inf.setup.push("((" + n + ">>8) & 0xFF) / 255.0");
-					inf.setup.push("(" + n + " & 0xFF) / 255.0");
-					inf.setup.push("1.");
+					add("((" + n + ">>16) & 0xFF) / 255.0");
+					add("((" + n + ">>8) & 0xFF) / 255.0");
+					add("(" + n + " & 0xFF) / 255.0");
+					add("1.");
 				case TColor:
-					inf.setup.push("((" + n + ">>16) & 0xFF) / 255.0");
-					inf.setup.push("((" + n + ">>8) & 0xFF) / 255.0");
-					inf.setup.push("(" + n + " & 0xFF) / 255.0");
-					inf.setup.push("(" + n + ">>>24) / 255.0");
+					add("((" + n + ">>16) & 0xFF) / 255.0");
+					add("((" + n + ">>8) & 0xFF) / 255.0");
+					add("(" + n + " & 0xFF) / 255.0");
+					add("(" + n + ">>>24) / 255.0");
 				case TArray(t, count):
-					inf.tmp.push("for( _i in 0..." + count + " ) {");
-					var old = inf.setup;
-					inf.setup = [];
-					add(n + "[_i]", t);
-					for( e in inf.setup )
-						inf.tmp.push("add(" + e + ");");
-					inf.setup = old;
-					inf.tmp.push("}");
+					var old = vcount;
+					inf.setup.push("for( _i in 0..." + count + " ) {");
+					addType(n + "[_i]", t);
+					inf.setup.push("}");
+					vcount += (vcount - old) * (count - 1);
 				}
 			}
-			add( (shader.vertex?"vertex":"fragment") + "." + c.name, c.type);
+			addType( (shader.vertex?"vertex":"fragment") + "." + c.name, c.type);
 		}
 		for( c in shader.consts ) {
 			for( f in c )
-				inf.setup.push(f);
+				add(f);
 			for( i in c.length...4 )
-				inf.setup.push("0");
+				add("0");
 		}
 
-		if( inf.setup.length >> 2 >= format.agal.Tools.getProps(RConst, !shader.vertex).count )
+		if( vcount >> 2 >= format.agal.Tools.getProps(RConst, !shader.vertex).count )
 			Context.error("This shader has reached the maximum number of allowed parameters/constants", shader.pos);
 
 		return inf;
@@ -173,7 +174,7 @@ class Build {
 
 		var vscode = c.compile(v.vertex);
 		var fscode = c.compile(v.fragment);
-		
+
 		var max = 200;
 		if( vscode.code.length > max )
 			Context.error("This vertex shader uses " + vscode.code.length + " opcodes but only " + max + " are allowed by Flash11", v.vertex.pos);
@@ -192,8 +193,8 @@ class Build {
 		var fs = buildShaderInfos(v.fragment);
 
 		var initCode =
-			vs.tmp.concat(Lambda.array(Lambda.map(vs.setup, function(s) return "add(" + s + ");"))).join("\n") + "\n\n" +
-			fs.tmp.concat(Lambda.array(Lambda.map(fs.setup, function(s) return "add(" + s + ");"))).join("\n") + "\n\n" +
+			vs.setup.join("\n") + "\n\n" +
+			fs.setup.join("\n") + "\n\n" +
 			"done();\n"
 		;
 
