@@ -122,7 +122,7 @@ enum CodeValueDecl {
 	CVar( v : Variable, ?swiz : Array<Comp> );
 	COp( op : CodeOp, e1 : CodeValue, e2 : CodeValue );
 	CUnop( op : CodeUnop, e : CodeValue );
-	CAccess( v : Variable, idx : Variable, c : Comp );
+	CAccess( v : Variable, idx : CodeValue );
 	CTex( v : Variable, acc : CodeValue, flags : Array<TexFlag> );
 	CSwiz( e : CodeValue, swiz : Array<Comp> );
 	CBlock( exprs : Array<{ v : CodeValue, e : CodeValue }>, v : CodeValue );

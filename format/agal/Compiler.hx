@@ -686,10 +686,10 @@ class Compiler {
 			for( e in el )
 				compileExpr(e.e, e.v);
 			return compileSrc(v);
-		case CAccess(v1, v2, c):
+		case CAccess(v1, e2):
 			var r1 = reg(v1);
-			var r2 = reg(v2);
-			return { t : r2.t, index : r2.index, access : { t : r1.t, comp : convertSwiz([c])[0], offset : r1.index }, swiz : initSwiz(e.t) };
+			var r2 = compileSrc(e2);
+			return { t : r2.t, index : r2.index, access : { t : r1.t, comp : r2.swiz[0], offset : r1.index }, swiz : initSwiz(e.t) };
 		}
 	}
 

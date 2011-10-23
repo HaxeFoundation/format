@@ -522,9 +522,9 @@ class Compiler {
 			checkRead(v);
 		case CBlock(_, v):
 			checkRead(v);
-		case CAccess(v1, v2, c):
+		case CAccess(v1, e2):
 			checkReadVar(v1,null,e.p);
-			checkReadVar(v2,[c],e.p);
+			checkRead(e2);
 		}
 	}
 	
@@ -613,13 +613,7 @@ class Compiler {
 			}
 			var eindex = compileValue(eindex);
 			unify(eindex.t, TFloat, eindex.p);
-			switch(eindex.d) {
-			case CVar(v2, swiz):
-				return { d : CAccess(v, v2, swiz == null ? X : swiz[0]), t : t, p : e.p };
-			default:
-				error("You can only index using another variable", eindex.p);
-				return null;
-			}
+			return { d : CAccess(v, eindex), t : t, p : e.p };
 		case PConst(i):
 			return allocConst([i], e.p);
 		case PLocal(v):
