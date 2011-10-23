@@ -91,8 +91,11 @@ class Compiler {
 		return { t : t, index : v.index, swiz : swiz, access : null };
 	}
 
-	function delta( r : Reg, n : Int, ?s) {
-		return { t : r.t, index : r.index + n, swiz : (s == null) ? r.swiz : s, access : r.access };
+	function delta( r : Reg, n : Int, ?s) : Reg {
+		if( r.access == null )
+			return { t : r.t, index : r.index + n, swiz : (s == null) ? r.swiz : s, access : null };
+		var acc = r.access;
+		return { t : r.t, index : r.index, swiz : (s == null) ? r.swiz : s, access : { t : acc.t, comp : acc.comp, offset : acc.offset + n } };
 	}
 
 	function swizOpt( r : Reg, s ) {
@@ -157,7 +160,7 @@ class Compiler {
 			var c = code[i++];
 			switch( c ) {
 			case OMov(dst, v):
-				if( dst.index == v.index && dst.t == v.t && swizBits(dst.swiz) == swizBits(v.swiz) ) {
+				if( dst.index == v.index && dst.t == v.t && swizBits(dst.swiz) == swizBits(v.swiz) && v.access == null ) {
 					code.remove(c);
 					i--;
 				}
@@ -276,7 +279,9 @@ class Compiler {
 				temps[r.index] = t;
 			}
 			// set last-write per-component codepos
-			if( r.swiz == null ) {
+			if( r.access != null )
+				t.lastWritePos[Type.enumIndex(r.access.comp)] = codePos;
+			else if( r.swiz == null ) {
 				for( i in 0...4 )
 					t.lastWritePos[i] = codePos;
 			} else {
@@ -288,22 +293,24 @@ class Compiler {
 			if( startRegister >= 0 ) {
 				switch( code[codePos] ) {
 				case OMov(d, v):
-					t.assignedTo = startRegister;
-					// build component swizzle map
-					var s = d.swiz;
-					if( s == null ) s = [X, Y, Z, W];
-					var ss = v.swiz;
-					if( ss == null ) ss = [X, Y, Z, W];
-					t.assignedComps = [];
-					for( i in 0...s.length )
-						t.assignedComps[Type.enumIndex(s[i])] = ss[i];
+					if( v.access == null ) {
+						t.assignedTo = startRegister;
+						// build component swizzle map
+						var s = d.swiz;
+						if( s == null ) s = [X, Y, Z, W];
+						var ss = v.swiz;
+						if( ss == null ) ss = [X, Y, Z, W];
+						t.assignedComps = [];
+						for( i in 0...s.length )
+							t.assignedComps[Type.enumIndex(s[i])] = ss[i];
+					}
 				default:
 				}
 				startRegister = -1;
 			}
 		} else {
 			if( t == null ) throw "assert";
-			var s = if( r.swiz == null ) [X, Y, Z, W] else r.swiz;
+			var s = if( r.access != null ) [r.access.comp] else if( r.swiz == null ) [X, Y, Z, W] else r.swiz;
 			// if we need to read some components at some time
 			// make sure that we reserve all the components as soon
 			// as the first one is written
@@ -339,7 +346,9 @@ class Compiler {
 
 	function changeReg( r : Reg, t : Temp ) {
 		r.index = t.assignedTo;
-		if( r.swiz != null ) {
+		if( r.access != null )
+			r.access.comp = t.assignedComps[Type.enumIndex(r.access.comp)];
+		else if( r.swiz != null ) {
 			var s = [];
 			for( c in r.swiz )
 				s.push(t.assignedComps[Type.enumIndex(c)]);
@@ -367,7 +376,7 @@ class Compiler {
 		// transform mov to dead registers into no-ops
 		switch( code[codePos] ) {
 		case OMov(dst, src):
-			if( dst.t == RTemp && (src.t == RTemp || src.t == RConst) ) {
+			if( dst.t == RTemp && (src.t == RTemp || src.t == RConst) && src.access == null ) {
 				var t = temps[dst.index];
 				if( t.liveBits[codePos + 1] == null ) {
 					code[codePos] = OMov(dst, dst); // no-op, will be removed later
