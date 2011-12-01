@@ -38,12 +38,12 @@ class Compiler {
 	var ret : { v : CodeValue };
 	var allowTextureRead : Bool;
 
-	public var config : { inlTranspose : Bool, inlInt : Bool, allowAllWMasks : Bool };
+	public var config : { inlTranspose : Bool, inlInt : Bool, allowAllWMasks : Bool, padWrites : Bool };
 
 	public function new() {
 		tempCount = 0;
 		vars = new Hash();
-		config = { inlTranspose : true, inlInt : true, allowAllWMasks : false };
+		config = { inlTranspose : true, inlInt : true, allowAllWMasks : false, padWrites : true };
 		indexes = [0, 0, 0, 0, 0, 0];
 		ops = new Array();
 		for( o in initOps() )
@@ -418,6 +418,8 @@ class Compiler {
 	}
 
 	function padWrite( v : Variable ) {
+		if( !config.padWrites )
+			return;
 		// if we already have a partial "mov" copy, we can simply extend the writing on other components
 		for( e in cur.exprs ) {
 			if( e.v == null ) continue;
@@ -504,7 +506,7 @@ class Compiler {
 				error("You can't read from a texture", p);
 		}
 	}
-	
+
 	function checkRead( e : CodeValue ) {
 		switch( e.d ) {
 		case CVar(v, swiz):
@@ -527,7 +529,7 @@ class Compiler {
 			checkRead(e2);
 		}
 	}
-	
+
 	function compileValueOpt(e,?target) {
 		return compileValue(optimizeValue(e),target);
 	}
@@ -586,7 +588,7 @@ class Compiler {
 		}
 		return e;
 	}
-	
+
 	function compileValue( e : ParsedValue, ?isTarget ) : CodeValue {
 		switch( e.v ) {
 		case PBlock(_), PReturn(_):
@@ -889,7 +891,7 @@ class Compiler {
 			error(typeStr(t1) + " should be " +typeStr(t2), p);
 		}
 	}
-	
+
 	function makeConstOp( op : CodeOp, v1 : String, v2 : String, p : Position ) {
 		var me = this;
 		function makeConst(f:Float->Float->Float) {
@@ -914,7 +916,7 @@ class Compiler {
 		case CCross: null;
 		};
 	}
-	
+
 
 	function makeOp( op : CodeOp, e1 : ParsedValue, e2 : ParsedValue, p : Position ) {
 		switch( op ) {
@@ -1024,7 +1026,7 @@ class Compiler {
 		case CLen: makeConst(function(x) return x);
 		};
 	}
-	
+
 	function makeUnop( op : CodeUnop, e : ParsedValue, p : Position ) {
 		var e = compileValue(e);
 		var rt = e.t;

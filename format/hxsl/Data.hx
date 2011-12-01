@@ -211,7 +211,7 @@ class Tools {
 		case TArray(t, size):
 			var v = regSize(t);
 			if( v < 4 ) v = 4;
-			return v * size;
+			v * size;
 		default: 1;
 		}
 	}
@@ -228,7 +228,7 @@ class Tools {
 		case TArray(t, count):
 			var size = floatSize(t);
 			if( size < 4 ) size = 4;
-			return size * count;
+			size * count;
 		}
 	}
 
