@@ -38,12 +38,12 @@ class Compiler {
 	var ret : { v : CodeValue };
 	var allowTextureRead : Bool;
 
-	public var config : { inlTranspose : Bool, inlInt : Bool, allowAllWMasks : Bool, padWrites : Bool };
+	public var config : { inlTranspose : Bool, inlInt : Bool, allowAllWMasks : Bool, padWrites : Bool, forceReads : Bool };
 
 	public function new() {
 		tempCount = 0;
 		vars = new Hash();
-		config = { inlTranspose : true, inlInt : true, allowAllWMasks : false, padWrites : true };
+		config = { inlTranspose : true, inlInt : true, allowAllWMasks : false, padWrites : true, forceReads : true };
 		indexes = [0, 0, 0, 0, 0, 0];
 		ops = new Array();
 		for( o in initOps() )
@@ -243,7 +243,11 @@ class Compiler {
 				switch( e.d ) {
 				case CVar(v2, s2):
 					if( v2.kind != VTmp && bits == fullBits(vr.type) ) {
-						if( s2 == null ) s2 = [X, Y, Z, W];
+						if( s2 == null ) {
+							s2 = [X, Y, Z, W];
+							while( (1<<s2.length)-1 > bits )
+								s2.pop();
+						}
 						vr.assign = { v : v2, s : s2 };
 					}
 				default:
@@ -396,7 +400,8 @@ class Compiler {
 				if( cur.vertex && !v.read ) {
 					warn("Input '" + v.name + "' is not used by " + shader, p);
 					// force the input read
-					addAssign( { d : CVar(allocTemp(TFloat4, p)), t : TFloat4, p : p }, { d : CVar(v), t : TFloat4, p : p }, p);
+					if( config.forceReads )
+						addAssign( { d : CVar(allocTemp(TFloat4, p)), t : TFloat4, p : p }, { d : CVar(v), t : TFloat4, p : p }, p);
 				}
 			case VTmp:
 				if( !v.read ) warn("Unused local variable '" + v.name+"'", p);
@@ -405,13 +410,15 @@ class Compiler {
 			case VTexture:
 				if( !v.read ) {
 					warn("Unused texture " + v.name, p);
-					// force the texture read
-					var t = { d : CVar(allocTemp(TFloat4, p)), t : TFloat4, p : p };
-					var cst = switch( v.type ) {
-					case TTexture(cube): cube ? ["0","0","0"] : ["0","0"];
-					default: throw "assert";
+					if( config.forceReads ) {
+						// force the texture read
+						var t = { d : CVar(allocTemp(TFloat4, p)), t : TFloat4, p : p };
+						var cst = switch( v.type ) {
+						case TTexture(cube): cube ? ["0","0","0"] : ["0","0"];
+						default: throw "assert";
+						}
+						addAssign(t, { d : CTex(v,allocConst(cst,p),[]), t : TFloat4, p : p }, p);
 					}
-					addAssign(t, { d : CTex(v,allocConst(cst,p),[]), t : TFloat4, p : p }, p);
 				}
 			}
 		}
