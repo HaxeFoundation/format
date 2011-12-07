@@ -1,0 +1,5 @@
+-cp ..
+-cp ../../../trunk
+-cp .
+-main Main
+-js bin/GLSL.js
