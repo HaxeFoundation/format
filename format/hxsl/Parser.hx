@@ -109,8 +109,7 @@ class Parser {
 			case "M43": TMatrix(4, 3, { t : null } );
 			case "Texture": TTexture(false);
 			case "CubeTexture": TTexture(true);
-			case "Color3": TColor3;
-			case "Color": TColor;
+			case "Color", "Int": TInt;
 			default:
 				error("Unknown type '" + p.name + "'", pos);
 			}

@@ -61,7 +61,7 @@ typedef Array<T,Const> = flash.Vector<T>
 	}
 
 	static var FORMATS = [
-		null,
+		flash.display3D.Context3DVertexBufferFormat.BYTES_4,
 		flash.display3D.Context3DVertexBufferFormat.FLOAT_1,
 		flash.display3D.Context3DVertexBufferFormat.FLOAT_2,
 		flash.display3D.Context3DVertexBufferFormat.FLOAT_3,
@@ -81,7 +81,7 @@ typedef Array<T,Const> = flash.Vector<T>
 	inline function bindReg(nfloats:Int) {
 		c.setVertexBufferAt( regIndex, buf, bufSize, FORMATS[nfloats] );
 		regIndex++;
-		bufSize += nfloats;
+		bufSize += if( nfloats == 0 ) 1 else nfloats;
 	}
 
 	public function bind(buf) {

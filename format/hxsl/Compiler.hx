@@ -664,11 +664,8 @@ class Compiler {
 			var v = compileValue(v,isTarget);
 			// check swizzling according to value type
 			var count = switch( v.t ) {
-			case TFloat: 1;
-			case TFloat2: 2;
-			case TFloat3, TColor3: 3;
-			case TFloat4, TColor: 4;
 			case TMatrix(_), TTexture(_), TArray(_): 0;
+			default: Tools.floatSize(v.t);
 			}
 			// allow all components access on input and varying values only
 			switch( v.d ) {
@@ -868,10 +865,10 @@ class Compiler {
 			case TTexture(c2): return c1 == c2;
 			default:
 			}
-		case TFloat3, TColor3:
-			return (t2 == TFloat3 || t2 == TColor3);
-		case TFloat4, TColor:
-			return (t2 == TFloat4 || t2 == TColor);
+		case TFloat3:
+			return t2 == TFloat3;
+		case TFloat4, TInt:
+			return (t2 == TFloat4 || t2 == TInt);
 		default:
 		}
 		return false;
@@ -1094,7 +1091,7 @@ class Compiler {
 
 	function isFloat( t : VarType ) {
 		return switch( t ) {
-		case TFloat, TFloat2, TFloat3, TFloat4, TColor3, TColor: true;
+		case TFloat, TFloat2, TFloat3, TFloat4, TInt: true;
 		default: false;
 		};
 	}
@@ -1108,10 +1105,10 @@ class Compiler {
 				return r2 == r && c2 == c && ( t1.t == null || t2.t == null || t1.t == t2.t );
 			default:
 			}
-		case TFloat3, TColor3:
-			return (t2 == TFloat3 || t2 == TColor3);
-		case TFloat4, TColor:
-			return (t2 == TFloat4 || t2 == TColor);
+		case TFloat3:
+			return t2 == TFloat3;
+		case TFloat4, TInt:
+			return (t2 == TFloat4 || t2 == TInt);
 		default:
 		}
 		return false;

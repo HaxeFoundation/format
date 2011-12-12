@@ -40,7 +40,7 @@ class Build {
 		return switch( t ) {
 		case TFloat: "Float";
 		case TFloat2, TFloat3, TFloat4: "flash.geom.Vector3D";
-		case TColor3, TColor: "Int";
+		case TInt: "Int";
 		case TMatrix(_): "flash.geom.Matrix3D";
 		case TTexture(cube): "flash.display3D.textures." + (cube ? "CubeTexture" : "Texture");
 		case TArray(t, size): "format.hxsl.Shader.Array<" + realType(t) + ","+size+">";
@@ -96,12 +96,7 @@ class Build {
 						}
 				case TTexture(_):
 					inf.setup.push("texture(" + c.index + "," + n + ");");
-				case TColor3:
-					add("((" + n + ">>16) & 0xFF) / 255.0");
-					add("((" + n + ">>8) & 0xFF) / 255.0");
-					add("(" + n + " & 0xFF) / 255.0");
-					add("1.");
-				case TColor:
+				case TInt:
 					add("((" + n + ">>16) & 0xFF) / 255.0");
 					add("((" + n + ">>8) & 0xFF) / 255.0");
 					add("(" + n + " & 0xFF) / 255.0");
@@ -200,7 +195,7 @@ class Build {
 
 		var bindCode =
 			"bindInit(buf);\n" +
-			Lambda.map(v.input, function(v) return "bindReg(" + Tools.floatSize(v.type) + ");\n").join("") +
+			Lambda.map(v.input, function(v) return "bindReg(" + (v.type == TInt ? 0 : Tools.floatSize(v.type)) + ");\n").join("") +
 			"bindDone();\n"
 		;
 

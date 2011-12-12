@@ -61,8 +61,7 @@ enum VarType {
 	TFloat2;
 	TFloat3;
 	TFloat4;
-	TColor3;
-	TColor;
+	TInt;
 	TMatrix( r : Int, c : Int, transpose : { t : Null<Bool> } );
 	TTexture( cube : Bool );
 	TArray( t : VarType, size : Int );
@@ -216,13 +215,12 @@ class Tools {
 		}
 	}
 
-
 	public static function floatSize( t : VarType ) {
 		return switch( t ) {
 		case TFloat: 1;
 		case TFloat2: 2;
-		case TFloat3, TColor3: 3;
-		case TFloat4, TColor: 4;
+		case TFloat3: 3;
+		case TFloat4, TInt: 4;
 		case TTexture(_): 0;
 		case TMatrix(w, h, _): w * h;
 		case TArray(t, count):
