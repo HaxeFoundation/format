@@ -2,6 +2,7 @@
 	hxsl + agal : added seq, sne, lod bias, removed centroid
 	hxsl + agal : added indirect access
 	hxsl : removed Color3, added Int (=Color), fixed Int in input
+	hxsl : make public select() and getVertex/Fragment constants
 
 2011-10-05: 1.19.5
 	hxsl : fix for haxe 2.08

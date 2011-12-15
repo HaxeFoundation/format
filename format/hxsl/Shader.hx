@@ -33,8 +33,6 @@ typedef Array<T,Const> = flash.Vector<T>
 	var c : flash.display3D.Context3D;
 	var p : flash.display3D.Program3D;
 	var buf : flash.display3D.VertexBuffer3D;
-	var cst : flash.Vector<Float>;
-	var pos : Int;
 	var regIndex : Int;
 	var bufSize : Int;
 
@@ -54,10 +52,9 @@ typedef Array<T,Const> = flash.Vector<T>
 		return null;
 	}
 
-	function send(vertex:Bool) {
+	function send(vertex:Bool,cst:flash.Vector<Float>) {
 		var pt = vertex?flash.display3D.Context3DProgramType.VERTEX:flash.display3D.Context3DProgramType.FRAGMENT;
 		c.setProgramConstantsFromVector(pt, 0, cst);
-		cst = null;
 	}
 
 	static var FORMATS = [
@@ -106,17 +103,8 @@ typedef Array<T,Const> = flash.Vector<T>
 		p = null;
 	}
 
-	function start(vertex) {
-		if( vertex )
-			c.setProgram(p);
-		else
-			send(true);
-		cst = new flash.Vector<Float>();
-		pos = 0;
-	}
-
-	inline function add( v : Float ) {
-		cst[pos++] = v;
+	public function select() {
+		c.setProgram(p);
 	}
 
 	function texture( index : Int, t : flash.display3D.textures.TextureBase ) {
@@ -125,11 +113,6 @@ typedef Array<T,Const> = flash.Vector<T>
 
 	inline function unbindTex(index) {
 		c.setTextureAt(index, null);
-	}
-
-	function done() {
-		send(false);
-		cst = null;
 	}
 
 }

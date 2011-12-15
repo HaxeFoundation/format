@@ -52,13 +52,9 @@ class Build {
 			vars : [],
 			setup : [],
 		};
-		if( shader.vertex )
-			inf.setup.push("start(true);");
-		else
-			inf.setup.push("start(false);");
 		var vcount = 0;
 		function add(v) {
-			inf.setup.push("add("+v+");");
+			inf.setup.push("cst[pos++] = "+v+";");
 			vcount++;
 		}
 		for( c in shader.args.concat(shader.tex) ) {
@@ -109,7 +105,7 @@ class Build {
 					vcount += (vcount - old) * (count - 1);
 				}
 			}
-			addType( (shader.vertex?"vertex":"fragment") + "." + c.name, c.type);
+			addType("vars." + c.name, c.type);
 		}
 		for( c in shader.consts ) {
 			for( f in c )
@@ -188,9 +184,9 @@ class Build {
 		var fs = buildShaderInfos(v.fragment);
 
 		var initCode =
-			vs.setup.join("\n") + "\n\n" +
-			fs.setup.join("\n") + "\n\n" +
-			"done();\n"
+			"select();\n" +
+			"send(true,getVertexConstants(vertex));\n" +
+			"send(false,getFragmentConstants(fragment));\n"
 		;
 
 		var bindCode =
@@ -220,6 +216,8 @@ class Build {
 		var decls = [
 			"override function getVertexData() return format.agal.Tools.ofString('" + vsbytes + "')",
 			"override function getFragmentData() return format.agal.Tools.ofString('" + fsbytes + "')",
+			"public function getVertexConstants(vars:{" + vs.vars.join(",") + "}) { var cst = new flash.Vector<Float>(); var pos = 0; " + vs.setup.join("\n") + "return cst; }",
+			"public function getFragmentConstants(vars:{" + fs.vars.join(",") + "}) { var cst = new flash.Vector<Float>(); var pos = 0; " + fs.setup.join("\n") + "return cst; }",
 			"override function bind(buf) {"+bindCode+"}",
 			"public function init( vertex : {" + vs.vars.join(",") + "}, fragment : {" + fs.vars.join(",") + "} ) {" + initCode + "}",
 		];
