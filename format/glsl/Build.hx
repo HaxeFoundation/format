@@ -42,7 +42,7 @@ class Build {
 		return switch( t ) {
 		case TFloat: "Float";
 		case TFloat2, TFloat3, TFloat4: "Dynamic";
-		case TColor3, TColor: "Int";
+		case TInt: "Int";
 		case TMatrix(_): "Dynamic";
 		case TTexture(cube): "Dynamic";
 		case TArray(t, size): "format.glsl.Shader.GArray<" + realType(t) + ","+size+">";
@@ -98,12 +98,7 @@ class Build {
 						}
 				case TTexture(_):
 					inf.setup.push("texture(" + c.index + "," + n + ");");
-				case TColor3:
-					add("((" + n + ">>16) & 0xFF) / 255.0");
-					add("((" + n + ">>8) & 0xFF) / 255.0");
-					add("(" + n + " & 0xFF) / 255.0");
-					add("1.");
-				case TColor:
+				case TInt:
 					add("((" + n + ">>16) & 0xFF) / 255.0");
 					add("((" + n + ">>8) & 0xFF) / 255.0");
 					add("(" + n + " & 0xFF) / 255.0");

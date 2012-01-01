@@ -45,23 +45,17 @@ class Shader extends format.glsl.Shader {
 			var y = x;
 			var x = y;
 			
-			var pos = doFunc((pos.xzxy).xyzw);
-			var pos = [pos.length(), pos.length(), pos.length()];
-			pos.x = if (pos.x > 1.0) 0.0; else 1.0;
-			var pos = [pos.x, pos.y, pos.z, 1.0];
-			//var pos = [0.0, 0.0, 0.0, 1.0];
-			
 			out = x * mproj;
 			color = pos.xyz;
 		}
 		
-		function doFunc(pos:Float4)
+		function fade( t : Float3 ) : Float3 
 		{
-			return (pos * 2 / 2).rcp().sqrt().neg().neg().rsqrt();
+			return (t * (t * 6 - 15) + 10);
 		}
 		
 		function fragment() {
-			out = color.xyzw;
+			out = fade(color).xyzz;
 		}
 	};
 

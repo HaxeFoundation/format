@@ -109,7 +109,7 @@ class Compiler {
 		
 	}
 	
-	function varName( v : Variable ) : String
+	function varName( v : Variable, ?swiz:Null<Array<Comp>> ) : String
 	{
 		var ret = switch(v.kind)
 		{
@@ -122,8 +122,15 @@ class Compiler {
 					var const = code.consts[idx];
 					var len = const.length;
 					
-					if (len > 1)
+					if (swiz != null)
 					{
+						if (swiz.length == 1)
+						{
+							constToString(const[compIndex(swiz[0])]);
+						} else {
+							"vec" + (swiz.length) + "(" + swiz.map(function(comp) return constToString(const[compIndex(comp)])).join(", ") + ")";
+						}
+					} else if (len > 1) {
 						"vec" + len + "(" + const.map(constToString).join(", ") + ")";
 					} else {
 						constToString(const[0]);
@@ -186,6 +193,8 @@ class Compiler {
 	
 	function genShader( data : format.hxsl.Data, vertex : Bool)
 	{
+		trace(data);
+		
 		this.declaredVars = new Hash();
 		var buf = this.buf =  new StringBuf();
 		var code = (vertex) ? data.vertex : data.fragment;
@@ -379,8 +388,7 @@ class Compiler {
 			case TFloat2: 2;
 			case TFloat3: 3;
 			case TFloat4: 4;
-			case TColor3: 3;
-			case TColor: 4;
+			case TInt: 1;
 			case TMatrix( r, c, transpose ): switch(Std.int(Math.max(r, c)))
 			{
 				case 2: 4;
@@ -458,6 +466,16 @@ class Compiler {
 			}
 		var sLen = swizLength(swiz);
 		var convert = null;
+		
+		if (cvar != null)
+		{
+			var isConst = isConst(cvar);
+			if (isConst != null)
+			{
+				buf.add(this.varName(cvar, swiz));
+				return;
+			}
+		}
 		
 		if (sLen > cLen)
 		{
@@ -738,8 +756,7 @@ class Compiler {
 			case TFloat2: "vec2";
 			case TFloat3: "vec3";
 			case TFloat4: "vec4";
-			case TColor3: "vec3";
-			case TColor: "vec4";
+			case TInt: "float"; //at least for now TInt -> float
 			case TMatrix( r, c, transpose ): switch(Std.int(Math.max(r, c)))
 			{
 				case 2: "mat2";

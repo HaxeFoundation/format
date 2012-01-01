@@ -257,10 +257,10 @@ Shader.__name__ = ["Shader"];
 Shader.__super__ = format.glsl.Shader;
 for(var k in format.glsl.Shader.prototype ) Shader.prototype[k] = format.glsl.Shader.prototype[k];
 Shader.prototype.getVertexData = function() {
-	return "\tuniform mat4 mpos;\n\tuniform mat4 mproj;\n\tattribute vec3 pos;\n\tvarying vec3 color;\nvoid main()\n\t{\n\t\tvec4 x_tmp_0 = (mpos * vec4(pos, 1.0).xyzw);\n\t\tvec4 y_tmp_1 = x_tmp_0;\n\t\tvec4 x_tmp_2 = y_tmp_1;\n\t\tvec4 pos_tmp_3 = pos.xzxy;\n\t\tvec4 pos_tmp_4 = (inversesqrt(( - ( - (sqrt((vec4(1.0, 1.0, 1.0, 1.0) / ((vec4(2.0, 2.0, 2.0, 2.0) * pos.xzxy) / vec4(2.0, 2.0, 2.0, 2.0)))))))));\n\t\tvec3 _dollar_t0_tmp_5;\n\t\t{\n\t\t\t_dollar_t0_tmp_5.x = (length(pos_tmp_4));\n\t\t\t_dollar_t0_tmp_5.y = (length(pos_tmp_4));\n\t\t\t_dollar_t0_tmp_5.z = (length(pos_tmp_4));\n\t\t\t_dollar_t0_tmp_5 = _dollar_t0_tmp_5;\n\t\t\t\n\t\t}\n\t\tvec3 pos_tmp_6 = _dollar_t0_tmp_5;\n\t\tpos_tmp_6.x = ((vec3(2.0, 1.0, 0.0).z * (float(vec3(2.0, 1.0, 0.0).y<pos_tmp_6.x))) + (vec3(2.0, 1.0, 0.0).y * (float(vec3(2.0, 1.0, 0.0).y>=pos_tmp_6.x))));\n\t\tvec4 _dollar_t1_tmp_7;\n\t\t{\n\t\t\t_dollar_t1_tmp_7.x = pos_tmp_6.x;\n\t\t\t_dollar_t1_tmp_7.y = pos_tmp_6.y;\n\t\t\t_dollar_t1_tmp_7.z = pos_tmp_6.z;\n\t\t\t_dollar_t1_tmp_7.w = vec3(2.0, 1.0, 0.0).y;\n\t\t\t_dollar_t1_tmp_7 = _dollar_t1_tmp_7;\n\t\t\t\n\t\t}\n\t\tvec4 pos_tmp_8 = _dollar_t1_tmp_7;\n\t\tgl_Position = (mproj * x_tmp_2);\n\t\tcolor = pos_tmp_8.xyz;\n\t\t\n\t}\n\t";
+	return "\tuniform mat4 mpos;\n\tuniform mat4 mproj;\n\tattribute vec3 pos;\n\tvarying vec3 color;\nvoid main()\n\t{\n\t\tvec4 x_tmp_0 = (mpos * vec4(pos, 1.0).xyzw);\n\t\tvec4 y_tmp_1 = x_tmp_0;\n\t\tvec4 x_tmp_2 = y_tmp_1;\n\t\tgl_Position = (mproj * x_tmp_2);\n\t\tcolor = pos.xyz;\n\t\t\n\t}\n\t";
 }
 Shader.prototype.getFragmentData = function() {
-	return "#ifdef GL_ES\n\tprecision highp float;\n\t#endif\n\t\tvarying vec3 color;\nvoid main()\n\t{\n\t\tgl_FragColor = vec4(color, 1.0).xyzw;\n\t\t\n\t}\n\t";
+	return "#ifdef GL_ES\n\tprecision highp float;\n\t#endif\n\t\tvarying vec3 color;\nvoid main()\n\t{\n\t\tvec3 t_tmp_0 = color;\n\t\tgl_FragColor = ((((vec3(6.0, 6.0, 6.0) * color.xyz) - vec3(15.0, 15.0, 15.0)) * color.xyz) + vec3(10.0, 10.0, 10.0)).xyzz;\n\t\t\n\t}\n\t";
 }
 Shader.prototype.bind = function(buf) {
 	this.bindInit(buf);
@@ -303,11 +303,11 @@ Shader.prototype.init = function(vertex,fragment) {
 	null;
 	null;
 	null;
-	null;
-	null;
-	null;
-	null;
 	this.start(false);
+	null;
+	null;
+	null;
+	null;
 	this.done();
 }
 Shader.prototype.__class__ = Shader;
