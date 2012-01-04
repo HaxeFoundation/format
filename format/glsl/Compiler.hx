@@ -484,29 +484,14 @@ class Compiler {
 			genCodeVal(c);
 		} else if (cLen == 1)
 		{
-			if (swiz.length == 1) return;
-			if (cvar != null)
+			if (swiz.length == 1 && swiz[0] == X ) 
 			{
-				var isConst = isConst(cvar);
-				if (isConst != null)
-				{
-					buf.add("vec");
-					buf.add(swiz.length);
-					buf.add("(");
-					var const = code.consts[isConst];
-					buf.add( swiz.map(function(comp) return constToString(const[compIndex(comp)])).join(", ") );
-					buf.add(")");
-					
-					return;
-				} else {
-					buf.add("vec2(");
-					genCodeVal(c);
-					buf.add(", 0.0)");
-				}
-			} else {
-				buf.add("vec2(");
 				genCodeVal(c);
-				buf.add(", 0.0)");
+				
+				return; //no need to add the swizzle in this case
+			} else {
+				//if next bytes size is one and swizzle is not X, something is wrong
+				this.error("Invalid swizzle", c.p);
 			}
 		} else {
 			genCodeVal(c);
