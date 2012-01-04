@@ -667,7 +667,7 @@ class Compiler {
 			case CAbs: "abs";
 			case CNeg: " - ";
 			case CFrac: "fract";
-			case CInt: "int";
+			case CInt: "floor";
 			case CNorm: "normalize";
 			case CKill: "discard";
 			case CTrans: "transpose";
