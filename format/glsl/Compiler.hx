@@ -484,15 +484,31 @@ class Compiler {
 			genCodeVal(c);
 		} else if (cLen == 1)
 		{
-			if (swiz.length == 1 && swiz[0] == X ) 
+			if (swiz.length == 1) 
 			{
-				genCodeVal(c);
+				if (swiz[0] != X) 
+					this.error("Invalid swizzle", c.p);
 				
-				return; //no need to add the swizzle in this case
+				genCodeVal(c);
 			} else {
-				//if next bytes size is one and swizzle is not X, something is wrong
-				this.error("Invalid swizzle", c.p);
+				buf.add("vec");
+				buf.add(swiz.length);
+				buf.add("(");
+				
+				var first = true;
+				for (comp in swiz)
+				{
+					if (first) first = false; else buf.add(", ");
+					
+					if (comp != X)
+						this.error("Invalid swizzle", c.p);
+					
+					genCodeVal(c);
+				}
+				buf.add(")");
 			}
+			
+			return; //no need to add the swizzle in this case
 		} else {
 			genCodeVal(c);
 		}
