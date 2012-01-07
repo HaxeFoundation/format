@@ -490,25 +490,14 @@ class Compiler {
 					this.error("Invalid swizzle", c.p);
 				
 				genCodeVal(c);
-			} else {
-				buf.add("vec");
-				buf.add(swiz.length);
-				buf.add("(");
 				
-				var first = true;
-				for (comp in swiz)
-				{
-					if (first) first = false; else buf.add(", ");
-					
-					if (comp != X)
-						this.error("Invalid swizzle", c.p);
-					
-					genCodeVal(c);
-				}
-				buf.add(")");
+				return; //no need to add the swizzle in this case
+			} else {
+				buf.add("vec2(");
+				genCodeVal(c);
+				
+				buf.add(", 0.0)");
 			}
-			
-			return; //no need to add the swizzle in this case
 		} else {
 			genCodeVal(c);
 		}
