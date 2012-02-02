@@ -528,9 +528,9 @@ class Compiler {
 	}
 
 	function modGenerate( dst : Reg, a : Reg, b : Reg ) {
-		code.push(OMul(dst, a, b));
+		code.push(ODiv(dst, a, b));
 		code.push(OFrc(dst, dst));
-		return ODiv(dst, dst, b);
+		return OMul(dst, dst, b);
 	}
 
 	function compileTo( dst : Reg, e : CodeValue ) {
