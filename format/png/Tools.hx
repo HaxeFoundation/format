@@ -37,6 +37,16 @@ class Tools {
 			}
 		throw "Header not found";
 	}
+	
+	static inline function filter( rgba : haxe.io.Bytes, x, y, stride, prev, p ) {
+		var b = rgba.get(p - stride);
+		var c = x == 0 || y == 0  ? 0 : rgba.get(p - stride - 4);
+		var k = prev + b - c;
+		var pa = k - prev; if( pa < 0 ) pa = -pa;
+		var pb = k - b; if( pb < 0 ) pb = -pb;
+		var pc = k - c; if( pc < 0 ) pc = -pc;
+		return (pa <= pb && pa <= pc) ? prev : (pb <= pc ? b : c);
+	}
 
 	public static function extract32( d : Data ) : haxe.io.Bytes {
 		var h = getHeader(d);
@@ -71,24 +81,102 @@ class Tools {
 			var stride = (alpha ? 4 : 3) * h.width + 1;
 			if( data.length < h.height * stride ) throw "Not enough data";
 			for( y in 0...h.height ) {
-				if( data.get(r++) != 0 )
-					throw "Filters are not supported";
-				if( alpha )
-					for( x in 0...h.width ) {
-						rgba.set(w++,data.get(r+2));
-						rgba.set(w++,data.get(r+1));
-						rgba.set(w++,data.get(r));
-						rgba.set(w++,data.get(r+3));
-						r += 4;
-					}
-				else
-					for( x in 0...h.width ) {
-						rgba.set(w++,0xFF);
-						rgba.set(w++,data.get(r+2));
-						rgba.set(w++,data.get(r+1));
-						rgba.set(w++,data.get(r));
-						r += 3;
-					}
+				var f = data.get(r++);
+				switch( f ) {
+				case 0:
+					if( alpha )
+						for( x in 0...h.width ) {
+							rgba.set(w++,data.get(r+2));
+							rgba.set(w++,data.get(r+1));
+							rgba.set(w++,data.get(r));
+							rgba.set(w++,data.get(r+3));
+							r += 4;
+						}
+					else
+						for( x in 0...h.width ) {
+							rgba.set(w++,0xFF);
+							rgba.set(w++,data.get(r+2));
+							rgba.set(w++,data.get(r+1));
+							rgba.set(w++,data.get(r));
+							r += 3;
+						}
+				case 1:
+					var cr = 0, cg = 0, cb = 0, ca = 0;
+					if( alpha )
+						for( x in 0...h.width ) {
+							cr += data.get(r + 2);	rgba.set(w++,cr);
+							cg += data.get(r + 1);	rgba.set(w++,cg);
+							cb += data.get(r);		rgba.set(w++,cb);
+							ca += data.get(r + 3);	rgba.set(w++,ca);
+							r += 4;
+						}
+					else
+						for( x in 0...h.width ) {
+							rgba.set(w++, 0xFF);
+							cr += data.get(r + 2);	rgba.set(w++,cr);
+							cg += data.get(r + 1);	rgba.set(w++,cg);
+							cb += data.get(r);		rgba.set(w++,cb);
+							r += 3;
+						}
+				case 2:
+					var stride = y == 0 ? 0 : h.width * 4;
+					if( alpha )
+						for( x in 0...h.width ) {
+							rgba.set(w, data.get(r + 2) + rgba.get(w - stride));	w++;
+							rgba.set(w, data.get(r + 1) + rgba.get(w - stride));	w++;
+							rgba.set(w, data.get(r) + rgba.get(w - stride));		w++;
+							rgba.set(w, data.get(r + 3) + rgba.get(w - stride));	w++;
+							r += 4;
+						}
+					else
+						for( x in 0...h.width ) {
+							rgba.set(w++,0xFF);
+							rgba.set(w, data.get(r + 2) + rgba.get(w - stride));	w++;
+							rgba.set(w, data.get(r + 1) + rgba.get(w - stride));	w++;
+							rgba.set(w, data.get(r) + rgba.get(w - stride));		w++;
+							r += 3;
+						}
+				case 3:
+					var cr = 0, cg = 0, cb = 0, ca = 0;
+					var stride = y == 0 ? 0 : h.width * 4;
+					if( alpha )
+						for( x in 0...h.width ) {
+							cr = (data.get(r + 2) + ((cr + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cr);
+							cg = (data.get(r + 1) + ((cg + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cg);
+							cb = (data.get(r + 0) + ((cb + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cb);
+							ca = (data.get(r + 3) + ((ca + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, ca);
+							r += 4;
+						}
+					else
+						for( x in 0...h.width ) {
+							rgba.set(w++, 0xFF);
+							cr = (data.get(r + 2) + ((cr + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cr);
+							cg = (data.get(r + 1) + ((cg + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cg);
+							cb = (data.get(r + 0) + ((cb + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cb);
+							r += 3;
+						}
+				case 4:
+					var stride = h.width * 4;
+					var cr = 0, cg = 0, cb = 0, ca = 0;
+					if( alpha )
+						for( x in 0...h.width ) {
+							cr = (filter(rgba, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; rgba.set(w++, cr);
+							cg = (filter(rgba, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; rgba.set(w++, cg);
+							cb = (filter(rgba, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; rgba.set(w++, cb);
+							ca = (filter(rgba, x, y, stride, ca, w) + data.get(r + 3)) & 0xFF; rgba.set(w++, ca);
+							r += 4;
+						}
+					else
+						for( x in 0...h.width ) {
+							rgba.set(w++, 0xFF);
+							cr = (filter(rgba, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; rgba.set(w++, cr);
+							cg = (filter(rgba, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; rgba.set(w++, cg);
+							cb = (filter(rgba, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; rgba.set(w++, cb);
+							r += 3;
+						}
+				default:
+					throw "Invalid filter "+f;
+				}
 			}
 		default:
 			throw "Unsupported color mode "+Std.string(h.color);
@@ -135,7 +223,7 @@ class Tools {
 		l.add(CData(format.tools.Deflate.run(rgba)));
 		l.add(CEnd);
 		return l;
-	}	
+	}
 
 	public static function build32LE( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
 		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
