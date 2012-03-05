@@ -38,7 +38,7 @@ class Tools {
 		throw "Header not found";
 	}
 	
-	static inline function filter( rgba : haxe.io.Bytes, x, y, stride, prev, p ) {
+	static inline function filter( rgba : #if flash10 format.tools.MemoryBytes #else haxe.io.Bytes #end, x, y, stride, prev, p ) {
 		var b = rgba.get(p - stride);
 		var c = x == 0 || y == 0  ? 0 : rgba.get(p - stride - 4);
 		var k = prev + b - c;
@@ -78,14 +78,26 @@ class Tools {
 		case ColTrue(alpha):
 			if( h.colbits != 8 )
 				throw "Unsupported color mode";
-			var stride = (alpha ? 4 : 3) * h.width + 1;
+			var width = h.width;
+			var stride = (alpha ? 4 : 3) * width + 1;
 			if( data.length < h.height * stride ) throw "Not enough data";
+			
+			#if flash10
+			var bytes = data.getData();
+			var start = h.height * stride;
+			bytes.length = start + h.width * h.height * 4;
+			flash.Memory.select(bytes);
+			var realData = data, realRgba = rgba;
+			var data = format.tools.MemoryBytes.make(0);
+			var rgba = format.tools.MemoryBytes.make(start);
+			#end
+			
 			for( y in 0...h.height ) {
 				var f = data.get(r++);
 				switch( f ) {
 				case 0:
 					if( alpha )
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							rgba.set(w++,data.get(r+2));
 							rgba.set(w++,data.get(r+1));
 							rgba.set(w++,data.get(r));
@@ -93,7 +105,7 @@ class Tools {
 							r += 4;
 						}
 					else
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							rgba.set(w++,0xFF);
 							rgba.set(w++,data.get(r+2));
 							rgba.set(w++,data.get(r+1));
@@ -103,7 +115,7 @@ class Tools {
 				case 1:
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					if( alpha )
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							cr += data.get(r + 2);	rgba.set(w++,cr);
 							cg += data.get(r + 1);	rgba.set(w++,cg);
 							cb += data.get(r);		rgba.set(w++,cb);
@@ -111,7 +123,7 @@ class Tools {
 							r += 4;
 						}
 					else
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							rgba.set(w++, 0xFF);
 							cr += data.get(r + 2);	rgba.set(w++,cr);
 							cg += data.get(r + 1);	rgba.set(w++,cg);
@@ -119,9 +131,9 @@ class Tools {
 							r += 3;
 						}
 				case 2:
-					var stride = y == 0 ? 0 : h.width * 4;
+					var stride = y == 0 ? 0 : width * 4;
 					if( alpha )
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							rgba.set(w, data.get(r + 2) + rgba.get(w - stride));	w++;
 							rgba.set(w, data.get(r + 1) + rgba.get(w - stride));	w++;
 							rgba.set(w, data.get(r) + rgba.get(w - stride));		w++;
@@ -129,7 +141,7 @@ class Tools {
 							r += 4;
 						}
 					else
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							rgba.set(w++,0xFF);
 							rgba.set(w, data.get(r + 2) + rgba.get(w - stride));	w++;
 							rgba.set(w, data.get(r + 1) + rgba.get(w - stride));	w++;
@@ -138,9 +150,9 @@ class Tools {
 						}
 				case 3:
 					var cr = 0, cg = 0, cb = 0, ca = 0;
-					var stride = y == 0 ? 0 : h.width * 4;
+					var stride = y == 0 ? 0 : width * 4;
 					if( alpha )
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							cr = (data.get(r + 2) + ((cr + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cr);
 							cg = (data.get(r + 1) + ((cg + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cg);
 							cb = (data.get(r + 0) + ((cb + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cb);
@@ -148,7 +160,7 @@ class Tools {
 							r += 4;
 						}
 					else
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							rgba.set(w++, 0xFF);
 							cr = (data.get(r + 2) + ((cr + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cr);
 							cg = (data.get(r + 1) + ((cg + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cg);
@@ -156,10 +168,10 @@ class Tools {
 							r += 3;
 						}
 				case 4:
-					var stride = h.width * 4;
+					var stride = width * 4;
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					if( alpha )
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							cr = (filter(rgba, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; rgba.set(w++, cr);
 							cg = (filter(rgba, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; rgba.set(w++, cg);
 							cb = (filter(rgba, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; rgba.set(w++, cb);
@@ -167,7 +179,7 @@ class Tools {
 							r += 4;
 						}
 					else
-						for( x in 0...h.width ) {
+						for( x in 0...width ) {
 							rgba.set(w++, 0xFF);
 							cr = (filter(rgba, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; rgba.set(w++, cr);
 							cg = (filter(rgba, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; rgba.set(w++, cg);
@@ -178,6 +190,13 @@ class Tools {
 					throw "Invalid filter "+f;
 				}
 			}
+			
+			#if flash10
+			var b = realRgba.getData();
+			b.position = 0;
+			b.writeBytes(realData.getData(), start, h.width * h.height * 4);
+			#end
+			
 		default:
 			throw "Unsupported color mode "+Std.string(h.color);
 		}
