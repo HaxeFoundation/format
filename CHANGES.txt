@@ -1,3 +1,7 @@
+2012-03-05: 1.21
+	png : added scanline filters decoding
+	hxsl : fixed % emulation in AGAL
+
 2012-01-09: 1.20
 	hxsl + agal : added seq, sne, lod bias, removed centroid
 	hxsl + agal : added indirect access
