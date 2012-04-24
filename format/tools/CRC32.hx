@@ -29,7 +29,7 @@ import haxe.Int32;
 
 class CRC32 {
 
-	static inline var POLYNOM = Int32.make(0xEDB8, 0x8320);
+	static inline function POLYNOM() return Int32.make(0xEDB8, 0x8320)
 	var crc : haxe.Int32;
 
 	public function new() {
@@ -46,7 +46,7 @@ class CRC32 {
 
 	public function run( b : haxe.io.Bytes ) {
 		var crc = crc;
-		var polynom = POLYNOM;
+		var polynom = POLYNOM();
 		for( i in 0...b.length ) {
 			var tmp = Int32.and( Int32.xor(crc,i32(b.get(i))), i32(0xFF) );
 			for( j in 0...8 ) {
@@ -61,7 +61,7 @@ class CRC32 {
 	}
 
 	public function byte( b : Int ) {
-		var polynom = POLYNOM;
+		var polynom = POLYNOM();
 		var tmp = Int32.and( Int32.xor(crc,i32(b)), i32(0xFF) );
 		for( j in 0...8 ) {
 			if( Int32.and(tmp,i32(1)) == i32(1) )
