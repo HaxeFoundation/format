@@ -1,3 +1,8 @@
+2012-04-24; 1.22
+	png : improved decoding speed by using MemoryBytes for flash10+
+	tar : do not check 'ustar' signature (not always correctly set for all entries)
+	zip : fixed CRC32 with Haxe/SVN
+
 2012-03-05: 1.21
 	png : added scanline filters decoding
 	hxsl : fixed % emulation in AGAL
