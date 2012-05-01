@@ -37,7 +37,7 @@ class Tools {
 			}
 		throw "Header not found";
 	}
-	
+
 	static inline function filter( rgba : #if flash10 format.tools.MemoryBytes #else haxe.io.Bytes #end, x, y, stride, prev, p ) {
 		var b = rgba.get(p - stride);
 		var c = x == 0 || y == 0  ? 0 : rgba.get(p - stride - 4);
@@ -81,17 +81,18 @@ class Tools {
 			var width = h.width;
 			var stride = (alpha ? 4 : 3) * width + 1;
 			if( data.length < h.height * stride ) throw "Not enough data";
-			
+
 			#if flash10
 			var bytes = data.getData();
 			var start = h.height * stride;
 			bytes.length = start + h.width * h.height * 4;
+			if( bytes.length < 1024 ) bytes.length = 1024;
 			flash.Memory.select(bytes);
 			var realData = data, realRgba = rgba;
 			var data = format.tools.MemoryBytes.make(0);
 			var rgba = format.tools.MemoryBytes.make(start);
 			#end
-			
+
 			for( y in 0...h.height ) {
 				var f = data.get(r++);
 				switch( f ) {
@@ -190,13 +191,13 @@ class Tools {
 					throw "Invalid filter "+f;
 				}
 			}
-			
+
 			#if flash10
 			var b = realRgba.getData();
 			b.position = 0;
 			b.writeBytes(realData.getData(), start, h.width * h.height * 4);
 			#end
-			
+
 		default:
 			throw "Unsupported color mode "+Std.string(h.color);
 		}
@@ -222,7 +223,7 @@ class Tools {
 		l.add(CEnd);
 		return l;
 	}
-	
+
 	public static function build32BE( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
 		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
 		// translate ARGB to RGBA and add filter byte
