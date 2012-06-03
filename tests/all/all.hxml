@@ -9,6 +9,7 @@ params.hxml
 params.hxml
 format.hxsl.Shader
 format.tools.MemoryInput
+format.tools.MemoryBytes
 --next
 -neko all.n
 params.hxml

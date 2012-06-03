@@ -1,2 +1,2 @@
 -cp ../..
---macro include('format',true,['format.hxsl.Shader','format.tools.MemoryInput'])
+--macro include('format',true,['format.hxsl.Shader','format.tools.MemoryInput','format.tools.MemoryBytes'])
