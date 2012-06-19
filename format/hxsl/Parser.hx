@@ -402,7 +402,7 @@ class Parser {
 		return { expr : switch( e.expr ) {
 		case EConst(c):
 			switch( c ) {
-			case CIdent(v2):
+			case CIdent(v2)#if !haxe3, CType(v2)#end:
 				if( v == v2 ) by else e.expr;
 			default:
 				e.expr;
@@ -430,8 +430,10 @@ class Parser {
 			EField(replaceVar(v, by, e), f);
 		case EParenthesis(e):
 			EParenthesis(replaceVar(v, by, e));
+		#if !haxe3
 		case EType(e, f):
 			EType(replaceVar(v, by, e), f);
+		#end
 		case EArray(e1, e2):
 			EArray(replaceVar(v, by, e1), replaceVar(v, by, e2));
 		case EIn(a,b):
@@ -439,7 +441,11 @@ class Parser {
 		case EWhile(_), EUntyped(_), ETry(_), EThrow(_), ESwitch(_), EReturn(_), EObjectDecl(_), ENew(_), EFunction(_), EDisplay(_), EDisplayNew(_), EContinue, ECast(_), EBreak:
 			e.expr;
 		case ECheckType(e,t):
-			ECheckType(replaceVar(v, by, e),t);
+			ECheckType(replaceVar(v, by, e), t);
+		#if haxe_210
+		case EMacro(e):
+			EMacro(replaceVar(v, by, e));
+		#end
 		}, pos : e.pos };
 	}
 
