@@ -1,4 +1,7 @@
-2012-04-24; 1.22
+2012-06-19: 1.23
+	minor fixes for Haxe 2.10 and 3.x compatibility
+
+2012-04-24: 1.22
 	png : improved decoding speed by using MemoryBytes for flash10+
 	tar : do not check 'ustar' signature (not always correctly set for all entries)
 	zip : fixed CRC32 with Haxe/SVN

@@ -1,8 +1,8 @@
 -cp .
 -swf all8.swf
--swf-version 8
 -swf-header 800:600:30:FFFFFF
 --flash-strict
+-swf-version 8
 params.hxml
 --next
 -swf all9.swf
