@@ -261,7 +261,7 @@ class Parser {
 				switch( v.expr ) {
 				case EConst(c):
 					switch( c ) {
-					case CIdent(i), CType(i): vname = i;
+					case CIdent(i) #if !haxe3, CType(i) #end: vname = i;
 					default:
 					}
 				default:
@@ -309,7 +309,7 @@ class Parser {
 			return { v : PSwiz(v,swiz), p : e.pos };
 		case EConst(c):
 			switch( c ) {
-			case CType(i), CIdent(i):
+			case CIdent(i) #if !haxe3 ,CType(i) #end:
 				return { v : PVar(i), p : e.pos };
 			case CInt(v):
 				return { v : PConst(v), p : e.pos };
@@ -342,7 +342,7 @@ class Parser {
 				return makeCall(f, [v].concat(params), e.pos);
 			case EConst(c):
 				switch( c ) {
-				case CIdent(i), CType(i):
+				case CIdent(i) #if !haxe3, CType(i) #end:
 					return makeCall(i, params, e.pos);
 				default:
 				}
