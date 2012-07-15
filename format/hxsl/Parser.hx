@@ -442,10 +442,6 @@ class Parser {
 			e.expr;
 		case ECheckType(e,t):
 			ECheckType(replaceVar(v, by, e), t);
-		#if haxe_210
-		case EMacro(e):
-			EMacro(replaceVar(v, by, e));
-		#end
 		}, pos : e.pos };
 	}
 
