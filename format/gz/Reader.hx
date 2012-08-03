@@ -69,10 +69,10 @@ class Reader {
 	public function readData( o : haxe.io.Output, ?bufsize : Int ) : Int {
 		if( bufsize == null ) bufsize = (1 << 16); // 65Ks
 		var buf = haxe.io.Bytes.alloc(bufsize);
-		var out = haxe.io.Bytes.alloc(bufsize);
-		var bufpos = bufsize;
 		var tsize = 0;
 		#if neko
+		var bufpos = bufsize;
+		var out = haxe.io.Bytes.alloc(bufsize);
 		var u = new neko.zip.Uncompress(-15);
 		u.setFlushMode(neko.zip.Flush.SYNC);
 		while( true ) {
@@ -97,7 +97,14 @@ class Reader {
 			}
 		}
 		#else
-		throw "Can't read GZ data";
+		var inflate = new format.tools.InflateImpl(i, false, false);
+		while (true) {
+			var len = inflate.readBytes(buf, 0, bufsize);
+			o.writeFullBytes(buf, 0, len);
+			if( len < bufsize )
+				break;
+			tsize += len;
+		}
 		#end
 		return tsize;
 	}
