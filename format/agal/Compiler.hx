@@ -25,8 +25,13 @@
  * DAMAGE.
  */
 package format.agal;
+#if (haxe_211 || haxe3)
+import format.hxsl.Data;
+import format.agal.Data;
+#else
 import format.agal.Data;
 import format.hxsl.Data;
+#end
 
 private typedef Temp = {
 	var liveBits : Array<Null<Int>>;
