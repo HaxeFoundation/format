@@ -206,11 +206,14 @@ class Tools {
 
 	public static function regSize( t : VarType ) {
 		return switch( t ) {
-		case TMatrix(w, h, t): t.t ? h : w;
+		case TMatrix(w, h, t):
+			// assume matrix are always packed
+			if( t.t == null )
+				w < h ? w : h;
+			else
+				t.t ? h : w;
 		case TArray(t, size):
-			var v = regSize(t);
-			if( v < 4 ) v = 4;
-			v * size;
+			regSize(t) * size;
 		default: 1;
 		}
 	}
