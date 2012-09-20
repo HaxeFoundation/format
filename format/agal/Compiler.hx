@@ -573,7 +573,7 @@ class Compiler {
 				switch( e2.t ) {
 				case TMatrix(_):
 					switch( e1.t ) {
-					case TFloat4: if( v1.t == RTemp || v2.t == RTemp ) callback(matrixOp,ODp4,4) else OM44;
+					case TFloat4: if( v1.t == RTemp || v2.t == RTemp ) callback(matrixOp,ODp4,e.t == TFloat4 ? 4 : 3) else if( e.t == TFloat4 ) OM44 else OM34;
 					case TFloat3: if( v1.t == RTemp || v2.t == RTemp ) callback(matrixOp,e.t == TFloat4 ? ODp4 : ODp3,3) else if( e.t == TFloat4 ) OM34 else OM33;
 					case TMatrix(w, h, _):
 						if( w == 4 && h == 4 )
