@@ -474,11 +474,17 @@ class Compiler {
 	function rowVar( v : Variable, row : Int ) {
 		var v2 = Reflect.copy(v);
 		v2.name += "[" + row + "]";
-		v2.index += row;
-		v2.type = Tools.makeFloat(switch( v.type ) {
-		case TMatrix(r, c, t): if( t.t ) r else c;
-		default: -1;
-		});
+		switch( v.type ) {
+		case TArray(t, size):
+			v2.index += Tools.regSize(t) * row;
+			v2.type = t;
+		default:
+			v2.index += row;
+			v2.type = Tools.makeFloat(switch( v.type ) {
+			case TMatrix(r, c, t): if( t.t ) r else c;
+			default: -1;
+			});
+		}
 		return v2;
 	}
 
@@ -740,6 +746,16 @@ class Compiler {
 				switch( v.d ) {
 				case CVar(vr, swiz):
 					if( t.t ) error("You can't read a row from a transposed matrix", e.p); // TODO : use temp
+					checkRead(v);
+					var vr = rowVar(vr, index);
+					return { d : CVar(vr), t : vr.type, p : e.p };
+				default:
+					error("You can't read a row from a complex expression", e.p); // TODO : use temp
+				}
+			case TArray(t, size):
+				if( index < 0 || index >= size ) error("You can't read row " + index + " on " + typeStr(v.t), e.p);
+				switch( v.d ) {
+				case CVar(vr, swiz):
 					checkRead(v);
 					var vr = rowVar(vr, index);
 					return { d : CVar(vr), t : vr.type, p : e.p };
