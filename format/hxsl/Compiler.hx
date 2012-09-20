@@ -55,6 +55,7 @@ class Compiler {
 		var mat4_t = TMatrix(4, 4, { t : true } );
 		var mat3 = TMatrix(3, 3, { t : false } );
 		var mat3_t = TMatrix(3, 3, { t : true } );
+		var mat34_t = TMatrix(3, 4, { t : true } );
 
 		var floats = [
 			{ p1 : TFloat, p2 : TFloat, r : TFloat },
@@ -71,6 +72,7 @@ class Compiler {
 				case CCross: [ { p1 : TFloat3, p2 : TFloat3, r : TFloat3 }];
 				case CMul: floats.concat([
 					{ p1 : TFloat4, p2 : mat4_t, r : TFloat4 },
+					{ p1 : TFloat4, p2 : mat34_t, r : TFloat3 },
 					{ p1 : TFloat3, p2 : mat3_t, r : TFloat3 },
 					{ p1 : TFloat3, p2 : mat4_t, r : TFloat3 }, // only use the 3x4 part of the matrix
 					{ p1 : mat4, p2 : mat4_t, r : mat4 },
