@@ -114,7 +114,7 @@ class Build {
 				add("0");
 		}
 
-		if( vcount >> 2 >= format.agal.Tools.getProps(RConst, !shader.vertex).count )
+		if( vcount >> 2 > format.agal.Tools.getProps(RConst, !shader.vertex).count )
 			Context.error("This shader has reached the maximum number of allowed parameters/constants", shader.pos);
 
 		return inf;
