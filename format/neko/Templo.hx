@@ -67,12 +67,12 @@ class Templo {
 	}
 
 	function add( b : Value, v : Value ) {
-		vm.abstract(b, ABuffer).add(vm.valueToString(v));
+		vm._abstract(b, ABuffer).add(vm.valueToString(v));
 		return VNull;
 	}
 
 	function close( b : Value ) {
-		return VString(vm.abstract(b,ABuffer).toString());
+		return VString(vm._abstract(b,ABuffer).toString());
 	}
 
 	function split( s : Value, sep : Value ) : Value {

@@ -73,11 +73,11 @@ class VM {
 		return h >> 1;
 		#end
 	}
-	
+
 	public dynamic function doPrint( s : String ) {
 		haxe.Log.trace(s, cast {});
 	}
-	
+
 	public function hashField( f : String ) {
 		var fid = hash(f);
 		var f2 = hfields.get(fid);
@@ -88,8 +88,8 @@ class VM {
 		hfields.set(fid, f);
 		return fid;
 	}
-		
-	public function abstract<T>( b : Value, t : Class<T> ) : T {
+
+	public function _abstract<T>( b : Value, t : Class<T> ) : T {
 		switch( b ) {
 		case VAbstract(v):
 			if( Std.is(v, t) )
@@ -99,7 +99,7 @@ class VM {
 		exc(VString("Invalid call"));
 		return null;
 	}
-	
+
 	public function valueToString( v : Value ) {
 		return builtins._string(v);
 	}
@@ -121,7 +121,7 @@ class VM {
 		var me = this;
 		return VFunction(VFunVar(function(_) { me.exc(VString("Failed to load primitive " + prim + ":" + nargs)); return null; } ));
 	}
-	
+
 	public function defaultLoader() {
 		var loader = new ValueObject(null);
 		loader.fields.set(hash("loadprim"), VFunction(VFun2(loadPrim)));
@@ -202,7 +202,7 @@ class VM {
 		var name = hfields.get(fid);
 		return (name == null) ? "?" + fid : name;
 	}
-	
+
 	public function call( vthis : Value, vfun : Value, args : Array<Value> ) : Value {
 		for( a in args )
 			stack.add(a);
@@ -280,7 +280,7 @@ class VM {
 	inline function compare( pc : Int, a : Value, b : Value ) {
 		return builtins._compare(a, b);
 	}
-	
+
 	inline function accIndex( pc : Int, acc : Value, index : Int ) {
 		switch( acc ) {
 		case VArray(a):
@@ -293,7 +293,7 @@ class VM {
 		}
 		return acc;
 	}
-	
+
 	public function wrap( v : Dynamic ) {
 		return switch( Type.typeof(v) ) {
 			case TNull: VNull;
@@ -314,7 +314,7 @@ class VM {
 				#end
 		};
 	}
-	
+
 	public function unwrap( v : Value ) : Dynamic {
 		switch(v) {
 		case VNull: return null;
@@ -373,7 +373,7 @@ class VM {
 		}
 		return v;
 	}
-	
+
 	function loop( pc : Int ) {
 		var acc = VNull;
 		var code = module.code.code;
