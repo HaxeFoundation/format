@@ -1,3 +1,10 @@
+2012-??-??: 1.25
+	added tgz support
+
+2012-09-27: 1.24
+	hxsl fixes
+	2.11 SVN compatibility
+	
 2012-06-19: 1.23
 	minor fixes for Haxe 2.10 and 3.x compatibility
 
