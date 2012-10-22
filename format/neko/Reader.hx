@@ -40,6 +40,14 @@ class Reader {
 		throw "Invalid file format";
 		return null;
 	}
+
+	inline function readInt() {
+		#if haxe3
+		return i.readInt32();
+		#else
+		return i.readUInt30();
+		#end
+	}
 	
 	function readDebugInfos() : DebugInfos {
 		var nfiles = i.readByte();
@@ -51,7 +59,7 @@ class Reader {
 		var files = [];
 		for( k in 0...nfiles )
 			files[k] = i.readUntil(0);
-		var npos = i.readUInt30();
+		var npos = readInt();
 		var curfile = files[0];
 		var curline = 0;
 		var curpos = null;
@@ -99,9 +107,9 @@ class Reader {
 	
 	public function read() : Data {
 		if( i.readString(4) != "NEKO" ) error();
-		var nglobals = i.readUInt30();
-		var nfields = i.readUInt30();
-		var codesize = i.readUInt30();
+		var nglobals = readInt();
+		var nfields = readInt();
+		var codesize = readInt();
 		// globals
 		var globals = alloc(nglobals);
 		for( k in 0...nglobals )
@@ -141,7 +149,7 @@ class Reader {
 				code[p++] = i.readByte();
 			default:
 				code[p++] = t >> 2;
-				code[p++] = i.readInt31();
+				code[p++] = #if haxe3 i.readInt32() #else i.readInt31() #end;
 			}
 		}
 		code[p++] = Type.enumIndex(ORet);

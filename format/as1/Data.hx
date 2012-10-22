@@ -138,7 +138,7 @@ enum PushItem {
 	PReg( r : Int );
 	PBool( b : Bool );
 	PDouble( f : Float );
-	PInt( i : haxe.Int32 );
+	PInt( i : #if haxe3 Int #else haxe.Int32 #end );
 	PStack( p : Int );
 	PStack2( p : Int );
 }

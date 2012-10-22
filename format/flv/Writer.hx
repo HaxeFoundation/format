@@ -44,8 +44,13 @@ class Writer {
 		ch.writeString("FLV");
 		ch.writeByte(0x01);
 		ch.writeByte( (h.hasAudio?1:0) | (h.hasVideo?4:0) | (h.hasMeta?8:0) );
+		#if haxe3
+		ch.writeInt32(0x09);
+		ch.writeInt32(0x00);
+		#else
 		ch.writeUInt30(0x09);
 		ch.writeUInt30(0x00);
+		#end
 	}
 
 	public function writeChunk( chunk : Data ) {
@@ -58,9 +63,15 @@ class Writer {
 		ch.writeByte(k);
 		ch.writeUInt24(data.length);
 		ch.writeUInt24(time);
+		#if haxe3
+		ch.writeInt32(0);
+		ch.write(data);
+		ch.writeInt32(data.length + 11);
+		#else
 		ch.writeUInt30(0);
 		ch.write(data);
 		ch.writeUInt30(data.length + 11);
+		#end
 	}
 
 }

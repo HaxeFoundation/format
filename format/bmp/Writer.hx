@@ -45,31 +45,39 @@ class Writer {
 	public function new(o) {
 		output = o;
 	}
+	
+	inline function writeInt(o : haxe.io.Output, v) {
+		#if haxe3
+		o.writeInt32(v);
+		#else
+		o.writeInt31(v);
+		#end
+	}
 
 	public function write( b : Data ) {
 		// Write Header
 		var h = new haxe.io.BytesOutput();
 		h.prepare( 14 );
 		h.writeString( "BM" );							// Signature
-		h.writeInt31( b.pixels.length + DATA_OFFSET );	// FileSize
-		h.writeInt31( 0 );								// Reserved
-		h.writeInt31( DATA_OFFSET );					// Offset
+		writeInt(h, b.pixels.length + DATA_OFFSET );	// FileSize
+		writeInt(h, 0 );								// Reserved
+		writeInt(h, DATA_OFFSET );						// Offset
 		output.write( h.getBytes() );
 
 		// Write InfoHeader
 		var i = new haxe.io.BytesOutput();
 		i.prepare( 40 );
-		i.writeInt31( 40 );								// InfoHeader size
-		i.writeInt31( b.header.width );					// Image width
-		i.writeInt31( b.header.height );				// Image height
+		writeInt(i, 40 );								// InfoHeader size
+		writeInt(i, b.header.width );					// Image width
+		writeInt(i, b.header.height );					// Image height
 		i.writeInt16( 1 );								// Number of planes
 		i.writeInt16( 24 );								// Bits per pixel (24bit RGB)
-		i.writeInt31( 0 );								// Compression type (no compression)
-		i.writeInt31( 0 );								// Image data size (0 when uncompressed)
-		i.writeInt32( Int32.ofInt( 0x2e30 ) );			// Horizontal resolution
-		i.writeInt32( Int32.ofInt( 0x2e30 ) );			// Vertical resolution
-		i.writeInt31( 0 );								// Colors used (0 when uncompressed)
-		i.writeInt31( 0 );								// Important colors (0 when uncompressed)
+		writeInt(i, 0 );								// Compression type (no compression)
+		writeInt(i, 0 );								// Image data size (0 when uncompressed)
+		writeInt(i, 0x2e30 );							// Horizontal resolution
+		writeInt(i, 0x2e30 );							// Vertical resolution
+		writeInt(i, 0 );								// Colors used (0 when uncompressed)
+		writeInt(i, 0 );								// Important colors (0 when uncompressed)
 		output.write( i.getBytes() );
 
 		// Write Raster Data (backwards)
@@ -78,11 +86,17 @@ class Writer {
 		var pos = 0;
 		while( pos < b.pixels.length ) {
 			var px = pixels.readInt32();
+			#if haxe3
+			var b = px >>> 24;
+			var g = (px >> 16) & 0xFF;
+			var r = (px >> 8) & 0xFF;
+			var a = px & 0xFF;
+			#else
 			var b = Int32.toInt( Int32.and( Int32.shr( px , 24 ) , Int32.ofInt( 0xFF ) ) );
 			var g = Int32.toInt( Int32.and( Int32.shr( px , 16 ) , Int32.ofInt( 0xFF ) ) );
 			var r = Int32.toInt( Int32.and( Int32.shr( px ,  8 ) , Int32.ofInt( 0xFF ) ) );
 			var a = Int32.toInt( Int32.and( px , Int32.ofInt( 0xFF ) ) );
-			if( pos < 12 ) trace( "a:" + a + " r:" + r + " g:" + g + " b:" + b + " = " + px );
+			#end
 			p.set( pos + 3 , a );
 			p.set( pos + 2 , r );
 			p.set( pos + 1 , g );

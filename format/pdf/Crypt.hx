@@ -139,7 +139,11 @@ class Crypt {
 		var ohash = Extract.string(h.get("O"));
 		key.writeString( ohash );
 		var perms = Extract.int(h.get("P"));
+		#if haxe3
+		key.writeInt32(perms);
+		#else
 		key.writeInt31(perms);
+		#end
 		switch( fileId ) {
 		case DArray(a): key.writeString( Extract.string(a[0]) );
 		default: throw "Invalid ID "+Std.string(fileId);

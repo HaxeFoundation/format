@@ -75,8 +75,8 @@ enum Value {
 	VNull;
 	VBool( b : Bool );
 	VString( i : Index<String> );
-	VInt( i : Index<haxe.Int32> );
-	VUInt( i : Index<haxe.Int32> );
+	VInt( i : Index<#if haxe3 Int #else haxe.Int32 #end> );
+	VUInt( i : Index<#if haxe3 Int #else haxe.Int32 #end> );
 	VFloat( f : Index<Float> );
 	VNamespace( kind : Int, ns : Index<Namespace> );
 }
@@ -145,8 +145,8 @@ typedef Init = {
 }
 
 class ABCData {
-	public var ints : Array<haxe.Int32>;
-	public var uints : Array<haxe.Int32>;
+	public var ints : Array<#if haxe3 Int #else haxe.Int32 #end>;
+	public var uints : Array<#if haxe3 Int #else haxe.Int32 #end>;
 	public var floats : Array<Float>;
 	public var strings : Array<String>;
 	public var namespaces : Array<Namespace>;
@@ -198,8 +198,8 @@ enum OpCode {
 	ODup;
 	OSwap;
 	OString( v : Index<String> );
-	OIntRef( v : Index<haxe.Int32> );
-	OUIntRef( v : Index<haxe.Int32> );
+	OIntRef( v : Index<#if haxe3 Int #else haxe.Int32 #end> );
+	OUIntRef( v : Index<#if haxe3 Int #else haxe.Int32 #end> );
 	OFloat( v : Index<Float> );
 	OScope;
 	ONamespace( v : Index<Namespace> );

@@ -56,6 +56,14 @@ class Reader {
 			a.push(read());
 		return a;
 	}
+	
+	inline function readInt() {
+		#if haxe3
+		return i.readInt32();
+		#else
+		return i.readUInt30();
+		#end
+	}
 
 	public function readWithCode( id ) {
 		var i = this.i;
@@ -74,7 +82,7 @@ class Reader {
 			AString( i.readString(i.readUInt16()) );
 		case 0x03,0x08:
 			var ismixed = (id == 0x08);
-			var size = if( ismixed ) i.readUInt30() else null;
+			var size = if( ismixed ) readInt() else null;
 			AObject(readObject(),size);
 		case 0x05:
 			ANull;
@@ -83,13 +91,13 @@ class Reader {
 		case 0x07:
 			throw "Not supported : Reference";
 		case 0x0A:
-			AArray(readArray(i.readUInt30()));
+			AArray(readArray(readInt()));
 		case 0x0B:
 			var time_ms = i.readDouble();
 			var tz_min = i.readUInt16();
 			ADate( Date.fromTime(time_ms + tz_min * 60 * 1000.0) );
 		case 0x0C:
-			AString( i.readString(i.readUInt30()) );
+			AString( i.readString(readInt()) );
 		default:
 			throw "Unknown AMF "+id;
 		}

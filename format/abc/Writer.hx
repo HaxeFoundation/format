@@ -41,7 +41,11 @@ class Writer {
 	function beginTag( id : Int, len : Int ) {
 		if( len >= 63 ) {
 			o.writeUInt16((id << 6) | 63);
+			#if haxe3
+			o.writeInt32(len);
+			#else
 			o.writeUInt30(len);
+			#end
 		} else
 			o.writeUInt16((id << 6) | len);
 	}
@@ -312,7 +316,11 @@ class Writer {
 	}
 
 	public function write( d : ABCData ) {
+		#if haxe3
+		o.writeInt32(0x002E0010); // as3 magic header
+		#else
 		o.writeInt31(0x002E0010); // as3 magic header
+		#end
 		writeList(d.ints,opw.writeInt32);
 		writeList(d.uints,opw.writeInt32);
 		writeList(d.floats,o.writeDouble);

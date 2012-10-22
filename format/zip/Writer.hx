@@ -25,6 +25,13 @@
  * DAMAGE.
  */
 package format.zip;
+
+#if haxe3
+
+typedef Writer = haxe.zip.Writer;
+
+#else
+
 import format.zip.Data;
 
 class Writer {
@@ -178,3 +185,5 @@ class Writer {
 	}
 
 }
+
+#end

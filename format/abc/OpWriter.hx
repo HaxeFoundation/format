@@ -61,6 +61,32 @@ class OpWriter {
 			o.writeByte(a);
 	}
 
+	#if haxe3
+	public function writeInt32( n : Int ) {
+		var e = n >>> 28;
+		var d = (n >> 21) & 0x7F;
+		var c = (n >> 14) & 0x7F;
+		var b = (n >> 7) & 0x7F;
+		var a = n & 0x7F;
+		if( b != 0 || c != 0 || d != 0 || e != 0 ) {
+			o.writeByte(a | 0x80);
+			if( c != 0 || d != 0 || e != 0 ) {
+				o.writeByte(b | 0x80);
+				if( d != 0 || e != 0 ) {
+					o.writeByte(c | 0x80);
+					if( e != 0 ) {
+						o.writeByte(d | 0x80);
+						o.writeByte(e);
+					} else
+						o.writeByte(d);
+				} else
+					o.writeByte(c);
+			} else
+				o.writeByte(b);
+		} else
+			o.writeByte(a);
+	}
+	#else
 	public function writeInt32( n : haxe.Int32 ) {
 		var e = haxe.Int32.toInt(haxe.Int32.ushr(n,28));
 		var n = haxe.Int32.toInt(haxe.Int32.and(n,haxe.Int32.ofInt((1 << 28) - 1)));
@@ -86,6 +112,7 @@ class OpWriter {
 		} else
 			o.writeByte(a);
 	}
+	#end
 
 	function int( i ) {
 		writeInt(i);

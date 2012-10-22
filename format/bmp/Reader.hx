@@ -41,25 +41,33 @@ class Reader {
 		input = i;
 	}
 
+	inline function readInt() {
+		#if haxe3
+		return input.readInt32();
+		#else
+		return input.readInt31();
+		#end
+	}
+	
 	public function read() : format.bmp.Data {
 		// Read Header
 		var signature = input.readString( 2 );
-		var fileSize = input.readInt31();
-		input.readInt31(); 								// Reserved
-		var offset = input.readInt31();
+		var fileSize = readInt();
+		readInt(		); 						// Reserved
+		var offset = readInt();
 
 		// Read InfoHeader
-		var infoHeaderSize = input.readInt31();			// InfoHeader size
-		var width = Int32.toInt( input.readInt32() );	// Image width
-		var height = Int32.toInt( input.readInt32() );	// Image height
-		var numPlanes = input.readInt16();				// Number of planes
-		var bits = input.readInt16();					// Bits per pixel (24bit RGB)
-		var compression = input.readInt31();			// Compression type (no compression)
-		var dataLength = input.readInt31();				// Image data size
-		input.readInt32();								// Horizontal resolution
-		input.readInt32();								// Vertical resolution
-		input.readInt31();								// Colors used (0 when uncompressed)
-		input.readInt31();								// Important colors (0 when uncompressed)
+		var infoHeaderSize = readInt();			// InfoHeader size
+		var width = readInt();					// Image width
+		var height = readInt();					// Image height
+		var numPlanes = input.readInt16();		// Number of planes
+		var bits = input.readInt16();			// Bits per pixel (24bit RGB)
+		var compression = readInt();			// Compression type (no compression)
+		var dataLength = readInt();				// Image data size
+		readInt();								// Horizontal resolution
+		readInt();								// Vertical resolution
+		readInt();								// Colors used (0 when uncompressed)
+		readInt();								// Important colors (0 when uncompressed)
 
 		// If there's no compression, the dataLength may be 0
 		if( compression == 0 && dataLength == 0 ) dataLength = fileSize - offset;
@@ -72,10 +80,17 @@ class Reader {
 		var pos = 0;
 		while( pos < dataLength ) {
 			var px = input.readInt32();
+			#if haxe3
+			var a = px >>> 24;
+			var r = (px >> 16) & 0xFF;
+			var g = (px >> 8) & 0xFF;
+			var b = px & 0xFF;
+			#else
 			var a = Int32.toInt( Int32.and( Int32.shr( px , 24 ) , Int32.ofInt( 0xFF ) ) );
 			var r = Int32.toInt( Int32.and( Int32.shr( px , 16 ) , Int32.ofInt( 0xFF ) ) );
 			var g = Int32.toInt( Int32.and( Int32.shr( px ,  8 ) , Int32.ofInt( 0xFF ) ) );
 			var b = Int32.toInt( Int32.and( px , Int32.ofInt( 0xFF ) ) );
+			#end
 			p.set( pos + 0 , a );
 			p.set( pos + 1 , r );
 			p.set( pos + 2 , g );

@@ -220,7 +220,7 @@ class Writer {
 		switch( c ) {
 		case OpNop:
 			o.writeByte(0x00);
-			o.writeUInt30(0);
+			writeInt(0);
 			o.writeUInt24(0);
 		case OpAdd(d,s): writeOp(0x01,d,s);
 		case OpSub(d,s): writeOp(0x02,d,s);
@@ -296,11 +296,11 @@ class Writer {
 			o.writeByte(0);
 		case OpElse:
 			o.writeByte(0x35);
-			o.writeUInt30(0);
+			writeInt(0);
 			o.writeUInt24(0);
 		case OpEndIf:
 			o.writeByte(0x36);
-			o.writeUInt30(0);
+			writeInt(0);
 			o.writeUInt24(0);
 		case OpFloatToBool(d,s): writeOp(0x37,d,s);
 		case OpBoolToFloat(d,s): writeOp(0x38,d,s);
@@ -313,9 +313,17 @@ class Writer {
 		}
 	}
 
+	inline function writeInt(v : Int) {
+		#if haxe3
+		o.writeInt32(v);
+		#else
+		o.writeUInt30(v);
+		#end
+	}
+
 	public function write( p : PBJ ) {
 		o.writeByte(0xA5);
-		o.writeUInt30(p.version);
+		writeInt(p.version);
 		o.writeByte(0xA4);
 		o.writeUInt16(p.name.length);
 		o.writeString(p.name);

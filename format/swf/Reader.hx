@@ -118,14 +118,22 @@ class Reader {
 		};
 	}
 
+	inline function readInt() {
+		#if haxe3
+		return i.readInt32();
+		#else
+		return readInt();
+		#end
+	}
+	
 	function readClipEvents() : Array<ClipEvent> {
 		if( i.readUInt16() != 0 ) throw error();
-		i.readUInt30(); // all events flags
+		readInt(); // all events flags
 		var a = new Array();
 		while( true ) {
-			var code = i.readUInt30();
+			var code = readInt();
 			if( code == 0 ) break;
-			var data = i.read(i.readUInt30());
+			var data = i.read(readInt());
 			a.push({ eventsFlags : code, data : data });
 		}
 		return a;
@@ -188,8 +196,8 @@ class Reader {
 				color2 : null,
 				blurX : readFixed(),
 				blurY : readFixed(),
-				angle : haxe.Int32.ofInt(0),
-				distance : haxe.Int32.ofInt(0),
+				angle : #if haxe3 0 #else haxe.Int32.ofInt(0) #end,
+				distance : #if haxe3 0 #else haxe.Int32.ofInt(0) #end,
 				strength : readFixed8(),
 				flags : readFilterFlags(false),
 			});
@@ -240,7 +248,7 @@ class Reader {
 		else
 			throw error();
 		version = i.readByte();
-		var size = i.readUInt30();
+		var size = readInt();
 		if( compressed ) {
 			var bytes = format.tools.Inflate.run(i.readAll());
 			if( bytes.length + 8 != size ) throw error();
@@ -384,7 +392,7 @@ class Reader {
 		var len = h & 63;
 		var ext = false;
 		if( len == 63 ) {
-			len = i.readUInt30();
+			len = readInt();
 			if( len < 63 ) ext = true;
 		}
 		return switch( id ) {
@@ -414,7 +422,7 @@ class Reader {
 			TBitsJPEG2(cid, i.read(len - 2));
 		case TagId.DefineBitsJPEG3:
 			var cid = i.readUInt16();
-			var dataSize = i.readUInt30();
+			var dataSize = readInt();
 			var data = i.read(dataSize);
 			var mask = i.read(len - dataSize - 6);
 			TBitsJPEG3(cid, data, mask);
@@ -447,7 +455,7 @@ class Reader {
 			var cid = i.readUInt16();
 			TDoInitActions(cid,i.read(len-2));
 		case TagId.FileAttributes:
-			TSandBox(i.readUInt30());
+			TSandBox(readInt());
 		case TagId.RawABC:
 			TActionScript3(i.read(len),null);
 		case TagId.SymbolClass:
@@ -460,14 +468,14 @@ class Reader {
 			TSymbolClass(sl);
 		case TagId.DoABC:
 			var infos = {
-				id : i.readUInt30(),
+				id : readInt(),
 				label : i.readUntil(0),
 			};
 			len -= 4 + infos.label.length + 1;
 			TActionScript3(i.read(len),infos);
 		case TagId.DefineBinaryData:
 			var id = i.readUInt16();
-			if( i.readUInt30() != 0 ) throw error();
+			if( readInt() != 0 ) throw error();
 			TBinaryData(id, i.read(len - 6));
 		case TagId.DefineSound:
 			readSound(len);

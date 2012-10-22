@@ -96,6 +96,18 @@ class MemoryInput extends haxe.io.Input {
 		var ch3 = readByte();
 		return ch1 | (ch2 << 8) | (ch3 << 16);
 	}
+	
+	#if haxe3
+	
+	public override inline function readInt32() {
+		var ch1 = readByte();
+		var ch2 = readByte();
+		var ch3 = readByte();
+		var ch4 = readByte();
+		return (ch4 << 24) | (ch3 << 16) | (ch2 << 8) | ch1;
+	}
+		
+	#else
 
 	public override inline function readInt31() {
 		var ch1 = readByte();
@@ -122,6 +134,8 @@ class MemoryInput extends haxe.io.Input {
 		var ch4 = readByte();
 		return haxe.Int32.make((ch4 << 8) | ch3, (ch2 << 8) | ch1);
 	}
+	
+	#end
 
 	// + format.tools.BitsInput API
 

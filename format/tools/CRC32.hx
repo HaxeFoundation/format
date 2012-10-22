@@ -25,6 +25,9 @@
  * DAMAGE.
  */
 package format.tools;
+
+#if !haxe3
+
 import haxe.Int32;
 
 class CRC32 {
@@ -87,3 +90,5 @@ class CRC32 {
 		return c.get();
 	}
 }
+
+#end

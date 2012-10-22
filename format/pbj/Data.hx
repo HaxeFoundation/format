@@ -124,7 +124,7 @@ enum PBJOpcode {
 	OpLogicalXor( dst : R, src : R );
 	OpSampleNearest( dst : R, src : R, srcTexture : Int );
 	OpSampleLinear( dst : R, src : R, srcTexture : Int );
-	OpLoadInt( dst : R, v : haxe.Int32 );
+	OpLoadInt( dst : R, v : #if haxe3 Int #else haxe.Int32 #end );
 	OpLoadFloat( dst : R, v : Float );
 	OpIf( cond : R );
 	OpElse;

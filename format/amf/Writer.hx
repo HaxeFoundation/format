@@ -50,7 +50,11 @@ class Writer {
 				o.writeUInt16(s.length);
 			} else {
 				o.writeByte(0x0C);
+				#if haxe3
+				o.writeInt32(s.length);
+				#else
 				o.writeUInt30(s.length);
+				#end
 			}
 			o.writeString(s);
 		case AObject(h,size):
@@ -58,7 +62,11 @@ class Writer {
 				o.writeByte(0x03);
 			else {
 				o.writeByte(0x08);
+				#if haxe3
+				o.writeInt32(size);
+				#else
 				o.writeUInt30(size);
+				#end
 			}
 			for( f in h.keys() ) {
 				o.writeUInt16(f.length);
@@ -78,7 +86,11 @@ class Writer {
 			o.writeUInt16(0); // loose TZ
 		case AArray(a):
 			o.writeByte(0x0A);
+			#if haxe3
+			o.writeInt32(a.length);
+			#else
 			o.writeUInt30(a.length);
+			#end
 			for(f in a)
 				write(f);
 		}

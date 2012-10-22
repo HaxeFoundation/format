@@ -1,5 +1,6 @@
 2012-??-??: 1.25
 	added tgz support
+	added haxe3 suppport
 
 2012-09-27: 1.24
 	hxsl fixes

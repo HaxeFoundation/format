@@ -40,6 +40,14 @@ class Reader {
 		ch.close();
 	}
 
+	inline function readInt() {
+		#if haxe3
+		return ch.readInt32();
+		#else
+		return ch.readUInt30();
+		#end
+	}
+
 	public function readHeader() : Header {
 		if( ch.readString(3) != 'FLV' )
 			throw "Invalid signature";
@@ -48,10 +56,10 @@ class Reader {
 		var flags = ch.readByte();
 		if( flags & 0xF2 != 0 )
 			throw "Invalid type flags "+flags;
-		var offset = ch.readUInt30();
+		var offset = readInt();
 		if( offset != 0x09 )
 			throw "Invalid offset "+offset;
-		var prev = ch.readUInt30();
+		var prev = readInt();
 		if( prev != 0 )
 			throw "Invalid prev "+prev;
 		return {
@@ -69,11 +77,11 @@ class Reader {
 			return null;
 		var size = ch.readUInt24();
 		var time = ch.readUInt24();
-		var reserved = ch.readUInt30();
+		var reserved = readInt();
 		if( reserved != 0 )
 			throw "Invalid reserved "+reserved;
 		var data = ch.read(size);
-		var size2 = ch.readUInt30();
+		var size2 = readInt();
 		if( size2 != 0 && size2 != size + 11 )
 			throw "Invalid size2 ("+size+" != "+size2+")";
 		return switch( k ) {

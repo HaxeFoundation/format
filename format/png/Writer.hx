@@ -44,8 +44,13 @@ class Writer {
 			case CHeader(h):
 				var b = new haxe.io.BytesOutput();
 				b.bigEndian = true;
+				#if haxe3
+				b.writeInt32(h.width);
+				b.writeInt32(h.height);
+				#else
 				b.writeUInt30(h.width);
 				b.writeUInt30(h.height);
+				#end
 				b.writeByte(h.colbits);
 				b.writeByte(switch( h.color ) {
 					case ColGrey(alpha): alpha ? 4 : 0;
@@ -68,15 +73,26 @@ class Writer {
 	}
 
 	function writeChunk( id : String, data : haxe.io.Bytes ) {
+		#if haxe3
+		o.writeInt32(data.length);
+		#else
 		o.writeUInt30(data.length);
+		#end
 		o.writeString(id);
 		o.write(data);
 		// compute CRC
+		#if haxe3
+		var b = haxe.io.Bytes.alloc(4);
+		for( i in 0...4 )
+			b.set(i, id.charCodeAt(i));
+		o.writeInt32(haxe.crypto.Crc32.make(b));
+		#else
 		var crc = new format.tools.CRC32();
 		for( i in 0...4 )
 			crc.byte(id.charCodeAt(i));
 		crc.run(data);
 		o.writeInt32(crc.get());
+		#end
 	}
 
 }

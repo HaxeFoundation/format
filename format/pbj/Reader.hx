@@ -95,6 +95,14 @@ class Reader {
 		i.bigEndian = false;
 		return f;
 	}
+	
+	inline function readInt() {
+		#if haxe3
+		return i.readInt32();
+		#else
+		return i.readUInt30();
+		#end
+	}
 
 	function readValue( t ) {
 		return switch( t ) {
@@ -172,7 +180,7 @@ class Reader {
 			switch( op ) {
 			// opcodes
 			case 0x00:
-				assert( i.readUInt30(), 0 );
+				assert( readInt(), 0 );
 				assert( i.readUInt24(), 0 );
 				code.push(OpNop);
 			case 0x01: code.push(readOp(OpAdd));
@@ -255,11 +263,11 @@ class Reader {
 				assert( i.readByte(), 0 );
 				code.push(OpIf(srcReg(src,1)));
 			case 0x35:
-				assert( i.readUInt30(), 0 );
+				assert( readInt(), 0 );
 				assert( i.readUInt24(), 0 );
 				code.push(OpElse);
 			case 0x36:
-				assert( i.readUInt30(), 0 );
+				assert( readInt(), 0 );
 				assert( i.readUInt24(), 0 );
 				code.push(OpEndIf);
 			case 0x37: code.push(readOp(OpFloatToBool));
@@ -302,7 +310,7 @@ class Reader {
 				name = i.readString(i.readUInt16());
 			case 0xA5:
 				assert( version, null );
-				version = i.readInt31();
+				version = #if haxe3 i.readInt32() #else i.readInt31() #end;
 			default:
 				throw "Unknown opcode 0x"+StringTools.hex(op,2);
 			}

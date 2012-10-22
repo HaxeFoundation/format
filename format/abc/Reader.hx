@@ -303,7 +303,8 @@ class Reader {
 
 
 	public function read() {
-		if( i.readUInt30() != 0x002E0010 )
+		var sign = #if haxe3 i.readInt32() #else i.readUInt30() #end;
+		if( sign != 0x002E0010 )
 			throw "invalid header";
 		var data = new ABCData();
 		data.ints = readList(opr.readInt32);

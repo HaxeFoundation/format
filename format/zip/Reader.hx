@@ -25,6 +25,13 @@
  * DAMAGE.
  */
 package format.zip;
+
+#if haxe3
+
+typedef Reader = haxe.zip.Reader;
+
+#else
+
 import format.zip.Data;
 
 // see http://www.pkware.com/documents/casestudies/APPNOTE.TXT
@@ -191,3 +198,5 @@ class Reader {
 	}
 
 }
+
+#end

@@ -55,8 +55,13 @@ class Reader {
 
 	function readHeader( i : haxe.io.Input ) : Header {
 		i.bigEndian = true;
+		#if haxe3
+		var width = i.readInt32();
+		var height = i.readInt32();
+		#else
 		var width = i.readUInt30();
 		var height = i.readUInt30();
+		#end
 		var colbits = i.readByte();
 		var color = i.readByte();
 		var color = switch( color ) {
@@ -84,17 +89,25 @@ class Reader {
 	}
 
 	function readChunk() {
-		var dataLen = i.readUInt30();
+		var dataLen = #if haxe3 i.readInt32() #else i.readUInt30() #end;
 		var id = i.readString(4);
 		var data = i.read(dataLen);
 		var crc = i.readInt32();
 		if( checkCRC ) {
+			#if haxe3
+			var b = haxe.io.Bytes.alloc(4);
+			for( i in 0...4 )
+				b.set(i, id.charCodeAt(i));
+			if( haxe.crypto.Crc32.make(b) != crc )
+				throw "CRC check failure";
+			#else
 			var c = new format.tools.CRC32();
 			for( i in 0...4 )
 				c.byte(id.charCodeAt(i));
 			c.run(data);
 			if( haxe.Int32.compare(c.get(),crc) != 0 )
 				throw "CRC check failure";
+			#end
 		}
 		return switch( id ) {
 		case "IEND": CEnd;
