@@ -125,7 +125,7 @@ class Reader {
 		return readInt();
 		#end
 	}
-	
+
 	function readClipEvents() : Array<ClipEvent> {
 		if( i.readUInt16() != 0 ) throw error();
 		readInt(); // all events flags
@@ -310,9 +310,10 @@ class Reader {
 	function readPlaceObject(v3) : PlaceObject {
 		var f = i.readByte();
 		var f2 = if( v3 ) i.readByte() else 0;
-		if( f2 >> 3 != 0 ) throw error(); // unsupported bit flags
+		if( f2 >> 5 != 0 ) throw error(); // unsupported bit flags
 		var po = new PlaceObject();
 		po.depth = i.readUInt16();
+		if( f2 & 8 != 0) po.className = readUTF8Bytes().toString();
 		if( f & 1 != 0 ) po.move = true;
 		if( f & 2 != 0 ) po.cid = i.readUInt16();
 		if( f & 4 != 0 ) po.matrix = readMatrix();
@@ -323,6 +324,7 @@ class Reader {
 		if( f2 & 1 != 0 ) po.filters = readFilters();
 		if( f2 & 2 != 0 ) po.blendMode = readBlendMode();
 		if( f2 & 4 != 0 ) po.bitmapCache = true;
+		if( f2 & 16 != 0 ) po.hasImage = true;
 		if( f & 128 != 0 ) po.events = readClipEvents();
 		return po;
 	}

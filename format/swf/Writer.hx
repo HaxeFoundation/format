@@ -251,12 +251,18 @@ class Writer {
 		if( po.filters != null ) f2 |= 1;
 		if( po.blendMode != null ) f2 |= 2;
 		if( po.bitmapCache ) f2 |= 4;
+		if( po.className != null ) f2 |= 8;
+		if( po.hasImage ) f2 |= 16;
 		o.writeByte(f);
 		if( v3 )
 			o.writeByte(f2);
 		else if( f2 != 0 )
 			throw "Invalid place object version";
 		o.writeUInt16(po.depth);
+		if( po.className != null ) {
+			o.writeString(po.className);
+			o.writeByte(0);
+		}
 		if( po.cid != null ) o.writeUInt16(po.cid);
 		if( po.matrix != null ) writeMatrix(po.matrix);
 		if( po.color != null ) writeCXA(po.color);
@@ -278,7 +284,7 @@ class Writer {
 		writeInt(v);
 		#end
 	}
-	
+
 	function writeTID( id : Int, len : Int ) {
 		var h = (id << 6);
 		if( len < 63 )
