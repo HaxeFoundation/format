@@ -250,7 +250,7 @@ class Writer {
 		if( po.events != null ) f |= 128;
 		if( po.filters != null ) f2 |= 1;
 		if( po.blendMode != null ) f2 |= 2;
-		if( po.bitmapCache ) f2 |= 4;
+		if( po.bitmapCache != null ) f2 |= 4;
 		if( po.className != null ) f2 |= 8;
 		if( po.hasImage ) f2 |= 16;
 		o.writeByte(f);
@@ -274,6 +274,7 @@ class Writer {
 		if( po.clipDepth != null ) o.writeUInt16(po.clipDepth);
 		if( po.filters != null ) writeFilters(po.filters);
 		if( po.blendMode != null ) writeBlendMode(po.blendMode);
+		if( po.bitmapCache != null ) o.writeByte(po.bitmapCache);
 		if( po.events != null ) writeClipEvents(po.events);
 	}
 

@@ -88,7 +88,7 @@ class PlaceObject {
 	public var events : Null<Array<ClipEvent>>;
 	public var filters : Null<Array<Filter>>;
 	public var blendMode : Null<BlendMode>;
-	public var bitmapCache : Bool;
+	public var bitmapCache : Null<Int>;
 	public var hasImage : Bool;
 	public var className : Null<String>;
 	public function new() {
