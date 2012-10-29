@@ -111,7 +111,7 @@ class Reader {
 			if( c == 0 )
 				break;
 			if( c == 32 )
-				continue
+				continue;
 			if( c < 48 || c > 55 )
 				throw "Invalid octal char";
 			i = (i * 8) + (c - 48);
