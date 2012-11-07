@@ -442,6 +442,10 @@ class Parser {
 			e.expr;
 		case ECheckType(e,t):
 			ECheckType(replaceVar(v, by, e), t);
+		#if (haxe_211 || haxe3)
+		case EMeta(s, e):
+			EMeta(s, replaceVar(v,by,e));
+		#end
 		}, pos : e.pos };
 	}
 
