@@ -122,7 +122,7 @@ class Reader {
 		#if haxe3
 		return i.readInt32();
 		#else
-		return readInt();
+		return i.readUInt30();
 		#end
 	}
 
