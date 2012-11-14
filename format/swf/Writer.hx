@@ -282,7 +282,7 @@ class Writer {
 		#if haxe3
 		o.writeInt32(v);
 		#else
-		writeInt(v);
+		o.writeUInt30(v);
 		#end
 	}
 
