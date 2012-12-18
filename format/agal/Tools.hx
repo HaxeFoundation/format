@@ -68,7 +68,7 @@ class Tools {
 		var str = Type.enumConstructor(op).substr(1).toLowerCase() + " " + regStr(pl[0]);
 		switch( op ) {
 		case OKil(_): return str;
-		case OTex(_, pt, tex): return str + ", tex" + tex.index + "[" + regStr(pl[1]) + "]" + (tex.flags.length == 0  ? "" : " <" + tex.flags.join(",") + ">");
+		case OTex(_, _, tex): return str + ", tex" + tex.index + "[" + regStr(pl[1]) + "]" + (tex.flags.length == 0  ? "" : " <" + tex.flags.join(",") + ">");
 		default:
 		}
 		str += ", " + regStr(pl[1]);
