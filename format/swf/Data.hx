@@ -29,7 +29,7 @@
  */
 package format.swf;
 
-typedef Fixed = #if haxe3 Int #else haxe.Int32 #end;
+typedef Fixed = #if haxe_211 Int #else haxe.Int32 #end;
 typedef Fixed8 = Int;
 
 typedef SWF = {
@@ -39,8 +39,10 @@ typedef SWF = {
 
 enum SWFTag {
 	TShowFrame;
-	TShape( id : Int, version : Int, data : haxe.io.Bytes );
-	TMorphShape( id : Int, version : Int, data : haxe.io.Bytes );
+	TShape( id : Int, data : ShapeData );
+	TMorphShape( id : Int, data : MorphShapeData );
+	TFont( id : Int, data: FontData);
+	TFontInfo( id : Int, data: FontInfoData);
 	TBackgroundColor( color : Int );
 	TDoActions( data : haxe.io.Bytes );
 	TClip( id : Int, frames : Int, tags : Array<SWFTag> );
@@ -51,12 +53,13 @@ enum SWFTag {
 	TExport( el : Array<{ cid : Int, name : String }> );
 	TDoInitActions( id : Int, data : haxe.io.Bytes );
 	TActionScript3( data : haxe.io.Bytes, ?context : AS3Context );
-	TSymbolClass( symbols : Array<{ cid : Int, className : String }> );
-	TSandBox( v : Int );
+	TSymbolClass( symbols : Array<SymData> );
+	TExportAssets( symbols : Array<SymData> );
+	TSandBox( useDirectBlit : Bool, useGpu : Bool, hasMeta: Bool, useAs3: Bool, useNetwork: Bool);
 	TBitsLossless( data : Lossless );
 	TBitsLossless2( data : Lossless );
-	TBitsJPEG2( id: Int, data: haxe.io.Bytes );
-	TBitsJPEG3( id: Int, data: haxe.io.Bytes, mask: haxe.io.Bytes );
+	TBitsJPEG( id : Int, data : JPEGData );
+	TJPEGTables( data : haxe.io.Bytes );
 	TBinaryData( id : Int, data : haxe.io.Bytes );
 	TSound( data : Sound );
 	TUnknown( id : Int, data : haxe.io.Bytes );
@@ -67,13 +70,18 @@ typedef SWFHeader = {
 	var compressed : Bool;
 	var width : Int;
 	var height : Int;
-	var fps : Float;
+	var fps : Fixed8;
 	var nframes : Int;
 }
 
 typedef AS3Context = {
 	var id : Int;
 	var label : String;
+}
+
+typedef SymData = {
+	cid : Int, 
+	className : String 
 }
 
 class PlaceObject {
@@ -95,16 +103,239 @@ class PlaceObject {
 	}
 }
 
+typedef Rect = {
+	var left : Int;
+	var right : Int;
+	var top : Int;
+	var bottom : Int;
+}
+
+enum ShapeData {
+	SHDShape1(bounds : Rect, shapes : ShapeWithStyleData);
+	SHDShape2(bounds : Rect, shapes : ShapeWithStyleData);
+	SHDShape3(bounds : Rect, shapes : ShapeWithStyleData);
+	SHDShape4(data: Shape4Data);
+	//SHDOther(ver : Int, data : haxe.io.Bytes);
+}
+
+enum MorphShapeData {
+	MSDShape1(data: MorphShapeData1);
+	MSDShape2(data: MorphShapeData2);
+}
+
+typedef MorphShapeData1 = {
+	var startBounds: Rect;
+	var endBounds: Rect;
+	var fillStyles: Array<MorphFillStyle>;
+	var lineStyles: Array<Morph1LineStyle>;
+	var startEdges: ShapeWithoutStyleData;
+	var endEdges: ShapeWithoutStyleData;
+}
+
+typedef MorphShapeData2 = {
+	var startBounds: Rect;
+	var endBounds: Rect;
+	var startEdgeBounds: Rect;
+	var endEdgeBounds: Rect;
+	var useNonScalingStrokes: Bool;
+	var useScalingStrokes: Bool;
+	var fillStyles: Array<MorphFillStyle>;
+	var lineStyles: Array<Morph2LineStyle>;
+	var startEdges: ShapeWithoutStyleData;
+	var endEdges: ShapeWithoutStyleData;
+}
+
+enum MorphFillStyle {
+	MFSSolid(startColor: RGBA, endColor: RGBA);
+	MFSLinearGradient(startMatrix: Matrix, endMatrix: Matrix, gradients: Array<MorphGradient>);
+	MFSRadialGradient(startMatrix: Matrix, endMatrix: Matrix, gradients: Array<MorphGradient>);
+	MFSBitmap(cid: Int, startMatrix: Matrix, endMatrix: Matrix, repeat: Bool, smooth: Bool);
+}
+
+typedef Morph1LineStyle = {
+	var startWidth: Int;
+	var endWidth: Int;
+	var startColor: RGBA;
+	var endColor: RGBA;
+}
+
+enum Morph2LineStyle {
+	M2LSNoFill(startColor: RGBA, endColor: RGBA, data: Morph2LineStyleData);
+	M2LSFill(fill: MorphFillStyle, data: Morph2LineStyleData);
+}
+
+typedef Morph2LineStyleData = {
+	var startWidth: Int;
+	var endWidth: Int;
+	var startCapStyle: LineCapStyle;
+	var joinStyle: LineJoinStyle;
+	var noHScale : Bool;
+	var noVScale : Bool;
+	var pixelHinting : Bool;
+	var noClose : Bool;
+	var endCapStyle: LineCapStyle;
+}
+
+typedef MorphGradient = {
+	var startRatio: Int;
+	var startColor: RGBA;
+	var endRatio: Int;
+	var endColor: RGBA;
+}
+
+typedef Shape4Data = {
+	var shapeBounds: Rect;
+	var edgeBounds: Rect;
+	var useWinding: Bool;
+	var useNonScalingStroke: Bool;
+	var useScalingStroke: Bool;
+	var shapes: ShapeWithStyleData;
+}
+
+// used by DefineFont
+typedef ShapeWithoutStyleData = {
+	var shapeRecords : Array<ShapeRecord>;
+}
+
+// used by DefineShapeX
+typedef ShapeWithStyleData = {
+	var fillStyles : Array<FillStyle>;
+	var lineStyles : Array<LineStyle>;
+	var shapeRecords : Array<ShapeRecord>;
+}
+
+enum ShapeRecord {
+	SHREnd;
+	SHRChange( data : ShapeChangeRec );
+	SHREdge( dx : Int, dy : Int);
+	SHRCurvedEdge( cdx : Int, cdy : Int, adx : Int, ady : Int );
+}
+
+typedef ShapeChangeRec = {
+	var moveTo : Null<SCRMoveTo>;
+	var fillStyle0 : Null<SCRIndex>;
+	var fillStyle1 : Null<SCRIndex>;
+	var lineStyle : Null<SCRIndex>;
+	var newStyles : Null<SCRNewStyles>;
+}
+
+typedef SCRMoveTo = {
+	var dx : Int;
+	var dy : Int;
+}
+
+typedef SCRIndex = {
+	var idx : Int;
+}
+
+typedef SCRNewStyles = {
+	var fillStyles : Array<FillStyle>;
+	var lineStyles : Array<LineStyle>;
+}
+
+enum FillStyle {
+	FSSolid(rgb : RGB); // Shape1&2
+	FSSolidAlpha(rgb : RGBA); // Shape3 (&4?)
+	FSLinearGradient(mat : Matrix, grad : Gradient);
+	FSRadialGradient(mat : Matrix, grad : Gradient);
+	FSFocalGradient(mat : Matrix, grad : FocalGradient); // Shape4 only
+	FSBitmap(cid : Int, mat : Matrix, repeat : Bool, smooth : Bool);
+}
+
+typedef LineStyle = {
+	var width : Int;
+	var data : LineStyleData;
+}
+
+enum LineStyleData {
+	LSRGB(rgb : RGB); //Shape1&2
+	LSRGBA(rgba : RGBA); //Shape3
+	LS2(data : LS2Data); //Shape4
+}
+
+typedef LS2Data = {
+	var startCap : LineCapStyle;
+	var join : LineJoinStyle;
+	var fill : Null<LS2Fill>;
+	var noHScale : Bool;
+	var noVScale : Bool;
+	var pixelHinting : Bool;
+	var noClose : Bool;
+	var endCap : LineCapStyle;
+}
+
+enum LineCapStyle {
+	LCRound;
+	LCNone;
+	LCSquare;
+}
+
+enum LineJoinStyle {
+	LJRound;
+	LJBevel;
+	LJMiter(limitFactor : Fixed8);
+}
+
+enum LS2Fill {
+	LS2FColor( color : RGBA );
+	LS2FStyle( style : FillStyle );
+}
+
+enum GradRecord {
+	GRRGB(pos : Int, col : RGB); // Shape1&2
+	GRRGBA(pos : Int, col : RGBA); // Shape3 (&4?)
+}
+
+typedef Gradient = {
+	var spread : SpreadMode;
+	var interpolate : InterpolationMode;
+	var data : Array<GradRecord>;
+}
+
+typedef FocalGradient = {
+	var focalPoint : Fixed8;
+	var data : Gradient;
+}
+
+enum SpreadMode {
+	SMPad;
+	SMReflect;
+	SMRepeat;
+	SMReserved;
+}
+
+enum InterpolationMode {
+	IMNormalRGB;
+	IMLinearRGB;
+	IMReserved1;
+	IMReserved2;
+}
+
 typedef MatrixPart = {
 	var nbits : Int;
 	var x : Int;
 	var y : Int;
 }
 
+typedef MatrixPartScale = {
+	var x: Float;
+	var y: Float;
+}
+
+typedef MatrixPartRotateSkew = {
+	var rs0: Float;
+	var rs1: Float;
+}
+
+typedef MatrixPartTranslate = {
+	var x: Int;
+	var y: Int;
+}
+
 typedef Matrix = {
-	var scale : Null<MatrixPart>;
-	var rotate : Null<MatrixPart>;
-	var translate : MatrixPart;
+	var scale : Null<MatrixPartScale>;
+	var rotate : Null<MatrixPartRotateSkew>;
+	var translate : MatrixPartTranslate;
 }
 
 typedef RGBA = {
@@ -112,6 +343,12 @@ typedef RGBA = {
 	var g : Int;
 	var b : Int;
 	var a : Int;
+}
+
+typedef RGB = {
+	var r : Int;
+	var g : Int;
+	var b : Int;
 }
 
 typedef CXA = {
@@ -189,6 +426,13 @@ typedef Lossless = {
 	var data : haxe.io.Bytes;
 }
 
+
+enum JPEGData {
+	JDJPEG1( data : haxe.io.Bytes );
+	JDJPEG2( data : haxe.io.Bytes );
+	JDJPEG3( data : haxe.io.Bytes, mask : haxe.io.Bytes );
+}
+
 enum ColorModel {
 	CM8Bits( ncolors : Int ); // Lossless2 contains ARGB palette
 	CM15Bits; // Lossless only
@@ -202,12 +446,13 @@ typedef Sound = {
 	var rate : SoundRate;
 	var is16bit : Bool;
 	var isStereo : Bool;
-	var samples : #if haxe3 Int #else haxe.Int32 #end;
+	var samples : #if haxe_211 Int #else haxe.Int32 #end;
 	var data : SoundData;
 };
 
 enum SoundData {
 	SDMp3( seek : Int, data : haxe.io.Bytes );
+	SDRaw( data : haxe.io.Bytes );
 	SDOther( data : haxe.io.Bytes );
 }
 
@@ -235,4 +480,71 @@ enum SoundRate {
    SR44k; // 44100 Hz
 }
 
+enum FontData {
+	FDFont1(data: Font1Data);
+	FDFont2(hasWideChars: Bool, data: Font2Data);
+	FDFont3(data: Font2Data);
+}
+
+enum FontInfoData {
+	FIDFont1(shiftJIS: Bool, isANSI: Bool, hasWideCodes: Bool, data: FIData);
+	FIDFont2(language: LangCode, data: FIData);
+}
+
+typedef FIData = {
+	var name: String;
+	var isSmall: Bool;
+	var isItalic: Bool;
+	var isBold: Bool;
+	var codeTable: Array<Int>;
+}
+
+enum LangCode {
+	LCNone;
+	LCLatin;
+	LCJapanese;
+	LCKorean;
+	LCSimplifiedChinese;
+	LCTraditionalChinese;
+}
+
+typedef Font1Data = {
+	var glyphs: Array<ShapeWithoutStyleData>;
+}
+
+typedef Font2GlyphData = {
+	var charCode: Int;
+	var shape: ShapeWithoutStyleData;
+}
+
+typedef Font2Data = {
+	var shiftJIS: Bool;
+	var isSmall: Bool;
+	var isANSI: Bool;
+	var isItalic: Bool;
+	var isBold: Bool;
+	var language: LangCode;
+	var name: String;
+	var glyphs: Array<Font2GlyphData>;
+	var layout: Null<FontLayoutData>;
+}
+
+typedef FontKerningData = {
+	var charCode1: Int;
+	var charCode2: Int;
+	var adjust: Int;
+}
+
+typedef FontLayoutGlyphData = {
+	var advance: Int;
+	var bounds: Rect;
+}
+
+typedef FontLayoutData = {
+	var ascent: Int;
+	var descent: Int;
+	var leading: Int;
+	var glyphs: Array<FontLayoutGlyphData>;
+	var kerning: Array<FontKerningData>;
+}
 

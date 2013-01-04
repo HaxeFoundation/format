@@ -45,26 +45,60 @@ class Tools {
 		return (i >> 16) + (i & 0xFFFF) / 65536.0;
 	}
 
-	#if haxe3
-	public inline static function floatFixed( i : Int ) {
+	public inline static function floatFixed( i : #if haxe_211 Int #else haxe.Int32 #end ) {
+		#if haxe_211
 		return (i >> 16) + (i & 0xFFFF) / 65536.0;
+		#else
+		return haxe.Int32.toInt(haxe.Int32.shr(i, 16)) + haxe.Int32.toInt(haxe.Int32.and(i, haxe.Int32.ofInt(0xFFFF))) / 65536.0;
+		#end
 	}
-	#else
-	public inline static function floatFixed( i : haxe.Int32 ) {
-		return haxe.Int32.toInt(haxe.Int32.shr(i,16)) + haxe.Int32.toInt(haxe.Int32.and(i,haxe.Int32.ofInt(0xFFFF))) / 65536.0;
-	}
-	#end
 
 	public inline static function floatFixed8( i : Int ) {
 		return (i >> 8) + (i & 0xFF) / 256.0;
 	}
-
+	
 	public inline static function toFixed8( f : Float ) {
 		var i = Std.int(f);
 		if( ((i>0)?i:-i) >= 128 )
 			throw haxe.io.Error.Overflow;
 		if( i < 0 ) i = 256-i;
 		return (i << 8) | Std.int((f-i)*256.0);
+	}
+	
+	public inline static function toFixed16( f : Float ) {
+		var i = Std.int(f);
+		if( ((i>0)?i:-i) >= 32768 )
+			throw haxe.io.Error.Overflow;
+		if( i < 0 ) i = 65536-i;
+		return (i << 16) | Std.int((f-i)*65536.0);
+	}
+
+	// All values are treated as unsigned! 
+	public inline static function minBits(values: Array<Int>): Int {
+		// Accumulate bits in x
+		var x: Int = 0;
+		for(v in values) {
+			// Make sure v is positive!
+			if(v < 0) v = -v;
+			x |= v;
+		}
+
+		// Compute most significant 1 bit
+		x |= (x >> 1);
+		x |= (x >> 2);
+		x |= (x >> 4);
+		x |= (x >> 8);
+		x |= (x >> 16);
+
+		// Compute ones count (equals the number of bits to represent original value)
+		x -= ((x >> 1) & 0x15555555);
+		x = (((x >> 2) & 0x33333333) + (x & 0x33333333));
+		x = (((x >> 4) + x) & 0x0f0f0f0f);
+		x += (x >> 8);
+		x += (x >> 16);
+		x &= 0x0000003f;
+
+		return x;
 	}
 
 	public static function hex( b : haxe.io.Bytes, ?max : Int ) {
@@ -81,12 +115,30 @@ class Tools {
 		return buf.toString();
 	}
 
+	public static function bin( b: haxe.io.Bytes, ?maxBytes : Int ) {
+		var buf = new StringBuf();
+		var cnt = (maxBytes == null) ? b.length : (maxBytes > b.length ? b.length : maxBytes);
+
+		for (i in 0...cnt) {
+			var v = b.get(i);
+			for (j in 0...8) {
+				buf.add(((v >> (7-j)) & 1 == 1) ? "1" : "0");
+				if (j == 3)
+					buf.add(" ");
+			}
+			buf.add("  ");
+		}
+		return buf.toString();
+	}
+
 	public static function dumpTag( t : SWFTag, ?max : Int ) {
 		var infos : Array<Dynamic> = switch( t ) {
 		case TShowFrame: [];
 		case TBackgroundColor(color): [StringTools.hex(color,6)];
-		case TShape(id, version, data): ["id", id, "version", version, "data", hex(data, max)];
-		case TMorphShape(id,version,data): ["id",id,"version",version,"data",hex(data,max)];
+		case TShape(id,_): ["id",id]; // TODO write when TShape final
+		case TMorphShape(id,_): ["id",id]; // TODO
+		case TFont(id,_): ["id",id]; // TODO
+		case TFontInfo(id,_): ["id",id]; // TODO
 		case TBinaryData(id,data): ["id",id,"data",hex(data,max)];
 		case TClip(id,frames,tags): ["id",id,"frames",frames];
 		case TPlaceObject2(po): [Std.string(po)];
@@ -103,14 +155,26 @@ class Tools {
 		case TDoInitActions(id,data): ["id",id,"data",hex(data,max)];
 		case TActionScript3(data,context): ["context",context,"data",hex(data,max)];
 		case TSymbolClass(symbols): [Std.string(symbols)];
-		case TSandBox(v): [v];
+		case TExportAssets(symbols): [Std.string(symbols)];
+	   case TSandBox(useDirectBlit, useGpu, hasMeta, useAs3, useNetwork): [
+         "directBlit", useDirectBlit,
+         "gpu", useGpu,
+         "meta/symbols", hasMeta,
+         "as3", useAs3,
+         "net", useNetwork
+      ];
 		case TBitsLossless(l),TBitsLossless2(l): ["id",l.cid,"color",l.color,"width",l.width,"height",l.height,"data",hex(l.data,max)];
-		case TBitsJPEG2(id, data): ["id", id, "data", hex(data,max)];
-		case TBitsJPEG3(id, data, mask): ["id", id, "data", hex(data,max), "mask", hex(mask,max)];
+		case TJPEGTables(data): ["data", hex(data,max)];
+		case TBitsJPEG(id, jdata): 
+			switch (jdata) {
+			case JDJPEG1(data): ["id", id, "ver", 1, "data", hex(data,max)];
+			case JDJPEG2(data): ["id", id, "ver", 2, "data", hex(data,max)];
+			case JDJPEG3(data, mask): ["id", id, "ver", 3, "data", hex(data,max), "mask", hex(mask,max)];
+			}
 		case TSound(s):
 			var data = switch( s.data ) {
 				case SDMp3(seek,data): "seek="+seek+":"+hex(data,max);
-				case SDOther(data): hex(data,max);
+				case SDOther(data), SDRaw(data): hex(data,max);
 			};
 			["sid", s.sid, "format", s.format, "rate", s.rate, "16bit", s.is16bit, "stereo", s.isStereo, "samples", s.samples, "data", data ];
 		case TDoActions(data) : ["data",hex(data,max)];

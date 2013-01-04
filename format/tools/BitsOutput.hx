@@ -38,7 +38,9 @@ class BitsOutput {
 		bits = 0;
 	}
 
-	public function writeBits(n,v) {
+	public function writeBits(n: Int, v: Int) {
+		// Clear unused bits
+		v = v & ((1 << n ) - 1);
 		if( n + nbits >= 32 ) {
 			if( n >= 31 ) throw "Bits error";
 			var n2 = 32 - nbits - 1;
@@ -48,7 +50,8 @@ class BitsOutput {
 			return;
 		}
 		if( n < 0 ) throw "Bits error";
-		if( (v < 0 || v > (1 << n) - 1) && n != 31 ) throw "Bits error";
+		//if(n < 31)
+		//if( (v < 0 || v > (1 << n) - 1) && n != 31 ) throw "Bits error";
 		bits = (bits << n) | v;
 		nbits += n;
 		while( nbits >= 8 ) {
@@ -68,7 +71,10 @@ class BitsOutput {
 	}
 
 	public inline function flush() {
-		if( nbits > 0 ) writeBits(8-nbits,0);
+		if( nbits > 0 ) {
+			writeBits(8-nbits,0);
+			nbits = 0;
+		}
 	}
 
 }
