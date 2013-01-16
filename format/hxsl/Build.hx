@@ -121,7 +121,7 @@ class Build {
 	}
 	#end
 
-	@:macro public static function shader() : Array<Field> {
+	#if haxe3 macro #else @:macro #end public static function shader() : Array<Field> {
 		var cl = Context.getLocalClass().get();
 		var fields = Context.getBuildFields();
 		var shader = null;

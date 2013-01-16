@@ -8,11 +8,11 @@ import format.mp3.Data;
  * values represent bit values
  */
 class MPEG {
-   public static var V1 = 3;
-   public static var V2 = 2;
-   public static var V25 = 0;
+   public static inline var V1 = 3;
+   public static inline var V2 = 2;
+   public static inline var V25 = 0;
    public static var Reserved = 1;
-   
+
    public static function enum2Num(m : MPEGVersion) : Int {
       return switch(m) {
          case MPEG_V1: V1;
@@ -21,7 +21,7 @@ class MPEG {
          case MPEG_Reserved: Reserved;
       }
    }
- 
+
    public static function num2Enum(m : Int) : MPEGVersion {
       return switch(m) {
          case V1: MPEG_V1;
@@ -46,7 +46,7 @@ class MPEG {
       [  BR_Free,   BR_8,  BR_16,  BR_24,  BR_32,  BR_40,  BR_48,  BR_56,  BR_64,  BR_80,  BR_96, BR_112, BR_128, BR_144, BR_160, BR_Bad], // layer II
       [  BR_Free,  BR_32,  BR_48,  BR_56,  BR_64,  BR_80,  BR_96, BR_112, BR_128, BR_144, BR_160, BR_176, BR_192, BR_224, BR_256, BR_Bad]  // layer I
    ];
-   
+
    // index row with V1|V2|V25, column with samplingRateIdx to get sampling rate
    public static var SamplingRates = [
       [SR_11025,  SR_12000,    SR_8000,  SR_Bad],   // V2.5
@@ -68,7 +68,7 @@ class MPEG {
          default: SR_Bad;
       }
    }
- 
+
    public static function srEnum2Num(sr : SamplingRate) : Int {
       return switch(sr) {
          case  SR_8000:  8000;
@@ -187,12 +187,12 @@ class CLayer {
          case LayerReserved: LReserved;
       }
    }
- 
+
    public static function num2Enum(l : Int) : Layer {
       return switch(l) {
-         case LLayer3: Layer3;
-         case LLayer2: Layer2;
-         case LLayer1: Layer1;
+         case 1: Layer3;
+         case 2: Layer2;
+         case 3: Layer1;
          default: LayerReserved;
       }
    }
@@ -208,8 +208,8 @@ class CLayer {
 class CChannelMode {
    public static inline var CStereo = 0;
    public static inline var CJointStereo = 1;
-   public static var CDualChannel = 2;
-   public static var CMono = 3;
+   public static inline var CDualChannel = 2;
+   public static inline var CMono = 3;
 
    public static function enum2Num(c : ChannelMode) : Int {
       return switch(c) {
@@ -219,13 +219,14 @@ class CChannelMode {
          case Mono: CMono;
       }
    }
-  
+
   public static function num2Enum(c : Int) : ChannelMode {
       return switch(c) {
          case CStereo: Stereo;
          case CJointStereo: JointStereo;
          case CDualChannel: DualChannel;
          case CMono: Mono;
+		 default: throw "assert";
       }
    }
 }
@@ -240,7 +241,7 @@ class CEmphasis {
    public static inline var EMs50_15 = 1;
    public static inline var EReserved = 2;
    public static inline var ECCIT_J17 = 3;
-   
+
    public static function enum2Num(c : Emphasis) : Int {
       return switch(c) {
          case NoEmphasis: ENone;
@@ -248,14 +249,15 @@ class CEmphasis {
          case CCIT_J17: ECCIT_J17;
          case InvalidEmphasis: EReserved;
       }
-   } 
-   
+   }
+
    public static function num2Enum(c : Int) : Emphasis {
       return switch(c) {
          case ENone: NoEmphasis;
          case EMs50_15: Ms50_15;
          case ECCIT_J17: CCIT_J17;
          case EReserved: InvalidEmphasis;
+		 default: throw "assert";
       }
    }
 

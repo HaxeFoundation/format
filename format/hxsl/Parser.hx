@@ -399,6 +399,19 @@ class Parser {
 	}
 
 	function replaceVar( v : String, by : ExprDef, e : Expr ) {
+		#if haxe3
+		return haxe.macro.ExprTools.map(e,function(e) : Expr {
+			switch( e.expr ) {
+			case EConst(c):
+				return switch( c ) {
+				case CIdent(v2) if( v == v2 ): { expr : by, pos : e.pos }
+				default: e;
+				}
+			default:
+				return replaceVar(v, by, e);
+			}
+		});
+		#else
 		return { expr : switch( e.expr ) {
 		case EConst(c):
 			switch( c ) {
@@ -447,6 +460,7 @@ class Parser {
 			EMeta(s, replaceVar(v,by,e));
 		#end
 		}, pos : e.pos };
+		#end
 	}
 
 	inline function makeUnop( op, e, p ) {

@@ -165,7 +165,7 @@ class Reader {
 			};
 		var dparams = null, pnames = null;
 		if( (flags & 0x08) != 0 )
-			dparams = readList2(callback(readValue,true));
+			dparams = readList2(function() return readValue(true));
 		if( (flags & 0x80) != 0 ) {
 			pnames = new Array();
 			for( i in 0...nargs )
@@ -313,7 +313,7 @@ class Reader {
 		data.strings = readList(readString);
 		data.namespaces = readList(readNamespace);
 		data.nssets = readList(readNsSet);
-		data.names = readList(callback(readName,-1));
+		data.names = readList(function() return readName());
 		data.methodTypes = readList2(readMethodType);
 		data.metadatas = readList2(readMetadata);
 		data.classes = readList2(readClass);

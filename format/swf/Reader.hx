@@ -208,7 +208,7 @@ class Reader {
 		};
 	}
 	
-	function readLineStyles(ver : Int) : Array<LineStyle> {	
+	function readLineStyles(ver : Int) : Array<LineStyle> {
 
 		var cnt = i.readByte();
 		if (cnt == 0xFF) {
@@ -301,7 +301,7 @@ class Reader {
 						FSRadialGradient(mat, grad);
 					default: throw error();
 				}
-			case 
+			case
 				FillStyleTypeId.RepeatingBitmap,
 				FillStyleTypeId.ClippedBitmap,
 				FillStyleTypeId.NonSmoothedRepeatingBitmap,
@@ -372,7 +372,7 @@ class Reader {
 						? Tools.signExtend(bits.readBits(nbits), nbits)
 						: 0;
 					
-					var dy = (isGeneral || isVertical) 
+					var dy = (isGeneral || isVertical)
 						? Tools.signExtend(bits.readBits(nbits), nbits)
 						: 0;
 
@@ -406,7 +406,7 @@ class Reader {
 						newStyles : null
 					};
 					if (flags & 1 != 0) {
-						// Move 
+						// Move
 						var mbits = bits.readBits(5);
 						var dx = Tools.signExtend(bits.readBits(mbits), mbits);
 						var dy = Tools.signExtend(bits.readBits(mbits), mbits);
@@ -437,7 +437,7 @@ class Reader {
 						cdata.newStyles = {
 							fillStyles: fst,
 							lineStyles: lst
-						}						
+						}
 					}
 					recs.push(SHRChange(cdata));
 				}
@@ -448,26 +448,23 @@ class Reader {
 		return recs;
 	}
 
+
+	inline function readInt() {
+		#if haxe3
+		return i.readInt32();
+		#else
+		return i.readUInt30();
+		#end
+	}
+	
 	function readClipEvents() : Array<ClipEvent> {
 		if ( i.readUInt16() != 0 ) throw error();
-		#if (haxe_211 && haxe3)
-		i.readInt32(); // all events flags
-		#else
-		i.readUInt30(); // all events flags
-		#end
+		readInt(); // all events flags
 		var a = new Array();
 		while( true ) {
-			#if (haxe_211 && haxe3)
-			var code = i.readInt32();
-			#else
-			var code = i.readUInt30();
-			#end
+			var code = readInt();
 			if( code == 0 ) break;
-			#if (haxe_211 && haxe3)
-			var data = i.read(i.readInt32());
-			#else
-			var data = i.read(i.readUInt30());
-			#end
+			var data = i.read(readInt());
 			a.push({ eventsFlags : code, data : data });
 		}
 		return a;
@@ -530,8 +527,8 @@ class Reader {
 				color2 : null,
 				blurX : readFixed(),
 				blurY : readFixed(),
-				angle : #if (haxe_211 && haxe3) 0 #else haxe.Int32.ofInt(0) #end,
-				distance : #if (haxe_211 && haxe3) 0 #else haxe.Int32.ofInt(0) #end,
+				angle : #if haxe3 0 #else haxe.Int32.ofInt(0) #end,
+				distance : #if haxe3 0 #else haxe.Int32.ofInt(0) #end,
 				strength : readFixed8(),
 				flags : readFilterFlags(false),
 			});
@@ -582,11 +579,7 @@ class Reader {
 		else
 			throw error();
 		version = i.readByte();
-		#if (haxe_211 && haxe3)
-		var size = i.readInt32();
-		#else
-		var size = i.readUInt30();
-		#end
+		var size = readInt();
 		if( compressed ) {
 			var bytes = format.tools.Inflate.run(i.readAll());
 			if( bytes.length + 8 != size ) throw error();
@@ -687,7 +680,7 @@ class Reader {
 				var startColor = readRGBA(i);
 				var endColor = readRGBA(i);
 
-				return MFSSolid(startColor, endColor);
+				MFSSolid(startColor, endColor);
 			case
 				FillStyleTypeId.LinearGradient,
 				FillStyleTypeId.RadialGradient,
@@ -704,7 +697,7 @@ class Reader {
 						MFSRadialGradient(startMatrix, endMatrix, grads);
 					default: throw error();
 				}
-			case 
+			case
 				FillStyleTypeId.RepeatingBitmap,
 				FillStyleTypeId.ClippedBitmap,
 				FillStyleTypeId.NonSmoothedRepeatingBitmap,
@@ -833,11 +826,7 @@ class Reader {
 		var endBounds = readRect();
 		switch(ver) {
 			case 1:
-				#if (haxe_211 && haxe3)
-				i.readInt32();
-				#else
-				i.readUInt30();
-				#end
+				readInt(); // ?
 				var fillStyles = readMorphFillStyles(ver);
 				var lineStyles = readMorph1LineStyles();
 				var startEdges = readShapeWithoutStyle(3); // Assume DefineShape3
@@ -861,11 +850,7 @@ class Reader {
 				var useNonScalingStrokes = bits.readBit();
 				var useScalingStrokes = bits.readBit();
 				bits.reset();
-				#if (haxe_211 && haxe3)
-				i.readInt32();
-				#else
-				i.readUInt30();
-				#end
+				readInt(); // ?
 				var fillStyles = readMorphFillStyles(ver);
 				var lineStyles = readMorph2LineStyles();
 				var startEdges = readShapeWithoutStyle(4); // Assume DefineShape4
@@ -1079,19 +1064,10 @@ class Reader {
 		if(hasWideOffsets) {
 			var first_glyph_offset = num_glyphs * 4 + 4;
 			
-			#if (haxe_211 && haxe3)
 			for(j in 0...num_glyphs)
-				offset_table.push(i.readInt32() - first_glyph_offset);
-			#else
-			for(j in 0...num_glyphs)
-				offset_table.push(i.readUInt30() - first_glyph_offset);
-			#end
+				offset_table.push(readInt() - first_glyph_offset);
 			
-			#if (haxe_211 && haxe3)
-			var code_table_offset = i.readInt32();
-			#else
-			var code_table_offset = i.readUInt30();
-			#end
+			var code_table_offset = readInt();
 			shape_data_length = code_table_offset - first_glyph_offset;
 		
 		} else {
@@ -1216,7 +1192,7 @@ class Reader {
 			for(j in 0...num_glyphs)
 				code_table.push(i.readUInt16());
 
-		} else { 
+		} else {
 			for(j in 0...num_glyphs)
 				code_table.push(i.readByte());
 		}
@@ -1241,15 +1217,11 @@ class Reader {
 		var id = h >> 6;
 		var len = h & 63;
 		var ext = false;
-		if ( len == 63 ) {
-			#if (haxe_211 && haxe3)
-			len = i.readInt32();
-			#else
-			len = i.readUInt30();
-			#end
+		if( len == 63 ) {
+			len = readInt();
 			if( len < 63 ) ext = true;
 		}
-      
+
       // It's safer to read the whole tag than to rely on
       // reading every data. For example swfc from swftools
       // creates SetBackgroundColor tag with a length of 5
@@ -1309,11 +1281,7 @@ class Reader {
 			TBitsJPEG(cid, JDJPEG2(i.read(len - 2)));
 		case TagId.DefineBitsJPEG3:
 			var cid = i.readUInt16();
-			#if (haxe_211 && haxe3)
-			var dataSize = i.readInt32();
-			#else
-			var dataSize = i.readUInt30();
-			#end
+			var dataSize = readInt();
 			var data = i.read(dataSize);
 			var mask = i.read(len - dataSize - 6);
 			TBitsJPEG(cid, JDJPEG3(data, mask));
@@ -1364,22 +1332,14 @@ class Reader {
 			//TExportAssets(readSymbols());
 		case TagId.DoABC:
 			var infos = {
-				#if (haxe_211 && haxe3)
-				id : i.readInt32(),
-				#else
-				id : i.readUInt30(),
-				#end
+				id : readInt(),
 				label : i.readUntil(0),
 			};
 			len -= 4 + infos.label.length + 1;
 			TActionScript3(i.read(len),infos);
 		case TagId.DefineBinaryData:
 			var id = i.readUInt16();
-			#if (haxe_211 && haxe3)
-			if ( i.readInt32() != 0 ) throw error();
-			#else
-			if ( i.readUInt30() != 0 ) throw error();
-			#end
+			if ( readInt() != 0 ) throw error();
 			TBinaryData(id, i.read(len - 6));
 		case TagId.DefineSound:
 			readSound(len);
@@ -1387,7 +1347,7 @@ class Reader {
 			var data = i.read(len);
 			TUnknown(id,data);
 		}
-      
+
       i = old_i;
       bits = old_bits;
 

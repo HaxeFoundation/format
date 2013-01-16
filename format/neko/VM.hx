@@ -304,10 +304,9 @@ class VM {
 			case TObject, TClass(_), TEnum(_): VProxy(v);
 			case TUnknown:
 				#if neko
-				untyped switch( __dollar__typeof(v) ) {
-				case __dollar__tstring: VString(new String(v));
-				case __dollar__tarray: VArray(Array.new1(v, __dollar__asize(v)));
-				default: null;
+				untyped {
+					var t = $typeof(v);
+					if( t == $tstring ) VString(new String(v)) else if( t == $tarray ) VArray(Array.new1(v, $asize(v))) else null;
 				}
 				#else
 				null;
@@ -434,13 +433,14 @@ class VM {
 				acc = accIndex(pc, acc, 1);
 			case OAccBuiltin:
 				acc = hbuiltins.get(code[pc++]);
-				if( acc == null )
-					switch( code[pc - 1] ) {
-					case hloader: acc = VObject(module.loader);
-					case hexports: acc = VObject(module.exports);
-					default:
+				if( acc == null ) {
+					if( code[pc - 1] == hloader )
+						acc = VObject(module.loader);
+					else if( code[pc-1] == hexports )
+						acc = VObject(module.exports);
+					else
 						error(pc - 1, "Builtin not found : " + fieldName(code[pc - 1]));
-					}
+				}
 			case OSetStack:
 				var idx = code[pc++];
 				var head = stack.head;

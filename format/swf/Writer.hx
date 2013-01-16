@@ -177,25 +177,16 @@ class Writer {
 		if( c.add != null ) writeCXAColor(c.add,c.nbits);
 		bits.flush();
 	}
-
+	
 	function writeClipEvents( events : Array<ClipEvent> ) {
 		o.writeUInt16(0);
 		var all = 0;
 		for( e in events )
 			all |= e.eventsFlags;
-		#if (haxe_211 && haxe3)
-		o.writeInt32(all);
-		#else
-		o.writeUInt30(all);
-		#end
+		writeInt(all);
 		for( e in events ) {
-			#if (haxe_211 && haxe3)
-			o.writeInt32(e.eventsFlags);
-			o.writeInt32(e.data.length);
-			#else
-			o.writeUInt30(e.eventsFlags);
-			o.writeUInt30(e.data.length);
-			#end
+			writeInt(e.eventsFlags);
+			writeInt(e.data.length);
 			o.write(e.data);
 		}
 		o.writeUInt16(0);
@@ -322,7 +313,7 @@ class Writer {
 	}
 
 	inline function writeInt( v : Int ) {
-		#if (haxe_211 && haxe3)
+		#if haxe3
 		o.writeInt32(v);
 		#else
 		o.writeUInt30(v);
@@ -335,21 +326,13 @@ class Writer {
 			o.writeUInt16(h|len);
 		else {
 			o.writeUInt16(h|63);
-			#if (haxe_211 && haxe3)
-			o.writeInt32(len);
-			#else
-			o.writeUInt30(len);
-			#end
+			writeInt(len);
 		}
 	}
 
 	function writeTIDExt( id : Int, len : Int ) {
 		o.writeUInt16((id << 6)|63);
-		#if (haxe_211 && haxe3)
-		o.writeInt32(len);
-		#else
-		o.writeUInt30(len);
-		#end
+		writeInt(len);
 	}
 
 	function writeSymbols( sl : Array<SymData>, tagid : Int ) {
@@ -497,7 +480,7 @@ class Writer {
 				writeFocalGradient(ver, grad);
 
 			case FSBitmap(cid, mat, repeat, smooth):
-				o.writeByte( 
+				o.writeByte(
 					if(repeat) {
 						if(smooth)	FillStyleTypeId.RepeatingBitmap
 						else			FillStyleTypeId.NonSmoothedRepeatingBitmap;
@@ -588,7 +571,7 @@ class Writer {
 					case LS2FColor(color):	writeRGBA(color);
 					case LS2FStyle(style):	writeFillStyle(ver, style);
 				}
-		} 
+		}
 	}
 	
 	function writeLineStyles(ver: Int, line_styles: Array<LineStyle>) {
@@ -830,7 +813,7 @@ class Writer {
 				writeMorphGradients(ver, gradients);
 
 			case MFSBitmap(cid, startMatrix, endMatrix, repeat, smooth):
-				o.writeByte( 
+				o.writeByte(
 					if(repeat) {
 						if(smooth)	FillStyleTypeId.RepeatingBitmap
 						else			FillStyleTypeId.NonSmoothedRepeatingBitmap;
@@ -980,11 +963,7 @@ class Writer {
 				
 				var part_data = closeTMP(old);
 
-				#if (haxe_211 && haxe3)
-				o.writeInt32(part_data.length);
-				#else
-				o.writeUInt30(part_data.length);
-				#end
+				writeInt(part_data.length);
 				o.write(part_data);
 				writeShapeWithoutStyle(3, sh1data.endEdges);
 
@@ -1007,11 +986,7 @@ class Writer {
 				
 				var part_data = closeTMP(old);
 
-				#if (haxe_211 && haxe3)
-				o.writeInt32(part_data.length);
-				#else
-				o.writeUInt30(part_data.length);
-				#end
+				writeInt(part_data.length);
 				o.write(part_data);
 				writeShapeWithoutStyle(4, sh2data.endEdges);
 		}
@@ -1114,19 +1089,9 @@ class Writer {
 			// OffsetTable size + CodeTabbleOffset field (32bit version)
 			var first_glyph_offset = num_glyphs * 4 + 4;
 			
-			for(offset in offset_table) {
-				#if (haxe_211 && haxe3)
-				o.writeInt32(first_glyph_offset + offset);
-				#else
-				o.writeUInt30(first_glyph_offset + offset);
-				#end
-			}
-			#if (haxe_211 && haxe3)
-			o.writeInt32(first_glyph_offset + shape_data.length);
-			#else
-			o.writeUInt30(first_glyph_offset + shape_data.length);
-			#end
-
+			for(offset in offset_table)
+				writeInt(first_glyph_offset + offset);
+			writeInt(first_glyph_offset + shape_data.length);
 		} else {
 			// OffsetTable size + CodeTabbleOffset field (16bit version)
 			var first_glyph_offset = num_glyphs * 2 + 2;
@@ -1293,11 +1258,7 @@ class Writer {
 		case TBinaryData(id, data):
 			writeTID(TagId.DefineBinaryData, data.length + 6);
 			o.writeUInt16(id);
-			#if (haxe_211 && haxe3)
-			o.writeInt32(0);
-			#else
-			o.writeUInt30(0);
-			#end
+			writeInt(0);
 			o.write(data);
 
 		case TBackgroundColor(color):
@@ -1373,12 +1334,8 @@ class Writer {
 				writeTID(TagId.RawABC,data.length);
 			else {
 				var len = data.length + 4 + ctx.label.length + 1;
-				writeTID(TagId.DoABC,len);
-				#if (haxe_211 && haxe3)
-				o.writeInt32(ctx.id);
-				#else
-				o.writeUInt30(ctx.id);
-				#end
+				writeTID(TagId.DoABC, len);
+				writeInt(ctx.id);
 				o.writeString(ctx.label);
 				o.writeByte(0);
 			}
@@ -1444,14 +1401,10 @@ class Writer {
 				writeTIDExt(TagId.DefineBitsJPEG2, data.length + 2);
 				o.writeUInt16(id);
 				o.write(data);
-			case JDJPEG3(data, mask):	
+			case JDJPEG3(data, mask):
 				writeTIDExt(TagId.DefineBitsJPEG3, data.length + mask.length + 6);
 				o.writeUInt16(id);
-				#if (haxe_211 && haxe3)
-				o.writeInt32(data.length);
-				#else
-				o.writeUInt30(data.length);
-				#end
+				writeInt(data.length);
 				o.write(data);
 				o.write(mask);
 			}
@@ -1468,11 +1421,7 @@ class Writer {
 		var bytes = o.getBytes();
 		var size = bytes.length;
 		if( compressed ) bytes = format.tools.Deflate.run(bytes);
-		#if (haxe_211 && haxe3)
-		output.writeInt32(size + 8);
-		#else
-		output.writeUInt30(size + 8);
-		#end
+		writeInt(size + 8);
 		output.write(bytes);
 	}
 

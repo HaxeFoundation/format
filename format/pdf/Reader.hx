@@ -151,7 +151,11 @@ class Reader {
 			}
 			var s = s.toString();
 			// replace #XX by corresponding hex char
-			s = ~/#([0-9A-Fa-f][0-9a-fA-F])/.customReplace(s,function(r:EReg) return String.fromCharCode( Std.parseInt("0x"+r.matched(1)) ));
+			#if (haxe_211 || haxe3)
+			s = ~/#([0-9A-Fa-f][0-9a-fA-F])/g.map(s, function(r:EReg) return String.fromCharCode( Std.parseInt("0x" + r.matched(1)) ));
+			#else
+			s = ~/#([0-9A-Fa-f][0-9a-fA-F])/.customReplace(s, function(r:EReg) return String.fromCharCode( Std.parseInt("0x" + r.matched(1)) ));
+			#end
 			return DName(s);
 		case 62:
 			c = i.readByte();

@@ -1,3 +1,7 @@
+2013-01-16: 1.26
+	more haxe3 fixes
+	added format.wav (@joshuagranick)
+
 2012-10-29: 1.25
 	added tgz support
 	added haxe3 suppport

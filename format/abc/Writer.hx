@@ -327,7 +327,7 @@ class Writer {
 		writeList(d.strings,writeString);
 		writeList(d.namespaces,writeNamespace);
 		writeList(d.nssets,writeNsSet);
-		writeList(d.names,callback(writeName,-1));
+		writeList(d.names,function(n) writeName(-1,n));
 		writeList2(d.methodTypes,writeMethodType);
 		writeList2(d.metadatas,writeMetadata);
 		writeList2(d.classes,writeClass);

@@ -29,7 +29,7 @@
  */
 package format.swf;
 
-typedef Fixed = #if haxe_211 Int #else haxe.Int32 #end;
+typedef Fixed = #if haxe3 Int #else haxe.Int32 #end;
 typedef Fixed8 = Int;
 
 typedef SWF = {
@@ -80,8 +80,8 @@ typedef AS3Context = {
 }
 
 typedef SymData = {
-	cid : Int, 
-	className : String 
+	cid : Int,
+	className : String
 }
 
 class PlaceObject {
@@ -446,7 +446,7 @@ typedef Sound = {
 	var rate : SoundRate;
 	var is16bit : Bool;
 	var isStereo : Bool;
-	var samples : #if haxe_211 Int #else haxe.Int32 #end;
+	var samples : #if haxe3 Int #else haxe.Int32 #end;
 	var data : SoundData;
 };
 

@@ -11,6 +11,6 @@
 	<tag v="swf"/>
 	<tag v="tar"/>
 	<tag v="zip"/>
-    <description>A haXe Library for supporting different file formats.</description>
-    <version name="1.25">See CHANGES.txt</version>
+    <description>A Haxe Library for supporting different file formats.</description>
+    <version name="1.26">See CHANGES.txt</version>
 </project>

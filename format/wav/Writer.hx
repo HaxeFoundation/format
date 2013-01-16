@@ -30,7 +30,6 @@
 
 package format.wav;
 import format.wav.Data;
-import haxe.Int32;
 
 class Writer {
 
@@ -45,21 +44,29 @@ class Writer {
 		var hdr = wav.header;
 
 		o.writeString("RIFF");
-		o.writeInt32(Int32.ofInt(36 + wav.data.length));
+		writeInt(36 + wav.data.length);
 		o.writeString("WAVE");
 
 		o.writeString("fmt ");
-		o.writeInt32(Int32.ofInt(16));
+		writeInt(16);
 		o.writeUInt16(1);
 		o.writeUInt16(hdr.channels);
-		o.writeInt32(Int32.ofInt(hdr.samplingRate));
-		o.writeInt32(Int32.ofInt(hdr.byteRate));
+		writeInt(hdr.samplingRate);
+		writeInt(hdr.byteRate);
 		o.writeUInt16(hdr.blockAlign);
 		o.writeUInt16(hdr.bitsPerSample);
 
 		o.writeString("data");
-		o.writeInt32(Int32.ofInt(wav.data.length));
+		writeInt(wav.data.length);
 		o.write(wav.data);
+	}
+	
+	inline function writeInt( v : Int ) {
+		#if haxe3
+		o.writeInt32(v);
+		#else
+		o.writeUInt30(v);
+		#end
 	}
 
 }
