@@ -95,10 +95,11 @@ class Reader {
 		var crc = i.readInt32();
 		if( checkCRC ) {
 			#if haxe3
-			var b = haxe.io.Bytes.alloc(4);
+			var c = new haxe.crypto.Crc32();
 			for( i in 0...4 )
-				b.set(i, id.charCodeAt(i));
-			if( haxe.crypto.Crc32.make(b) != crc )
+				c.byte(id.charCodeAt(i));
+			c.update(data, 0, data.length);
+			if( c.get() != crc )
 				throw "CRC check failure";
 			#else
 			var c = new format.tools.CRC32();
