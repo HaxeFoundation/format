@@ -1421,7 +1421,11 @@ class Writer {
 		var bytes = o.getBytes();
 		var size = bytes.length;
 		if( compressed ) bytes = format.tools.Deflate.run(bytes);
-		writeInt(size + 8);
+		#if haxe3
+		output.writeInt32(size + 8);
+		#else
+		output.writeUInt30(size + 8);
+		#end
 		output.write(bytes);
 	}
 
