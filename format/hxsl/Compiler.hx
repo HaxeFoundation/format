@@ -477,7 +477,7 @@ class Compiler {
 		var v2 = Reflect.copy(v);
 		v2.name += "[" + row + "]";
 		switch( v.type ) {
-		case TArray(t, size):
+		case TArray(t, _):
 			v2.index += Tools.regSize(t) * row;
 			v2.type = t;
 		default:
@@ -742,11 +742,11 @@ class Compiler {
 		case PRow(v, index):
 			var v = compileValue(v);
 			switch( v.t ) {
-			case TMatrix(r, c, t):
+			case TMatrix(_, c, t):
 				if( index < 0 || index >= c ) error("You can't read row " + index + " on " + typeStr(v.t), e.p);
 				if( t.t == null ) t.t = false;
 				switch( v.d ) {
-				case CVar(vr, swiz):
+				case CVar(vr, _):
 					if( t.t ) error("You can't read a row from a transposed matrix", e.p); // TODO : use temp
 					checkRead(v);
 					var vr = rowVar(vr, index);
@@ -754,10 +754,10 @@ class Compiler {
 				default:
 					error("You can't read a row from a complex expression", e.p); // TODO : use temp
 				}
-			case TArray(t, size):
+			case TArray(_, size):
 				if( index < 0 || index >= size ) error("You can't read row " + index + " on " + typeStr(v.t), e.p);
 				switch( v.d ) {
-				case CVar(vr, swiz):
+				case CVar(vr, _):
 					checkRead(v);
 					var vr = rowVar(vr, index);
 					return { d : CVar(vr), t : vr.type, p : e.p };
@@ -896,7 +896,7 @@ class Compiler {
 		if( !tryUnify(t1, t2) ) {
 			// if we only have the transpose flag different, let's print a nice error message
 			switch(t1) {
-			case TMatrix(r, c, t):
+			case TMatrix(r, c, _):
 				switch( t2 ) {
 				case TMatrix(r2, c2, t):
 					if( r == r2 && c == c2 && t.t != null ) {

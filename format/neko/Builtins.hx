@@ -148,7 +148,7 @@ class Builtins {
 		case VString(s): s;
 		case VFunction(f): "#function:" + _nargs(f);
 		case VAbstract(_): "#abstract";
-		case VObject(o):
+		case VObject(_):
 			throw "TODO";
 		case VProxy(o):
 			Std.string(o);

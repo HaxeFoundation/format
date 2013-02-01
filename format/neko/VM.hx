@@ -286,7 +286,7 @@ class VM {
 		case VArray(a):
 			acc = a[index];
 			if( acc == null ) acc = VNull;
-		case VObject(o):
+		case VObject(_):
 			throw "TODO";
 		default:
 			error(pc, "Invalid array access");
@@ -419,7 +419,7 @@ class VM {
 					case VInt(i): acc = a[i]; if( acc == null ) acc = VNull;
 					default: error(pc, "Invalid array access");
 					}
-				case VObject(o):
+				case VObject(_):
 					throw "TODO";
 				default:
 					error(pc, "Invalid array access");
@@ -519,7 +519,7 @@ class VM {
 				acc = VArray(a);
 			case OBool:
 				acc = switch( acc ) {
-				case VBool(b): acc;
+				case VBool(_): acc;
 				case VNull: VBool(false);
 				case VInt(i): VBool(i != 0);
 				default: VBool(true);

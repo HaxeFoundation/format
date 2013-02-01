@@ -173,7 +173,7 @@ class Context {
 		return Idx(arr.length);
 	}
 
-	function elookup<T>( arr : Array<T>, n : T ) : Index<T> {
+	function elookup<T:EnumValue>( arr : Array<T>, n : T ) : Index<T> {
 		for( i in 0...arr.length )
 			if( Type.enumEq(arr[i],n) )
 				return Idx(i + 1);

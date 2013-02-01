@@ -140,7 +140,7 @@ class Tools {
 		case TFont(id,_): ["id",id]; // TODO
 		case TFontInfo(id,_): ["id",id]; // TODO
 		case TBinaryData(id,data): ["id",id,"data",hex(data,max)];
-		case TClip(id,frames,tags): ["id",id,"frames",frames];
+		case TClip(id,frames,_): ["id",id,"frames",frames];
 		case TPlaceObject2(po): [Std.string(po)];
 		case TPlaceObject3(po): [Std.string(po)];
 		case TRemoveObject2(d): ["depth",d];
