@@ -472,7 +472,7 @@ class Writer {
 				writeGradient(ver, grad);
 
 			case FSFocalGradient(mat, grad):
-				if(ver > 3)
+				if(ver < 3)
 					throw "Focal gradient fill style only supported with Shape versions higher than 3!";
 
 				o.writeByte(FillStyleTypeId.FocalRadialGradient);
