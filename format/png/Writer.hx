@@ -82,10 +82,11 @@ class Writer {
 		o.write(data);
 		// compute CRC
 		#if haxe3
-		var b = haxe.io.Bytes.alloc(4);
+		var crc = new haxe.crypto.Crc32();
 		for( i in 0...4 )
-			b.set(i, id.charCodeAt(i));
-		o.writeInt32(haxe.crypto.Crc32.make(b));
+			crc.byte(id.charCodeAt(i));
+		crc.update(data, 0, data.length);
+		o.writeInt32(crc.get());
 		#else
 		var crc = new format.tools.CRC32();
 		for( i in 0...4 )
