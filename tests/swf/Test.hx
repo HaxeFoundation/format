@@ -7,8 +7,8 @@ class Test {
 
 	static function main() {
 		#if neko
-		var file = neko.Sys.args()[0];
-		var bytes = neko.io.File.getBytes(file);
+		var file = Sys.args()[0];
+		var bytes = sys.io.File.getBytes(file);
 		decode(bytes);
 		#else
 		var l = new flash.net.URLLoader();
@@ -46,7 +46,7 @@ class Test {
 			w.writeTag(t);
 		w.writeEnd();
 		#if neko
-		var file = neko.io.File.write("file2.swf",true);
+		var file = sys.io.File.write("file2.swf",true);
 		file.write(o.getBytes());
 		file.close();
 		#end
@@ -77,7 +77,7 @@ class Test {
 			b.add("F"+data.filters.length);
 		if( data.blendMode != null )
 			b.add("B");
-		if( data.bitmapCache )
+		if( data.bitmapCache != null )
 			b.add("@");
 		b.addChar(">".code);
 		var str = b.toString();
@@ -89,8 +89,8 @@ class Test {
 
 	static function tagStr(t) {
 		return switch(t) {
-		case TShape(sid,version,data):
-			"Shape"+version+" #"+sid+" ["+data.length+"]";
+		case TShape(sid,_):
+			"Shape #"+sid;
 		case TBinaryData(cid,data):
 			"BinaryData #"+cid+" ["+data.length+"]";
 		case TShowFrame:
@@ -134,13 +134,13 @@ class Test {
 			}
 			str += " "+opcodes+" ops";
 			var output = new haxe.io.BytesOutput();
-			format.abc.Writer.write(output,ctx);
+			new format.abc.Writer(output).write(ctx);
 			var bytes = output.getBytes();
 			if( bytes.compare(data) != 0 )
 				throw "ERROR";
 			str;
-		case TSandBox(n):
-			"Sandbox 0x"+StringTools.hex(n);
+		case TSandBox(_):
+			"Sandbox";
 		case TSymbolClass(sl):
 			var str = "Symbols";
 			for( s in sl )
@@ -148,13 +148,11 @@ class Test {
 			str;
 		case TBitsLossless2(l),TBitsLossless(l):
 			"BitsLossless [#"+l.cid+","+l.width+"x"+l.height+":"+l.color+","+l.data.length+" bytes]";
-		case TBitsJPEG2(id, data):
-			"BitsJPEG2 [#" + id + ", " + data.length + " bytes]";
-		case TBitsJPEG3(id, data, mask):
-			"BitsJPEG3 [#" + id + ", " + data.length + " bytes data, " + mask.length + " bytes mask]";
+		case TBitsJPEG(id, _):
+			"BitsJPEG #" + id;
 		case TSound(s):
 			var desc = switch( s.data ) {
-			case SDMp3(seek,data):
+			case SDMp3(_,data):
 				var i = new haxe.io.BytesInput(data);
 				var mp3 = new format.mp3.Reader(i).read();
 				(", frames: " + mp3.frames.length);

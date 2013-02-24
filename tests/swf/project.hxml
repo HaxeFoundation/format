@@ -5,6 +5,6 @@
 
 --next
 # FibAsm
--swf9 fibasm.swf
+-swf fibasm.swf
 -main FibAsm
 -cp ../..

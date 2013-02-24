@@ -1,6 +1,6 @@
 class Test {
 
-	static var FILE = #if neko neko.Sys.args()[0] #else "012008.pdf" #end;
+	static var FILE = #if neko Sys.args()[0] #else "012008.pdf" #end;
 
 	static function main() {
 		#if flash9
@@ -12,7 +12,7 @@ class Test {
 			read( new haxe.io.BytesInput(haxe.io.Bytes.ofData(b)) );
 		});
 		#elseif neko
-		var f = neko.io.File.read(FILE,true);
+		var f = sys.io.File.read(FILE,true);
 		read(f);
 		#end
 	}

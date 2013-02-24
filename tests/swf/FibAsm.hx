@@ -70,18 +70,18 @@ class FibAsm {
 		]);
 		ctx.finalize();
 		var o = new haxe.io.BytesOutput();
-		format.abc.Writer.write(o,ctx.getData());
+		new format.abc.Writer(o).write(ctx.getData());
 		var abc = o.getBytes();
 		var header : SWFHeader = {
 			version : 9,
 			width : 400,
 			height : 300,
 			nframes : 1,
-			fps : 30.0,
+			fps : format.swf.Tools.toFixed8(30.0),
 			compressed : false,
 		};
 		var tags = [
-			TSandBox(25),
+			TSandBox(false,false,false,true,false),
 			TActionScript3(abc),
 			TShowFrame,
 		];
