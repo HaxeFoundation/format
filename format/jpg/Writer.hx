@@ -185,10 +185,10 @@ class Writer {
 		);
 	}
 
-	var YDC_HT: IntHash<BitString>;
-	var UVDC_HT: IntHash<BitString>;
-	var YAC_HT: IntHash<BitString>;
-	var UVAC_HT: IntHash<BitString>;
+	var YDC_HT: Map<Int,BitString>;
+	var UVDC_HT: Map<Int,BitString>;
+	var YAC_HT: Map<Int,BitString>;
+	var UVAC_HT: Map<Int,BitString>;
 
 	function initHuffmanTbl() {
 		YDC_HT = computeHuffmanTbl(std_dc_luminance_nrcodes, std_dc_luminance_values);
@@ -197,10 +197,10 @@ class Writer {
 		UVAC_HT = computeHuffmanTbl(std_ac_chrominance_nrcodes, std_ac_chrominance_values);
 	}
 
-	function computeHuffmanTbl(nrcodes: Array<Int>, std_table: haxe.io.Bytes): IntHash<BitString> {
+	function computeHuffmanTbl(nrcodes: Array<Int>, std_table: haxe.io.Bytes): Map<Int,BitString> {
 		var codevalue = 0;
 		var pos_in_table = 0;
-		var HT: IntHash<BitString> = new IntHash();
+		var HT: Map<Int,BitString> = new Map();
 		for( k in 1...17 ) {
 			var end = nrcodes[k];
 			for( j in 0...end ) {
@@ -214,8 +214,8 @@ class Writer {
 		return HT;
 	}
 
-	var bitcode: IntHash<BitString>;
-	var category: IntHash<Int>;
+	var bitcode: Map<Int,BitString>;
+	var category: Map<Int,Int>;
 
 	function initCategoryNumber() {
 		var nrlower = 1;
@@ -475,7 +475,7 @@ class Writer {
 	// Core processing
 	var DU: Array<Float>;  //<- initialized in function new JPEGEncoder()
 
-	function processDU(CDU: Array<Float>, fdtbl: Array<Float>, DC: Float, HTDC: IntHash<BitString>, HTAC: IntHash<BitString>): Float {
+	function processDU(CDU: Array<Float>, fdtbl: Array<Float>, DC: Float, HTDC: Map<Int,BitString>, HTAC: Map<Int,BitString>): Float {
 		var EOB: BitString = HTAC.get( 0x00 );
 		var M16zeroes: BitString = HTAC.get( 0xF0 );
 
@@ -559,16 +559,16 @@ class Writer {
 			fdtbl_Y.push(0.0); fdtbl_UV.push(0.0);
 		}
 
-		bitcode = new IntHash<BitString>();  //<- 65535 elements <BitString>
-		category = new IntHash<Int>();  //<- 65535 elements <Int>
+		bitcode = new Map();  //<- 65535 elements <BitString>
+		category = new Map();  //<- 65535 elements <Int>
 		byteout = out;
 		bytenew = 0;
 		bytepos = 7;
 
-		YDC_HT = new IntHash<BitString>();
-		UVDC_HT = new IntHash<BitString>();
-		YAC_HT = new IntHash<BitString>();
-		UVAC_HT = new IntHash<BitString>();
+		YDC_HT = new Map();
+		UVDC_HT = new Map();
+		YAC_HT = new Map();
+		UVAC_HT = new Map();
 
 		YDU = new Array<Float>();  //<- 64 elements
 		UDU = new Array<Float>();

@@ -31,7 +31,9 @@
 package format.bmp;
 
 import format.bmp.Data;
+#if !haxe3
 import haxe.Int32;
+#end
 
 class Writer {
 

@@ -37,7 +37,7 @@ class Reader {
 	}
 
 	function readObject() {
-		var h = new Hash();
+		var h = new Map();
 		while( true ) {
 			var c1 = i.readByte();
 			var c2 = i.readByte();

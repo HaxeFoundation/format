@@ -43,10 +43,10 @@ enum Value {
 }
 
 class ValueObject {
-	public var fields : IntHash<Value>;
+	public var fields : Map<Int,Value>;
 	public var proto : Null<ValueObject>;
 	public function new(?p) {
-		fields = new IntHash();
+		fields = new Map();
 		proto = p;
 	}
 }

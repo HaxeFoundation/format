@@ -197,7 +197,7 @@ typedef ParsedHxsl = {
 	var vars : Array<ParsedVar>;
 	var vertex : ParsedCode;
 	var fragment : ParsedCode;
-	var helpers : Hash<ParsedCode>;
+	var helpers : Map<String,ParsedCode>;
 }
 
 typedef Error = haxe.macro.Expr.Error;

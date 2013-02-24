@@ -27,7 +27,9 @@
  */
 package format.abc;
 import format.abc.Data;
+#if !haxe3
 import haxe.Int32;
+#end
 
 class OpReader {
 

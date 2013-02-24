@@ -33,14 +33,14 @@ class Parser {
 
 	var vertex : Function;
 	var fragment : Function;
-	var helpers : Hash<Function>;
+	var helpers : Map<String,Function>;
 	var input : Array<ParsedVar>;
 	var vars : Array<ParsedVar>;
 	var cur : ParsedCode;
 	var allowReturn : Bool;
 
 	public function new() {
-		helpers = new Hash();
+		helpers = new Map();
 		input = [];
 		vars = [];
 	}
@@ -64,7 +64,7 @@ class Parser {
 		allowReturn = false;
 		var vs = buildShader(vertex);
 		var fs = buildShader(fragment);
-		var help = new Hash();
+		var help = new Map();
 		allowReturn = true;
 		for( h in helpers.keys() )
 			help.set(h, buildShader(helpers.get(h)));

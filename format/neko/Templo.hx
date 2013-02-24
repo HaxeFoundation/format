@@ -2,7 +2,7 @@ package format.neko;
 
 import format.neko.Value;
 
-class ABuffer extends StringBuf, implements ValueAbstract {
+class ABuffer extends StringBuf implements ValueAbstract {
 }
 
 private class Iter {

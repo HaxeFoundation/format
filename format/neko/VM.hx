@@ -34,24 +34,24 @@ class VM {
 	// globals
 	var opcodes : Array<Opcode>;
 	var builtins : Builtins;
-	var hfields : IntHash<String>;
-	var hbuiltins : IntHash<Value>;
+	var hfields : Map<Int,String>;
+	var hbuiltins : Map<Int,Value>;
 	var hloader : Int;
 	var hexports : Int;
 
 	// registers
 	var vthis : Value;
 	var env : Array<Value>;
-	var stack : haxe.FastList<Value>;
+	var stack : haxe.ds.GenericStack<Value>;
 
 	// current module
 	var module : Module;
 
 	public function new() {
-		hbuiltins = new IntHash();
-		hfields = new IntHash();
+		hbuiltins = new Map();
+		hfields = new Map();
 		opcodes = [];
-		stack = new haxe.FastList<Value>();
+		stack = new haxe.ds.GenericStack<Value>();
 		for( f in Type.getEnumConstructs(Opcode) )
 			opcodes.push(Type.createEnum(Opcode, f));
 		builtins = new Builtins(this);

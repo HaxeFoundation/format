@@ -30,7 +30,7 @@ enum Value {
 	ANumber( f : Float );
 	ABool( b : Bool );
 	AString( s : String );
-	AObject( fields : Hash<Value>, ?size : Int );
+	AObject( fields : Map<String,Value>, ?size : Int );
 	ADate( d : Date );
 	AUndefined;
 	ANull;

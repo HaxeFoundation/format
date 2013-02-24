@@ -49,7 +49,7 @@ class Filter {
 				a2.push(unfilterObject(o));
 			return DArray(a2);
 		case DDict(h):
-			var h2 = new Hash();
+			var h2 = new Map();
 			for( k in h.keys() )
 				h2.set(k,unfilterObject(h.get(k)));
 			return DDict(h2);
@@ -61,7 +61,7 @@ class Filter {
 			var filter = props.get("Filter");
 			if( filter == null )
 				return o;
-			var nprops = new Hash();
+			var nprops = new Map();
 			for( k in props.keys() )
 				nprops.set(k,props.get(k));
 			b = runFilter(b,filter,nprops);
@@ -69,7 +69,7 @@ class Filter {
 		}
 	}
 
-	function runFilter( b : haxe.io.Bytes, filter : Data, props : Hash<Data> ) : haxe.io.Bytes {
+	function runFilter( b : haxe.io.Bytes, filter : Data, props : Map<String,Data> ) : haxe.io.Bytes {
 		switch( filter ) {
 		case DArray(a):
 			for( o in a )

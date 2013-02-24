@@ -48,7 +48,7 @@ class Crypt {
 	}
 
 	public function decrypt( data : Array<Data> ) : Array<Data> {
-		var objects = new IntHash();
+		var objects = new Map();
 		var encrypt = null, fileId = null;
 		for( d in data )
 			switch( d ) {
@@ -97,7 +97,7 @@ class Crypt {
 				a2.push(decryptObject(key,o));
 			return DArray(a2);
 		case DDict(h):
-			var h2 = new Hash();
+			var h2 = new Map();
 			for( k in h.keys() )
 				h2.set(k,decryptObject(key,h.get(k)));
 			return DDict(h2);
@@ -105,7 +105,7 @@ class Crypt {
 			var objKey = buildObjectKey(id,rev);
 			return DIndirect(id,rev,decryptObject(objKey,v));
 		case DStream(b,h):
-			var h2 = new Hash();
+			var h2 = new Map();
 			for( k in h.keys() )
 				h2.set(k,decryptObject(key,h.get(k)));
 			return DStream(decryptBytes(b,key),h2);
@@ -123,7 +123,7 @@ class Crypt {
 		return b2;
 	}
 
-	function buildFileKey( fileId : Data, h : Hash<Data> ) {
+	function buildFileKey( fileId : Data, h : Map<String,Data> ) {
 		version = Extract.int(h.get("V"));
 		revision = Extract.int(h.get("R"));
 		if( version != 2 || (revision != 3 && revision != 4) )

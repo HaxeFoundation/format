@@ -34,9 +34,9 @@ enum Data {
 	DHexString( s : String );
 	DName( s : String );
 	DArray( a : Array<Data> );
-	DDict( h : Hash<Data> );
+	DDict( h : Map<String,Data> );
 	DIndirect( id : Int, rev : Int, v : Data );
-	DStream( b : haxe.io.Bytes, props : Hash<Data> );
+	DStream( b : haxe.io.Bytes, props : Map<String,Data> );
 	DRef( id : Int, rev : Int );
 	DXRefTable( t : Array<{ start : Int, entries : Array<{ offset : Int, gen : Int, used : Bool }> }> );
 	DTrailer( o : Data );

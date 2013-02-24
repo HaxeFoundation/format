@@ -33,11 +33,11 @@ class Builtins {
 	public static inline var CINVALID = -1000;
 	
 	var vm : VM;
-	public var table : Hash<Value>;
+	public var table : Map<String,Value>;
 	
 	public function new(vm) {
 		this.vm = vm;
-		table = new Hash();
+		table = new Map();
 		b("objsetproto", VFun2(objsetproto));
 		b("typeof", VFun1(typeof));
 		b("string", VFun1(string));

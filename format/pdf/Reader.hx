@@ -263,7 +263,7 @@ class Reader {
 		}
 		var values = objects;
 		objects = old;
-		var h = new Hash();
+		var h = new Map();
 		while( values.length > 0 ) {
 			var obj = values.shift();
 			switch( obj ) {

@@ -30,11 +30,11 @@ import format.hxsl.Data;
 class Compiler {
 
 	var cur : Code;
-	var vars : Hash<Variable>;
+	var vars : Map<String,Variable>;
 	var indexes : Array<Int>;
 	var ops : Array<Array<{ p1 : VarType, p2 : VarType, r : VarType }>>;
 	var tempCount : Int;
-	var helpers : Hash<Data.ParsedCode>;
+	var helpers : Map<String,Data.ParsedCode>;
 	var ret : { v : CodeValue };
 	var allowTextureRead : Bool;
 
@@ -42,7 +42,7 @@ class Compiler {
 
 	public function new() {
 		tempCount = 0;
-		vars = new Hash();
+		vars = new Map();
 		config = { inlTranspose : true, inlInt : true, allowAllWMasks : false, padWrites : true, forceReads : true };
 		indexes = [0, 0, 0, 0, 0, 0];
 		ops = new Array();
@@ -160,13 +160,13 @@ class Compiler {
 	}
 
 	function saveVars() {
-		var old = new Hash();
+		var old = new Map();
 		for( v in vars.keys() )
 			old.set(v, vars.get(v));
 		return old;
 	}
 
-	function closeBlock( old : Hash<Variable> ) {
+	function closeBlock( old : Map<String,Variable> ) {
 		for( v in vars )
 			if( v.kind == VTmp && old.get(v.name) != v && !v.read )
 				warn("Unused local variable '" + v.name + "'", v.pos);

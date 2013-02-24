@@ -36,7 +36,7 @@ class Tools {
 		case TFloat: ANumber(o);
 		case TBool: ABool(o);
 		case TObject:
-			var h = new Hash();
+			var h = new Map();
 			for( f in Reflect.fields(o) )
 				h.set(f,encode(Reflect.field(o,f)));
 			AObject(h);
@@ -44,9 +44,9 @@ class Tools {
 			switch( c ) {
 			case cast String:
 				AString(o);
-			case cast Hash:
-				var o : Hash<Dynamic> = o;
-				var h = new Hash();
+			case cast haxe.ds.StringMap:
+				var o : Map<String,Dynamic> = o;
+				var h = new Map();
 				for( f in o.keys() )
 					h.set(f,encode(o.get(f)));
 				AObject(h);
