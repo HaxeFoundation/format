@@ -12,5 +12,5 @@
 	<tag v="tar"/>
 	<tag v="zip"/>
     <description>A Haxe Library for supporting different file formats.</description>
-    <version name="1.26">See CHANGES.txt</version>
+    <version name="3.0">See CHANGES.txt</version>
 </project>
