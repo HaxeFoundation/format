@@ -48,6 +48,7 @@ class Tools {
 		return (pa <= pb && pa <= pc) ? prev : (pb <= pc ? b : c);
 	}
 
+	@:noDebug
 	public static function extract32( d : Data ) : haxe.io.Bytes {
 		var h = getHeader(d);
 		var rgba = haxe.io.Bytes.alloc(h.width * h.height * 4);
