@@ -1,3 +1,6 @@
+2013-??-??: 3.0.1
+	agal : added support for ATF textures
+
 2013-02-23: 3.0
 	haxe3 RC fixes
 	removed hxsl (hxsl2 is on http://github.com/ncannasse/hxsl)

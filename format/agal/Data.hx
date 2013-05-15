@@ -102,6 +102,12 @@ enum TexFlag {
 	TClamp;	// default
 	TFilterNearest;
 	TFilterLinear; // default
+	TRgba; // default
+	TDxt1;
+	TDxt5;
+	TCentroid; // default;
+	TSingle; 		  // Float texture?
+	TIgnoreSampler;   // see Context3D.setSamplerStateAt
 	TLodBias( v : Float );
 }
 
