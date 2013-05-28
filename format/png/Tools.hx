@@ -38,9 +38,9 @@ class Tools {
 		throw "Header not found";
 	}
 
-	static inline function filter( rgba : #if flash10 format.tools.MemoryBytes #else haxe.io.Bytes #end, x, y, stride, prev, p ) {
+	static inline function filter( rgba : #if flash10 format.tools.MemoryBytes #else haxe.io.Bytes #end, x, y, stride, prev, p, numChannels ) {
 		var b = rgba.get(p - stride);
-		var c = x == 0 || y == 0  ? 0 : rgba.get(p - stride - 4);
+		var c = x == 0 || y == 0  ? 0 : rgba.get(p - stride - numChannels);
 		var k = prev + b - c;
 		var pa = k - prev; if( pa < 0 ) pa = -pa;
 		var pb = k - b; if( pb < 0 ) pb = -pb;
@@ -49,11 +49,12 @@ class Tools {
 	}
 
 	@:noDebug
-	public static function extract32( d : Data ) : haxe.io.Bytes {
+	public static function extract(d:Data, channels:Array<Int>):haxe.io.Bytes {
+		var numChannels = channels.length;
 		var h = getHeader(d);
-		var rgba = haxe.io.Bytes.alloc(h.width * h.height * 4);
+		var out = haxe.io.Bytes.alloc(h.width * h.height * numChannels);
 		var data = null;
-		var fullData : haxe.io.BytesBuffer = null;
+		var fullData:haxe.io.BytesBuffer = null;
 		for( c in d )
 			switch( c ) {
 			case CData(b):
@@ -74,135 +75,247 @@ class Tools {
 		if( data == null )
 			throw "Data not found";
 		data = format.tools.Inflate.run(data);
+
+		if (h.colbits != 8)
+			throw "Unsupported color mode";
+
+		var width = h.width;
+		var stride = (switch(h.color) {
+			case ColGrey(alpha): alpha ? 2 : 1;
+			case ColTrue(alpha): alpha ? 4 : 3;
+			default:
+				throw "Unsupported color mode "+Std.string(h.color);
+				0;
+		}) * width + 1;
+		if (data.length < h.height * stride) throw "Not enough data";
+
+		#if flash10
+		var bytes = data.getData();
+		var start = h.height * stride;
+		bytes.length = start + h.width * h.height * numChannels;
+		if( bytes.length < 1024 ) bytes.length = 1024;
+		flash.Memory.select(bytes);
+		var realData = data, realOut = out;
+		var data = format.tools.MemoryBytes.make(0);
+		var out = format.tools.MemoryBytes.make(start);
+		#end
+
 		var r = 0, w = 0;
-		switch( h.color ) {
+		var cc = [for (i in 0...numChannels) 0];
+		var cd = [0,0,0,0];
+		switch (h.color) {
 		case ColTrue(alpha):
-			if( h.colbits != 8 )
-				throw "Unsupported color mode";
-			var width = h.width;
-			var stride = (alpha ? 4 : 3) * width + 1;
-			if( data.length < h.height * stride ) throw "Not enough data";
-
-			#if flash10
-			var bytes = data.getData();
-			var start = h.height * stride;
-			bytes.length = start + h.width * h.height * 4;
-			if( bytes.length < 1024 ) bytes.length = 1024;
-			flash.Memory.select(bytes);
-			var realData = data, realRgba = rgba;
-			var data = format.tools.MemoryBytes.make(0);
-			var rgba = format.tools.MemoryBytes.make(start);
-			#end
-
 			for( y in 0...h.height ) {
 				var f = data.get(r++);
 				switch( f ) {
 				case 0:
-					if( alpha )
-						for( x in 0...width ) {
-							rgba.set(w++,data.get(r+2));
-							rgba.set(w++,data.get(r+1));
-							rgba.set(w++,data.get(r));
-							rgba.set(w++,data.get(r+3));
-							r += 4;
-						}
-					else
-						for( x in 0...width ) {
-							rgba.set(w++,0xFF);
-							rgba.set(w++,data.get(r+2));
-							rgba.set(w++,data.get(r+1));
-							rgba.set(w++,data.get(r));
-							r += 3;
-						}
+					for (x in 0...width) {
+						cd[0] = data.get(r++);
+						cd[1] = data.get(r++);
+						cd[2] = data.get(r++);
+						cd[3] = alpha ? data.get(r++) : 0xff;
+						for (c in channels) out.set(w++, cd[c]);
+					}
 				case 1:
-					var cr = 0, cg = 0, cb = 0, ca = 0;
-					if( alpha )
-						for( x in 0...width ) {
-							cr += data.get(r + 2);	rgba.set(w++,cr);
-							cg += data.get(r + 1);	rgba.set(w++,cg);
-							cb += data.get(r);		rgba.set(w++,cb);
-							ca += data.get(r + 3);	rgba.set(w++,ca);
-							r += 4;
-						}
-					else
-						for( x in 0...width ) {
-							rgba.set(w++, 0xFF);
-							cr += data.get(r + 2);	rgba.set(w++,cr);
-							cg += data.get(r + 1);	rgba.set(w++,cg);
-							cb += data.get(r);		rgba.set(w++,cb);
-							r += 3;
-						}
+					cd[0] = cd[1] = cd[2] = 0;
+					cd[3] = alpha ? 0 : 0xff;
+					for (x in 0...width) {
+						cd[0] += data.get(r++);
+						cd[1] += data.get(r++);
+						cd[2] += data.get(r++);
+						if (alpha) cd[3] += data.get(r++);
+						for (c in channels) out.set(w++, cd[c]);
+					}
 				case 2:
-					var stride = y == 0 ? 0 : width * 4;
-					if( alpha )
-						for( x in 0...width ) {
-							rgba.set(w, data.get(r + 2) + rgba.get(w - stride));	w++;
-							rgba.set(w, data.get(r + 1) + rgba.get(w - stride));	w++;
-							rgba.set(w, data.get(r) + rgba.get(w - stride));		w++;
-							rgba.set(w, data.get(r + 3) + rgba.get(w - stride));	w++;
-							r += 4;
+					var stride = y == 0 ? 0 : width * numChannels;
+					for (x in 0...width) {
+						cd[0] = data.get(r++);
+						cd[1] = data.get(r++);
+						cd[2] = data.get(r++);
+						cd[3] = alpha ? data.get(r++) : 0xff;
+						for (c in channels) {
+							out.set(w, cd[c] + out.get(w - stride));
+							w++;
 						}
-					else
-						for( x in 0...width ) {
-							rgba.set(w++,0xFF);
-							rgba.set(w, data.get(r + 2) + rgba.get(w - stride));	w++;
-							rgba.set(w, data.get(r + 1) + rgba.get(w - stride));	w++;
-							rgba.set(w, data.get(r) + rgba.get(w - stride));		w++;
-							r += 3;
-						}
+					}
 				case 3:
-					var cr = 0, cg = 0, cb = 0, ca = 0;
-					var stride = y == 0 ? 0 : width * 4;
-					if( alpha )
-						for( x in 0...width ) {
-							cr = (data.get(r + 2) + ((cr + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cr);
-							cg = (data.get(r + 1) + ((cg + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cg);
-							cb = (data.get(r + 0) + ((cb + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cb);
-							ca = (data.get(r + 3) + ((ca + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, ca);
-							r += 4;
+					for (i in 0...numChannels) cc[i] = 0;
+					var stride = y == 0 ? 0 : width * numChannels;
+					if (alpha) {
+						for (x in 0...width) {
+							cd[0] = data.get(r++);
+							cd[1] = data.get(r++);
+							cd[2] = data.get(r++);
+							cd[3] = data.get(r++);
+							var i = 0;
+							for (c in channels) {
+								cc[i] = (cd[c] + ((cc[i] + out.get(w-stride))>>1)) & 0xff;
+								out.set(w++, cc[i++]);
+							}
 						}
-					else
-						for( x in 0...width ) {
-							rgba.set(w++, 0xFF);
-							cr = (data.get(r + 2) + ((cr + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cr);
-							cg = (data.get(r + 1) + ((cg + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cg);
-							cb = (data.get(r + 0) + ((cb + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cb);
-							r += 3;
+					}else {
+						for (x in 0...width) {
+							cd[0] = data.get(r++);
+							cd[1] = data.get(r++);
+							cd[2] = data.get(r++);
+							var i = 0;
+							for (c in channels) {
+								if (c < 3) {
+									cc[i] = (cd[c] + ((cc[i] + out.get(w-stride))>>1)) & 0xff;
+									out.set(w++, cc[i]);
+								}
+								else out.set(w++, 0xff);
+								i++;
+							}
 						}
+					}
 				case 4:
-					var stride = width * 4;
-					var cr = 0, cg = 0, cb = 0, ca = 0;
-					if( alpha )
-						for( x in 0...width ) {
-							cr = (filter(rgba, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; rgba.set(w++, cr);
-							cg = (filter(rgba, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; rgba.set(w++, cg);
-							cb = (filter(rgba, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; rgba.set(w++, cb);
-							ca = (filter(rgba, x, y, stride, ca, w) + data.get(r + 3)) & 0xFF; rgba.set(w++, ca);
-							r += 4;
+					for (i in 0...numChannels) cc[i] = 0;
+					var stride = width * numChannels;
+					if (alpha) {
+						for (x in 0...width) {
+							cd[0] = data.get(r++);
+							cd[1] = data.get(r++);
+							cd[2] = data.get(r++);
+							cd[3] = data.get(r++);
+							var i = 0;
+							for (c in channels) {
+								cc[i] = (filter(out, x, y, stride, cc[i], w, numChannels) + cd[c]) & 0xff;
+								out.set(w++, cc[i++]);
+							}
 						}
-					else
-						for( x in 0...width ) {
-							rgba.set(w++, 0xFF);
-							cr = (filter(rgba, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; rgba.set(w++, cr);
-							cg = (filter(rgba, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; rgba.set(w++, cg);
-							cb = (filter(rgba, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; rgba.set(w++, cb);
-							r += 3;
+					}else {
+						for (x in 0...width) {
+							cd[0] = data.get(r++);
+							cd[1] = data.get(r++);
+							cd[2] = data.get(r++);
+							var i = 0;
+							for (c in channels) {
+								if (c < 3) {
+									cc[i] = (filter(out, x, y, stride, cc[i], w, numChannels) + cd[c]) & 0xff;
+									out.set(w++, cc[i]);
+								}
+								else out.set(w++, 0xff);
+								i++;
+							}
 						}
+					}
 				default:
 					throw "Invalid filter "+f;
 				}
 			}
-
-			#if flash10
-			var b = realRgba.getData();
-			b.position = 0;
-			b.writeBytes(realData.getData(), start, h.width * h.height * 4);
-			#end
-
+		case ColGrey(alpha):
+			for( y in 0...h.height ) {
+				var f = data.get(r++);
+				switch( f ) {
+				case 0:
+					for (x in 0...width) {
+						var rgb = data.get(r++);
+						var a = alpha ? data.get(r++) : 0xff;
+						for (c in channels) out.set(w++, c < 3 ? rgb : a);
+					}
+				case 1:
+					var crgb = 0, ca = alpha ? 0 : 0xff;
+					for (x in 0...width) {
+						crgb += data.get(r++);
+						if (alpha) ca += data.get(r++);
+						for (c in channels) out.set(w++, c < 3 ? crgb : ca);
+					}
+				case 2:
+					var stride = y == 0 ? 0 : width * numChannels;
+					if (alpha) {
+						for (x in 0...width) {
+							var rgb = data.get(r++);
+							var a = data.get(r++);
+							for (c in channels) {
+								out.set(w, (c < 3 ? rgb : a) + out.get(w - stride));
+								w++;
+							}
+						}
+					}else {
+						for (x in 0...width) {
+							var rgb = data.get(r++);
+							for (c in channels) {
+								if (c < 3) {
+									out.set(w, rgb + out.get(w - stride));
+									w++;
+								}
+								else out.set(w++, 0xff);
+							}
+						}
+					}
+				case 3:
+					for (i in 0...numChannels) cc[i] = 0;
+					var stride = y == 0 ? 0 : width * numChannels;
+					if (alpha) {
+						for (x in 0...width) {
+							var rgb = data.get(r++);
+							var a = data.get(r++);
+							var i = 0;
+							for (c in channels) {
+								cc[i] = ((c < 3 ? rgb : a) + ((cc[i] + out.get(w-stride))>>1)) & 0xff;
+								out.set(w++, cc[i++]);
+							}
+						}
+					}else {
+						for (x in 0...width) {
+							var rgb = data.get(r++);
+							var i = 0;
+							for (c in channels) {
+								if (c < 3) {
+									cc[i] = (rgb + ((cc[i] + out.get(w-stride))>>1)) & 0xff;
+									out.set(w++, cc[i]);
+								}
+								else out.set(w++, 0xff);
+								i++;
+							}
+						}
+					}
+				case 4:
+					for (i in 0...numChannels) cc[i] = 0;
+					var stride = width * numChannels;
+					if (alpha) {
+						for (x in 0...width) {
+							var rgb = data.get(r++);
+							var a = data.get(r++);
+							var i = 0;
+							for (c in channels) {
+								cc[i] = (filter(out, x, y, stride, cc[i], w, numChannels) + (c < 3 ? rgb : a)) & 0xff;
+								out.set(w++, cc[i++]);
+							}
+						}
+					}else {
+						for (x in 0...width) {
+							var rgb = data.get(r++);
+							var i = 0;
+							for (c in channels) {
+								if (c < 3) {
+									cc[i] = (filter(out, x, y, stride, cc[i], w, numChannels) + rgb) & 0xff;
+									out.set(w++, cc[i]);
+								}
+								else out.set(w++, 0xff);
+								i++;
+							}
+						}
+					}
+				default:
+					throw "Invalid filter "+f;
+				}
+			}
 		default:
-			throw "Unsupported color mode "+Std.string(h.color);
 		}
-		return rgba;
+
+		#if flash10
+		var b = realOut.getData();
+		b.position = 0;
+		b.writeBytes(realData.getData(), start, h.width * h.height * numChannels);
+		#end
+
+		return out;
+	}
+
+	public static function extract32( d : Data ) : haxe.io.Bytes {
+		return extract(d, [0,1,2,3]);
 	}
 
 	public static function build24( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
@@ -266,5 +379,5 @@ class Tools {
 		l.add(CEnd);
 		return l;
 	}
-
 }
+
