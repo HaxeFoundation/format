@@ -423,7 +423,10 @@ class Tools {
 		return bgra;
 	}
 
-	public static function build24( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+	/**
+		Creates PNG data from bytes that contains three bytes (R,G and B values) for each pixel.
+	**/
+	public static function buildRGB( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
 		var rgb = haxe.io.Bytes.alloc(width * height * 3 + height);
 		// translate RGB to BGR and add filter byte
 		var w = 0, r = 0;
@@ -443,7 +446,10 @@ class Tools {
 		return l;
 	}
 
-	public static function build32BE( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+	/**
+		Creates PNG data from bytes that contains four bytes in ARGB format for each pixel.
+	**/
+	public static function build32ARGB( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
 		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
 		// translate ARGB to RGBA and add filter byte
 		var w = 0, r = 0;
@@ -464,7 +470,10 @@ class Tools {
 		return l;
 	}
 
-	public static function build32LE( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+	/**
+		Creates PNG data from bytes that contains four bytes in BGRA format for each pixel.
+	**/
+	public static function build32BGRA( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
 		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
 		// translate ARGB to RGBA and add filter byte
 		var w = 0, r = 0;
