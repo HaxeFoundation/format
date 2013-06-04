@@ -318,10 +318,8 @@ class Tools {
 		case ColGrey(alpha):
 			if( h.colbits != 8 )
 				throw "Unsupported color mode";
-			if( alpha )
-				throw "Grey+alpha not supported";
 			var width = h.width;
-			var stride = width + 1;
+			var stride = (alpha ? 2 : 1) * width + 1;
 			if( data.length < h.height * stride ) throw "Not enough data";
 
 			#if flash10
@@ -339,51 +337,99 @@ class Tools {
 				var f = data.get(r++);
 				switch( f ) {
 				case 0:
-					for( x in 0...width ) {
-						var v = data.get(r++);
-						bgra.set(w++,v);
-						bgra.set(w++,v);
-						bgra.set(w++,v);
-						bgra.set(w++,0xFF);
-					}
+					if( alpha )
+						for( x in 0...width ) {
+							var v = data.get(r++);
+							bgra.set(w++,v);
+							bgra.set(w++,v);
+							bgra.set(w++,v);
+							bgra.set(w++,data.get(r++));
+						}
+					else
+						for( x in 0...width ) {
+							var v = data.get(r++);
+							bgra.set(w++,v);
+							bgra.set(w++,v);
+							bgra.set(w++,v);
+							bgra.set(w++,0xFF);
+						}
 				case 1:
-					var cv = 0;
-					for( x in 0...width ) {
-						cv += data.get(r++);
-						bgra.set(w++,cv);
-						bgra.set(w++,cv);
-						bgra.set(w++,cv);
-						bgra.set(w++, 0xFF);
-					}
+					var cv = 0, ca = 0;
+					if( alpha )
+						for( x in 0...width ) {
+							cv += data.get(r++);
+							bgra.set(w++,cv);
+							bgra.set(w++,cv);
+							bgra.set(w++,cv);
+							ca += data.get(r++);
+							bgra.set(w++,ca);
+						}
+					else
+						for( x in 0...width ) {
+							cv += data.get(r++);
+							bgra.set(w++,cv);
+							bgra.set(w++,cv);
+							bgra.set(w++,cv);
+							bgra.set(w++,0xFF);
+						}
 				case 2:
 					var stride = y == 0 ? 0 : width * 4;
-					for( x in 0...width ) {
-						var v = data.get(r++) + bgra.get(w - stride);
-						bgra.set(w++, v);
-						bgra.set(w++, v);
-						bgra.set(w++, v);
-						bgra.set(w++,0xFF);
-					}
+					if( alpha )
+						for( x in 0...width ) {
+							var v = data.get(r++) + bgra.get(w - stride);
+							bgra.set(w++, v);
+							bgra.set(w++, v);
+							bgra.set(w++, v);
+							bgra.set(w++, data.get(r++) + bgra.get(w - stride));
+						}
+					else
+						for( x in 0...width ) {
+							var v = data.get(r++) + bgra.get(w - stride);
+							bgra.set(w++, v);
+							bgra.set(w++, v);
+							bgra.set(w++, v);
+							bgra.set(w++,0xFF);
+						}
 				case 3:
-					var cv = 0;
+					var cv = 0, ca = 0;
 					var stride = y == 0 ? 0 : width * 4;
-					for( x in 0...width ) {
-						cv = (data.get(r++) + ((cv + bgra.get(w - stride)) >> 1)) & 0xFF;
-						bgra.set(w++,cv);
-						bgra.set(w++,cv);
-						bgra.set(w++,cv);
-						bgra.set(w++, 0xFF);
-					}
+					if( alpha )
+						for( x in 0...width ) {
+							cv = (data.get(r++) + ((cv + bgra.get(w - stride)) >> 1)) & 0xFF;
+							bgra.set(w++,cv);
+							bgra.set(w++,cv);
+							bgra.set(w++,cv);
+							ca = (data.get(r++) + ((ca + bgra.get(w - stride)) >> 1)) & 0xFF;
+							bgra.set(w++,ca);
+						}
+					else
+						for( x in 0...width ) {
+							cv = (data.get(r++) + ((cv + bgra.get(w - stride)) >> 1)) & 0xFF;
+							bgra.set(w++,cv);
+							bgra.set(w++,cv);
+							bgra.set(w++,cv);
+							bgra.set(w++,0xFF);
+						}
 				case 4:
 					var stride = width * 4;
 					var cv = 0;
-					for( x in 0...width ) {
-						cv = (filter(bgra, x, y, stride, cv, w) + data.get(r++)) & 0xFF;
-						bgra.set(w++, cv);
-						bgra.set(w++, cv);
-						bgra.set(w++, cv);
-						bgra.set(w++, 0xFF);
-					}
+					if( alpha )
+						for( x in 0...width ) {
+							cv = (filter(bgra, x, y, stride, cv, w) + data.get(r++)) & 0xFF;
+							bgra.set(w++, cv);
+							bgra.set(w++, cv);
+							bgra.set(w++, cv);
+							ca = (filter(bgra, x, y, stride, ca, w) + data.get(r++)) & 0xFF;
+							bgra.set(w++, ca);
+						}
+					else
+						for( x in 0...width ) {
+							cv = (filter(bgra, x, y, stride, cv, w) + data.get(r++)) & 0xFF;
+							bgra.set(w++, cv);
+							bgra.set(w++, cv);
+							bgra.set(w++, cv);
+							bgra.set(w++, 0xFF);
+						}
 				default:
 					throw "Invalid filter "+f;
 				}
