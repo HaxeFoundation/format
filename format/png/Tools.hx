@@ -48,10 +48,49 @@ class Tools {
 		return (pa <= pb && pa <= pc) ? prev : (pb <= pc ? b : c);
 	}
 
+	/**
+		Converts from BGRA to ARGB and the other way by reversing bytes.
+	**/
+	static function reverseBytes( b : haxe.io.Bytes ) {
+		#if flash10
+		var bytes = b.getData();
+		if( bytes.length < 1024 ) bytes.length = 1024;
+		flash.Memory.select(bytes);
+		#end
+		inline function bget(p) {
+			#if flash10
+			return flash.Memory.getByte(p);
+			#else
+			return b.get(p);
+			#end
+		}
+		inline function bset(p,v) {
+			#if flash10
+			flash.Memory.setByte(p,v);
+			#else
+			return b.set(p,v);
+			#end
+		}
+		var p = 0;
+		for( i in 0...b.length >> 2 ) {
+			var b = bget(p);
+			var g = bget(p + 1);
+			var r = bget(p + 2);
+			var a = bget(p + 3);
+			bset(p++, a);
+			bset(p++, r);
+			bset(p++, b);
+			bset(p++, a);
+		}
+	}
+	
+	/**
+		Decode the PNG data and apply filters. By default this will output BGRA low-endian format. You can use the [reverseBytes] function to inverse the bytes to ARGB big-endian format.
+	**/
 	@:noDebug
 	public static function extract32( d : Data ) : haxe.io.Bytes {
 		var h = getHeader(d);
-		var rgba = haxe.io.Bytes.alloc(h.width * h.height * 4);
+		var bgra = haxe.io.Bytes.alloc(h.width * h.height * 4);
 		var data = null;
 		var fullData : haxe.io.BytesBuffer = null;
 		for( c in d )
@@ -89,65 +128,66 @@ class Tools {
 			bytes.length = start + h.width * h.height * 4;
 			if( bytes.length < 1024 ) bytes.length = 1024;
 			flash.Memory.select(bytes);
-			var realData = data, realRgba = rgba;
+			var realData = data, realRgba = bgra;
 			var data = format.tools.MemoryBytes.make(0);
-			var rgba = format.tools.MemoryBytes.make(start);
+			var bgra = format.tools.MemoryBytes.make(start);
 			#end
 
+			// PNG data is encoded as RGB[A]
 			for( y in 0...h.height ) {
 				var f = data.get(r++);
 				switch( f ) {
 				case 0:
 					if( alpha )
 						for( x in 0...width ) {
-							rgba.set(w++,data.get(r+2));
-							rgba.set(w++,data.get(r+1));
-							rgba.set(w++,data.get(r));
-							rgba.set(w++,data.get(r+3));
+							bgra.set(w++,data.get(r+2));
+							bgra.set(w++,data.get(r+1));
+							bgra.set(w++,data.get(r));
+							bgra.set(w++,data.get(r+3));
 							r += 4;
 						}
 					else
 						for( x in 0...width ) {
-							rgba.set(w++,0xFF);
-							rgba.set(w++,data.get(r+2));
-							rgba.set(w++,data.get(r+1));
-							rgba.set(w++,data.get(r));
+							bgra.set(w++,data.get(r+2));
+							bgra.set(w++,data.get(r+1));
+							bgra.set(w++,data.get(r));
+							bgra.set(w++,0xFF);
 							r += 3;
 						}
 				case 1:
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					if( alpha )
 						for( x in 0...width ) {
-							cr += data.get(r + 2);	rgba.set(w++,cr);
-							cg += data.get(r + 1);	rgba.set(w++,cg);
-							cb += data.get(r);		rgba.set(w++,cb);
-							ca += data.get(r + 3);	rgba.set(w++,ca);
+							cr += data.get(r + 2);	bgra.set(w++,cr);
+							cg += data.get(r + 1);	bgra.set(w++,cg);
+							cb += data.get(r);		bgra.set(w++,cb);
+							ca += data.get(r + 3);	bgra.set(w++,ca);
 							r += 4;
 						}
 					else
 						for( x in 0...width ) {
-							rgba.set(w++, 0xFF);
-							cr += data.get(r + 2);	rgba.set(w++,cr);
-							cg += data.get(r + 1);	rgba.set(w++,cg);
-							cb += data.get(r);		rgba.set(w++,cb);
+							cr += data.get(r + 2);	bgra.set(w++,cr);
+							cg += data.get(r + 1);	bgra.set(w++,cg);
+							cb += data.get(r);		bgra.set(w++,cb);
+							bgra.set(w++, 0xFF);
 							r += 3;
 						}
 				case 2:
 					var stride = y == 0 ? 0 : width * 4;
 					if( alpha )
 						for( x in 0...width ) {
-							rgba.set(w, data.get(r + 2) + rgba.get(w - stride));	w++;
-							rgba.set(w, data.get(r + 1) + rgba.get(w - stride));	w++;
-							rgba.set(w, data.get(r) + rgba.get(w - stride));		w++;
-							rgba.set(w, data.get(r + 3) + rgba.get(w - stride));	w++;
+							bgra.set(w, data.get(r + 2) + bgra.get(w - stride));	w++;
+							bgra.set(w, data.get(r + 1) + bgra.get(w - stride));	w++;
+							bgra.set(w, data.get(r) + bgra.get(w - stride));		w++;
+							bgra.set(w, data.get(r + 3) + bgra.get(w - stride));	w++;
 							r += 4;
 						}
 					else
 						for( x in 0...width ) {
-							rgba.set(w++,0xFF);
-							rgba.set(w, data.get(r + 2) + rgba.get(w - stride));	w++;
-							rgba.set(w, data.get(r + 1) + rgba.get(w - stride));	w++;
-							rgba.set(w, data.get(r) + rgba.get(w - stride));		w++;
+							bgra.set(w, data.get(r + 2) + bgra.get(w - stride));	w++;
+							bgra.set(w, data.get(r + 1) + bgra.get(w - stride));	w++;
+							bgra.set(w, data.get(r) + bgra.get(w - stride));		w++;
+							bgra.set(w++,0xFF);
 							r += 3;
 						}
 				case 3:
@@ -155,18 +195,18 @@ class Tools {
 					var stride = y == 0 ? 0 : width * 4;
 					if( alpha )
 						for( x in 0...width ) {
-							cr = (data.get(r + 2) + ((cr + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cr);
-							cg = (data.get(r + 1) + ((cg + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cg);
-							cb = (data.get(r + 0) + ((cb + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cb);
-							ca = (data.get(r + 3) + ((ca + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, ca);
+							cr = (data.get(r + 2) + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
+							cg = (data.get(r + 1) + ((cg + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cg);
+							cb = (data.get(r + 0) + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
+							ca = (data.get(r + 3) + ((ca + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, ca);
 							r += 4;
 						}
 					else
 						for( x in 0...width ) {
-							rgba.set(w++, 0xFF);
-							cr = (data.get(r + 2) + ((cr + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cr);
-							cg = (data.get(r + 1) + ((cg + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cg);
-							cb = (data.get(r + 0) + ((cb + rgba.get(w - stride)) >> 1)) & 0xFF;	rgba.set(w++, cb);
+							cr = (data.get(r + 2) + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
+							cg = (data.get(r + 1) + ((cg + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cg);
+							cb = (data.get(r + 0) + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
+							bgra.set(w++, 0xFF);
 							r += 3;
 						}
 				case 4:
@@ -174,18 +214,18 @@ class Tools {
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					if( alpha )
 						for( x in 0...width ) {
-							cr = (filter(rgba, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; rgba.set(w++, cr);
-							cg = (filter(rgba, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; rgba.set(w++, cg);
-							cb = (filter(rgba, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; rgba.set(w++, cb);
-							ca = (filter(rgba, x, y, stride, ca, w) + data.get(r + 3)) & 0xFF; rgba.set(w++, ca);
+							cr = (filter(bgra, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; bgra.set(w++, cr);
+							cg = (filter(bgra, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; bgra.set(w++, cg);
+							cb = (filter(bgra, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; bgra.set(w++, cb);
+							ca = (filter(bgra, x, y, stride, ca, w) + data.get(r + 3)) & 0xFF; bgra.set(w++, ca);
 							r += 4;
 						}
 					else
 						for( x in 0...width ) {
-							rgba.set(w++, 0xFF);
-							cr = (filter(rgba, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; rgba.set(w++, cr);
-							cg = (filter(rgba, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; rgba.set(w++, cg);
-							cb = (filter(rgba, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; rgba.set(w++, cb);
+							cr = (filter(bgra, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; bgra.set(w++, cr);
+							cg = (filter(bgra, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; bgra.set(w++, cg);
+							cb = (filter(bgra, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; bgra.set(w++, cb);
+							bgra.set(w++, 0xFF);
 							r += 3;
 						}
 				default:
@@ -202,7 +242,7 @@ class Tools {
 		default:
 			throw "Unsupported color mode "+Std.string(h.color);
 		}
-		return rgba;
+		return bgra;
 	}
 
 	public static function build24( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
