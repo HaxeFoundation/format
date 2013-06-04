@@ -378,7 +378,7 @@ class Tools {
 					var stride = width * 4;
 					var cv = 0;
 					for( x in 0...width ) {
-						cv = (filter(bgra, x, y, stride, cv, w) + data.get(r)) & 0xFF;
+						cv = (filter(bgra, x, y, stride, cv, w) + data.get(r++)) & 0xFF;
 						bgra.set(w++, cv);
 						bgra.set(w++, cv);
 						bgra.set(w++, cv);
