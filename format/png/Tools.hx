@@ -29,6 +29,9 @@ import format.png.Data;
 
 class Tools {
 
+	/**
+		Returns the PNG header informations. Throws an exception if no header found.
+	**/
 	public static function getHeader( d : Data ) : Header {
 		for( c in d )
 			switch( c ) {
@@ -37,10 +40,22 @@ class Tools {
 			}
 		throw "Header not found";
 	}
+	
+	/**
+		Return the PNG palette colors, or null if no palette chunk was found
+	**/
+	public static function getPalette( d : Data ) : haxe.io.Bytes {
+		for( c in d )
+			switch( c )  {
+			case CPalette(b): return b;
+			default:
+			}
+		return null;
+	}
 
-	static inline function filter( rgba : #if flash10 format.tools.MemoryBytes #else haxe.io.Bytes #end, x, y, stride, prev, p ) {
-		var b = rgba.get(p - stride);
-		var c = x == 0 || y == 0  ? 0 : rgba.get(p - stride - 4);
+	static inline function filter( bgra : #if flash10 format.tools.MemoryBytes #else haxe.io.Bytes #end, x, y, stride, prev, p ) {
+		var b = bgra.get(p - stride);
+		var c = x == 0 || y == 0  ? 0 : bgra.get(p - stride - 4);
 		var k = prev + b - c;
 		var pa = k - prev; if( pa < 0 ) pa = -pa;
 		var pb = k - b; if( pb < 0 ) pb = -pb;
@@ -115,6 +130,172 @@ class Tools {
 		data = format.tools.Inflate.run(data);
 		var r = 0, w = 0;
 		switch( h.color ) {
+		case ColIndexed:
+			var pal = getPalette(d);
+			if( pal == null ) throw "PNG Palette is missing";
+
+			var width = h.width;
+			var stride = width + 1;
+			if( data.length < h.height * stride ) throw "Not enough data";
+
+			#if flash10
+			var bytes = data.getData();
+			var start = h.height * stride;
+			bytes.length = start + h.width * h.height * 4;
+			if( bytes.length < 1024 ) bytes.length = 1024;
+			flash.Memory.select(bytes);
+			var realData = data, realRgba = bgra;
+			var data = format.tools.MemoryBytes.make(0);
+			var bgra = format.tools.MemoryBytes.make(start);
+			#end
+
+			var vr, vg, vb;
+			inline function decode() {
+				var c = data.get(r++);
+				vr = pal.get(c * 3);
+				vg = pal.get(c * 3 + 1);
+				vb = pal.get(c * 3 + 2);
+			}
+			for( y in 0...h.height ) {
+				var f = data.get(r++);
+				switch( f ) {
+				case 0:
+					for( x in 0...width ) {
+						decode();
+						bgra.set(w++,vb);
+						bgra.set(w++,vg);
+						bgra.set(w++,vr);
+						bgra.set(w++,0xFF);
+					}
+				case 1:
+					var cr = 0, cg = 0, cb = 0;
+					for( x in 0...width ) {
+						decode();
+						cb += vb;	bgra.set(w++,cb);
+						cg += vg;	bgra.set(w++,cg);
+						cr += vr;	bgra.set(w++,cr);
+						bgra.set(w++, 0xFF);
+					}
+				case 2:
+					var stride = y == 0 ? 0 : width * 4;
+					for( x in 0...width ) {
+						decode();
+						bgra.set(w, vb + bgra.get(w - stride));	w++;
+						bgra.set(w, vg + bgra.get(w - stride));	w++;
+						bgra.set(w, vr + bgra.get(w - stride));	w++;
+						bgra.set(w++,0xFF);
+					}
+				case 3:
+					var cr = 0, cg = 0, cb = 0;
+					var stride = y == 0 ? 0 : width * 4;
+					for( x in 0...width ) {
+						decode();
+						cb = (vb + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
+						cg = (vg + ((cg + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cg);
+						cr = (vr + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
+						bgra.set(w++, 0xFF);
+					}
+				case 4:
+					var stride = width * 4;
+					var cr = 0, cg = 0, cb = 0;
+					for( x in 0...width ) {
+						decode();
+						cb = (filter(bgra, x, y, stride, cb, w) + vb) & 0xFF; bgra.set(w++, cb);
+						cg = (filter(bgra, x, y, stride, cg, w) + vg) & 0xFF; bgra.set(w++, cg);
+						cr = (filter(bgra, x, y, stride, cr, w) + vr) & 0xFF; bgra.set(w++, cr);
+						bgra.set(w++, 0xFF);
+					}
+				default:
+					throw "Invalid filter "+f;
+				}
+			}
+
+			#if flash10
+			var b = realRgba.getData();
+			b.position = 0;
+			b.writeBytes(realData.getData(), start, h.width * h.height * 4);
+			#end
+			
+		case ColGrey(alpha):
+			if( h.colbits != 8 )
+				throw "Unsupported color mode";
+			if( alpha )
+				throw "Grey+alpha not supported";
+			var width = h.width;
+			var stride = width + 1;
+			if( data.length < h.height * stride ) throw "Not enough data";
+
+			#if flash10
+			var bytes = data.getData();
+			var start = h.height * stride;
+			bytes.length = start + h.width * h.height * 4;
+			if( bytes.length < 1024 ) bytes.length = 1024;
+			flash.Memory.select(bytes);
+			var realData = data, realRgba = bgra;
+			var data = format.tools.MemoryBytes.make(0);
+			var bgra = format.tools.MemoryBytes.make(start);
+			#end
+
+			for( y in 0...h.height ) {
+				var f = data.get(r++);
+				switch( f ) {
+				case 0:
+					for( x in 0...width ) {
+						var v = data.get(r++);
+						bgra.set(w++,v);
+						bgra.set(w++,v);
+						bgra.set(w++,v);
+						bgra.set(w++,0xFF);
+					}
+				case 1:
+					var cv = 0;
+					for( x in 0...width ) {
+						cv += data.get(r++);
+						bgra.set(w++,cv);
+						bgra.set(w++,cv);
+						bgra.set(w++,cv);
+						bgra.set(w++, 0xFF);
+					}
+				case 2:
+					var stride = y == 0 ? 0 : width * 4;
+					for( x in 0...width ) {
+						var v = data.get(r++) + bgra.get(w - stride);
+						bgra.set(w++, v);
+						bgra.set(w++, v);
+						bgra.set(w++, v);
+						bgra.set(w++,0xFF);
+					}
+				case 3:
+					var cv = 0;
+					var stride = y == 0 ? 0 : width * 4;
+					for( x in 0...width ) {
+						cv = (data.get(r++) + ((cv + bgra.get(w - stride)) >> 1)) & 0xFF;
+						bgra.set(w++,cv);
+						bgra.set(w++,cv);
+						bgra.set(w++,cv);
+						bgra.set(w++, 0xFF);
+					}
+				case 4:
+					var stride = width * 4;
+					var cv = 0;
+					for( x in 0...width ) {
+						cv = (filter(bgra, x, y, stride, cv, w) + data.get(r)) & 0xFF;
+						bgra.set(w++, cv);
+						bgra.set(w++, cv);
+						bgra.set(w++, cv);
+						bgra.set(w++, 0xFF);
+					}
+				default:
+					throw "Invalid filter "+f;
+				}
+			}
+
+			#if flash10
+			var b = realRgba.getData();
+			b.position = 0;
+			b.writeBytes(realData.getData(), start, h.width * h.height * 4);
+			#end
+			
 		case ColTrue(alpha):
 			if( h.colbits != 8 )
 				throw "Unsupported color mode";
@@ -158,17 +339,17 @@ class Tools {
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					if( alpha )
 						for( x in 0...width ) {
-							cr += data.get(r + 2);	bgra.set(w++,cr);
+							cb += data.get(r + 2);	bgra.set(w++,cb);
 							cg += data.get(r + 1);	bgra.set(w++,cg);
-							cb += data.get(r);		bgra.set(w++,cb);
+							cr += data.get(r);		bgra.set(w++,cr);
 							ca += data.get(r + 3);	bgra.set(w++,ca);
 							r += 4;
 						}
 					else
 						for( x in 0...width ) {
-							cr += data.get(r + 2);	bgra.set(w++,cr);
+							cb += data.get(r + 2);	bgra.set(w++,cb);
 							cg += data.get(r + 1);	bgra.set(w++,cg);
-							cb += data.get(r);		bgra.set(w++,cb);
+							cr += data.get(r);		bgra.set(w++,cr);
 							bgra.set(w++, 0xFF);
 							r += 3;
 						}
@@ -195,17 +376,17 @@ class Tools {
 					var stride = y == 0 ? 0 : width * 4;
 					if( alpha )
 						for( x in 0...width ) {
-							cr = (data.get(r + 2) + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
+							cb = (data.get(r + 2) + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
 							cg = (data.get(r + 1) + ((cg + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cg);
-							cb = (data.get(r + 0) + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
+							cr = (data.get(r + 0) + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
 							ca = (data.get(r + 3) + ((ca + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, ca);
 							r += 4;
 						}
 					else
 						for( x in 0...width ) {
-							cr = (data.get(r + 2) + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
+							cb = (data.get(r + 2) + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
 							cg = (data.get(r + 1) + ((cg + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cg);
-							cb = (data.get(r + 0) + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
+							cr = (data.get(r + 0) + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
 							bgra.set(w++, 0xFF);
 							r += 3;
 						}
@@ -214,17 +395,17 @@ class Tools {
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					if( alpha )
 						for( x in 0...width ) {
-							cr = (filter(bgra, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; bgra.set(w++, cr);
+							cb = (filter(bgra, x, y, stride, cb, w) + data.get(r + 2)) & 0xFF; bgra.set(w++, cb);
 							cg = (filter(bgra, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; bgra.set(w++, cg);
-							cb = (filter(bgra, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; bgra.set(w++, cb);
+							cr = (filter(bgra, x, y, stride, cr, w) + data.get(r + 0)) & 0xFF; bgra.set(w++, cr);
 							ca = (filter(bgra, x, y, stride, ca, w) + data.get(r + 3)) & 0xFF; bgra.set(w++, ca);
 							r += 4;
 						}
 					else
 						for( x in 0...width ) {
-							cr = (filter(bgra, x, y, stride, cr, w) + data.get(r + 2)) & 0xFF; bgra.set(w++, cr);
+							cb = (filter(bgra, x, y, stride, cb, w) + data.get(r + 2)) & 0xFF; bgra.set(w++, cb);
 							cg = (filter(bgra, x, y, stride, cg, w) + data.get(r + 1)) & 0xFF; bgra.set(w++, cg);
-							cb = (filter(bgra, x, y, stride, cb, w) + data.get(r + 0)) & 0xFF; bgra.set(w++, cb);
+							cr = (filter(bgra, x, y, stride, cr, w) + data.get(r + 0)) & 0xFF; bgra.set(w++, cr);
 							bgra.set(w++, 0xFF);
 							r += 3;
 						}
@@ -238,9 +419,6 @@ class Tools {
 			b.position = 0;
 			b.writeBytes(realData.getData(), start, h.width * h.height * 4);
 			#end
-
-		default:
-			throw "Unsupported color mode "+Std.string(h.color);
 		}
 		return bgra;
 	}
