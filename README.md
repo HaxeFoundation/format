@@ -14,11 +14,14 @@ Currently supported formats are :
   * GZ (compressed file)
   * JPG (Image file format - writer only atm)
   * MP3 (compressed audio)
+  * NEKO (NekoVM bytecode)
   * PBJ (PixelBender Binary file)
   * PDF (only generic file structure and partial decryption)
   * PNG (image file format)
   * SWF (Flash file format)
   * TAR (Archive)
+  * TGZ (TAR+GZ Archive)
+  * WAV (Raw sound)
   * ZIP (Compressed Archive)
 
 Installation
