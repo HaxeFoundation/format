@@ -412,7 +412,7 @@ class Tools {
 						}
 				case 4:
 					var stride = width * 4;
-					var cv = 0;
+					var cv = 0, ca = 0;
 					if( alpha )
 						for( x in 0...width ) {
 							cv = (filter(bgra, x, y, stride, cv, w) + data.get(r++)) & 0xFF;
