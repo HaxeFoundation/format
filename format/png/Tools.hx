@@ -147,7 +147,7 @@ class Tools {
 			flash.Memory.select(bytes);
 			var realData = data, realGrey = grey;
 			var data = format.tools.MemoryBytes.make(0);
-			var bgra = format.tools.MemoryBytes.make(start);
+			var grey = format.tools.MemoryBytes.make(start);
 			#end
 
 			var rinc = (alpha ? 2 : 1);
