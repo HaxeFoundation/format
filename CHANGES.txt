@@ -1,3 +1,6 @@
+2013-06-05: 3.0.2
+	png : added support for 8 bit and gray scale extract
+	
 2013-05-21: 3.0.1
 	agal : added support for ATF textures
 
