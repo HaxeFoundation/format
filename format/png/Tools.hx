@@ -66,7 +66,7 @@ class Tools {
 	/**
 		Converts from BGRA to ARGB and the other way by reversing bytes.
 	**/
-	static function reverseBytes( b : haxe.io.Bytes ) {
+	public static function reverseBytes( b : haxe.io.Bytes ) {
 		#if flash10
 		var bytes = b.getData();
 		if( bytes.length < 1024 ) bytes.length = 1024;
