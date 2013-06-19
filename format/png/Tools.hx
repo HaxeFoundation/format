@@ -569,6 +569,25 @@ class Tools {
 	}
 
 	/**
+		Creates PNG data from bytes that contains one bytes (grey values) for each pixel.
+	**/
+	public static function buildGrey( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+		var rgb = haxe.io.Bytes.alloc(width * height + height);
+		// translate RGB to BGR and add filter byte
+		var w = 0, r = 0;
+		for( y in 0...height ) {
+			rgb.set(w++,0); // no filter for this scanline
+			for( x in 0...width )
+				rgb.set(w++,data.get(r++));
+		}
+		var l = new List();
+		l.add(CHeader({ width : width, height : height, colbits : 8, color : ColGrey(false), interlaced : false }));
+		l.add(CData(format.tools.Deflate.run(rgb)));
+		l.add(CEnd);
+		return l;
+	}
+
+	/**
 		Creates PNG data from bytes that contains three bytes (R,G and B values) for each pixel.
 	**/
 	public static function buildRGB( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
