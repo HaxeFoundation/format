@@ -94,8 +94,8 @@ class Tools {
 			var a = bget(p + 3);
 			bset(p++, a);
 			bset(p++, r);
+			bset(p++, g);
 			bset(p++, b);
-			bset(p++, a);
 		}
 	}
 
