@@ -615,7 +615,7 @@ class Tools {
 	**/
 	public static function build32RGBA( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
 		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
-		// translate ARGB to RGBA and add filter byte
+		// add filter byte
 		var w = 0, r = 0;
 		for( y in 0...height ) {
 			rgba.set(w++,0); // no filter for this scanline
