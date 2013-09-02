@@ -1,3 +1,6 @@
+2013-09-02: 3.0.3
+	minor changes
+
 2013-06-05: 3.0.2
 	png : added support for 8 bit and gray scale extract
 	
