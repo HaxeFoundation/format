@@ -202,9 +202,9 @@ class Tools {
 		Decode the PNG data and apply filters. By default this will output BGRA low-endian format. You can use the [reverseBytes] function to inverse the bytes to ARGB big-endian format.
 	**/
 	@:noDebug
-	public static function extract32( d : Data ) : haxe.io.Bytes {
+	public static function extract32( d : Data, ?bytes ) : haxe.io.Bytes {
 		var h = getHeader(d);
-		var bgra = haxe.io.Bytes.alloc(h.width * h.height * 4);
+		var bgra = bytes == null ? haxe.io.Bytes.alloc(h.width * h.height * 4) : bytes;
 		var data = null;
 		var fullData : haxe.io.BytesBuffer = null;
 		for( c in d )
