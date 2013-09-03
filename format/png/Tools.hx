@@ -232,7 +232,15 @@ class Tools {
 		case ColIndexed:
 			var pal = getPalette(d);
 			if( pal == null ) throw "PNG Palette is missing";
-
+			
+			// transparent palette extension
+			var alpha = null;
+			for( t in d )
+				switch( t ) {
+				case CUnknown("tRNS", data): alpha = data; break;
+				default:
+				}
+			
 			var width = h.width;
 			var stride = width + 1;
 			if( data.length < h.height * stride ) throw "Not enough data";
@@ -248,12 +256,13 @@ class Tools {
 			var bgra = format.tools.MemoryBytes.make(start);
 			#end
 
-			var vr, vg, vb;
+			var vr, vg, vb, va = 0xFF;
 			inline function decode() {
 				var c = data.get(r++);
 				vr = pal.get(c * 3);
 				vg = pal.get(c * 3 + 1);
 				vb = pal.get(c * 3 + 2);
+				if( alpha != null ) va = alpha.get(c);
 			}
 			for( y in 0...h.height ) {
 				var f = data.get(r++);
@@ -264,16 +273,17 @@ class Tools {
 						bgra.set(w++,vb);
 						bgra.set(w++,vg);
 						bgra.set(w++,vr);
-						bgra.set(w++,0xFF);
+						bgra.set(w++,va);
 					}
 				case 1:
-					var cr = 0, cg = 0, cb = 0;
+					var cr = 0, cg = 0, cb = 0, ca = 0;
 					for( x in 0...width ) {
 						decode();
 						cb += vb;	bgra.set(w++,cb);
 						cg += vg;	bgra.set(w++,cg);
 						cr += vr;	bgra.set(w++,cr);
-						bgra.set(w++, 0xFF);
+						ca += va;	bgra.set(w++,ca);
+						bgra.set(w++, va);
 					}
 				case 2:
 					var stride = y == 0 ? 0 : width * 4;
@@ -282,27 +292,27 @@ class Tools {
 						bgra.set(w, vb + bgra.get(w - stride));	w++;
 						bgra.set(w, vg + bgra.get(w - stride));	w++;
 						bgra.set(w, vr + bgra.get(w - stride));	w++;
-						bgra.set(w++,0xFF);
+						bgra.set(w, va + bgra.get(w - stride));	w++;
 					}
 				case 3:
-					var cr = 0, cg = 0, cb = 0;
+					var cr = 0, cg = 0, cb = 0, ca = 0;
 					var stride = y == 0 ? 0 : width * 4;
 					for( x in 0...width ) {
 						decode();
 						cb = (vb + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
 						cg = (vg + ((cg + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cg);
 						cr = (vr + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
-						bgra.set(w++, 0xFF);
+						cr = (va + ((ca + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, ca);
 					}
 				case 4:
 					var stride = width * 4;
-					var cr = 0, cg = 0, cb = 0;
+					var cr = 0, cg = 0, cb = 0, ca = 0;
 					for( x in 0...width ) {
 						decode();
 						cb = (filter(bgra, x, y, stride, cb, w) + vb) & 0xFF; bgra.set(w++, cb);
 						cg = (filter(bgra, x, y, stride, cg, w) + vg) & 0xFF; bgra.set(w++, cg);
 						cr = (filter(bgra, x, y, stride, cr, w) + vr) & 0xFF; bgra.set(w++, cr);
-						bgra.set(w++, 0xFF);
+						ca = (filter(bgra, x, y, stride, ca, w) + va) & 0xFF; bgra.set(w++, ca);
 					}
 				default:
 					throw "Invalid filter "+f;
