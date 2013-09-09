@@ -1,3 +1,6 @@
+2013-09-09: 3.0.4
+	handle transparency extension in 8 bit pngs
+
 2013-09-02: 3.0.3
 	minor changes
 
