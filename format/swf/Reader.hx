@@ -1067,8 +1067,10 @@ class Reader {
 			for(j in 0...num_glyphs)
 				offset_table.push(readInt() - first_glyph_offset);
 			
-			var code_table_offset = readInt();
-			shape_data_length = code_table_offset - first_glyph_offset;
+			if( num_glyphs > 0 ) {
+				var code_table_offset = readInt();
+				shape_data_length = code_table_offset - first_glyph_offset;
+			}
 		
 		} else {
 			var first_glyph_offset = num_glyphs * 2 + 2;
@@ -1077,8 +1079,10 @@ class Reader {
 				offset_table.push(offs - first_glyph_offset);
 			}
 			
-			var code_table_offset = i.readUInt16();
-			shape_data_length = code_table_offset - first_glyph_offset;
+			if( num_glyphs > 0 ) {
+				var code_table_offset = i.readUInt16();
+				shape_data_length = code_table_offset - first_glyph_offset;
+			}
 		}
 
 		var glyph_shapes = readGlyphs(shape_data_length, offset_table);
