@@ -42,35 +42,31 @@ class Tools {
 
 	public inline static function floatFixedBits( i : Int, nbits ) {
 		i = signExtend(i,nbits);
-		return (i >> 16) + (i & 0xFFFF) / 65536.0;
+		return i / 65536.0;
 	}
 
 	public inline static function floatFixed( i : #if haxe3 Int #else haxe.Int32 #end ) {
 		#if haxe3
-		return (i >> 16) + (i & 0xFFFF) / 65536.0;
+		return i / 65536.0;
 		#else
 		return haxe.Int32.toInt(haxe.Int32.shr(i, 16)) + haxe.Int32.toInt(haxe.Int32.and(i, haxe.Int32.ofInt(0xFFFF))) / 65536.0;
 		#end
 	}
 
 	public inline static function floatFixed8( i : Int ) {
-		return (i >> 8) + (i & 0xFF) / 256.0;
+		return i / 256.0;
 	}
 	
 	public inline static function toFixed8( f : Float ) {
-		var i = Std.int(f);
-		if( ((i>0)?i:-i) >= 128 )
+		if( f < -128.0 || f >= 128.0 )
 			throw haxe.io.Error.Overflow;
-		if( i < 0 ) i = 256-i;
-		return (i << 8) | Std.int((f-i)*256.0);
+		return Std.int( f * 256.0 );
 	}
 	
 	public inline static function toFixed16( f : Float ) {
-		var i = Std.int(f);
-		if( ((i>0)?i:-i) >= 32768 )
+		if( f < -32768.0 || f >= 32768.0 )
 			throw haxe.io.Error.Overflow;
-		if( i < 0 ) i = 65536-i;
-		return (i << 16) | Std.int((f-i)*65536.0);
+		return Std.int( f * 65536.0 );
 	}
 
 	// All values are treated as unsigned! 
