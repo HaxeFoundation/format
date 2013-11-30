@@ -76,6 +76,12 @@ class Reader {
 		var blockAlign = i.readUInt16();
 		var bitsPerSample = i.readUInt16();
 		
+		if (fmtlen > 16) {
+			
+			i.read(fmtlen - 16);
+			
+		}
+		
 		var nextChunk = i.readString (4);
 		
 		while (nextChunk != "data") {
