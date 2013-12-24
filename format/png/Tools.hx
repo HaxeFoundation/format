@@ -100,7 +100,7 @@ class Tools {
 	}
 
 	/**
-		Decode the greyscale PNG data and apply nilters, extracting only the grey channel if alpha is present.
+		Decode the greyscale PNG data and apply filters, extracting only the grey channel if alpha is present.
 	**/
 	@:noDebug
 	public static function extractGrey( d : Data ) : haxe.io.Bytes {
