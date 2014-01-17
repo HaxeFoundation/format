@@ -54,7 +54,7 @@ class Tools {
 	}
 
 	static inline function filter( data : #if flash10 format.tools.MemoryBytes #else haxe.io.Bytes #end, x, y, stride, prev, p, numChannels=4 ) {
-		var b = data.get(p - stride);
+		var b = y == 0 ? 0 : data.get(p - stride);
 		var c = x == 0 || y == 0  ? 0 : data.get(p - stride - numChannels);
 		var k = prev + b - c;
 		var pa = k - prev; if( pa < 0 ) pa = -pa;
