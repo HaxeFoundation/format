@@ -1,3 +1,6 @@
+2014-??-??: 3.0.5
+	fixed rare bug in PNG decoding
+
 2013-09-09: 3.0.4
 	handle transparency extension in 8 bit pngs
 
