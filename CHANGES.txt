@@ -1,5 +1,6 @@
-2014-??-??: 3.0.5
+2014-04-20: 3.0.5
 	fixed rare bug in PNG decoding
+	bug fixes in WAV and SWF
 
 2013-09-09: 3.0.4
 	handle transparency extension in 8 bit pngs
