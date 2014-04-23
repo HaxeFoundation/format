@@ -547,6 +547,7 @@ class Writer {
 				bits.writeBit(switch(data.fill) {
 					case LS2FColor(_):	false;
 					case LS2FStyle(_):	true;
+					case null: throw false;
 				});
 
 				bits.writeBit(data.noHScale);
@@ -570,6 +571,7 @@ class Writer {
 				switch(data.fill) {
 					case LS2FColor(color):	writeRGBA(color);
 					case LS2FStyle(style):	writeFillStyle(ver, style);
+					case null: throw false;
 				}
 		}
 	}
