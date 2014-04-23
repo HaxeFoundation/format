@@ -62,7 +62,7 @@ class Writer {
 
 	function writeRect(r) {
 		var nbits = Tools.minBits([r.left, r.right, r.top, r.bottom]) + 1;
-		
+
 		bits.writeBits(5,nbits);
 		bits.writeBits(nbits,r.left);
 		bits.writeBits(nbits,r.right);
@@ -141,7 +141,7 @@ class Writer {
 
 		if( m.rotate != null ) {
 			bits.writeBit(true);
-			
+
 			var rs0 = Tools.toFixed16(m.rotate.rs0);
 			var rs1 = Tools.toFixed16(m.rotate.rs1);
 			var nbits = Tools.minBits([rs0, rs1]) + 1;
@@ -158,7 +158,7 @@ class Writer {
 		bits.writeBits(5, nbits);
 		bits.writeBits(nbits, m.translate.x);
 		bits.writeBits(nbits, m.translate.y);
-		
+
 		bits.flush();
 	}
 
@@ -177,7 +177,7 @@ class Writer {
 		if( c.add != null ) writeCXAColor(c.add,c.nbits);
 		bits.flush();
 	}
-	
+
 	function writeClipEvents( events : Array<ClipEvent> ) {
 		o.writeUInt16(0);
 		var all = 0;
@@ -418,9 +418,9 @@ class Writer {
 		};
 		if(ver < 4 && (spread_mode != 0 || interpolation_mode != 0))
 			throw "Spread must be Pad and interpolation mode must be Normal RGB in gradient specification when shape version is lower than 4!";
-		
+
 		var num_records = grad.data.length;
-		
+
 		if(ver < 4) {
 			if(num_records > 8)
 				throw "Gradient supports at most 8 control points ("+num_records+" has bee given) when shape verison is lower than 4!";
@@ -457,15 +457,15 @@ class Writer {
 			case FSSolidAlpha(rgba):
 				if(ver < 3)
 					throw "Fill styles with Shape versions lower than 3 doesn't support alhpa channel!";
-				
+
 				o.writeByte(FillStyleTypeId.Solid);
 				writeRGBA(rgba);
-			
+
 			case FSLinearGradient(mat, grad):
 				o.writeByte(FillStyleTypeId.LinearGradient);
 				writeMatrix(mat);
 				writeGradient(ver, grad);
-			
+
 			case FSRadialGradient(mat, grad):
 				o.writeByte(FillStyleTypeId.RadialGradient);
 				writeMatrix(mat);
@@ -537,7 +537,7 @@ class Writer {
 					case LCNone:	1;
 					case LCSquare:	2;
 				});
-				
+
 				bits.writeBits(2, switch(data.join) {
 					case LJRound:					0;
 					case LJBevel:					1;
@@ -554,7 +554,7 @@ class Writer {
 				bits.writeBit(data.pixelHinting);
 				bits.writeBits(5, 0);
 				bits.writeBit(data.noClose);
-				
+
 				bits.writeBits(2, switch(data.endCap) {
 					case LCRound:	0;
 					case LCNone:	1;
@@ -573,7 +573,7 @@ class Writer {
 				}
 		}
 	}
-	
+
 	function writeLineStyles(ver: Int, line_styles: Array<LineStyle>) {
 		var num_styles = line_styles.length;
 
@@ -626,11 +626,11 @@ class Writer {
 				if(data.fillStyle0 != null) {
 					bits.writeBits(style_info.fillBits, data.fillStyle0.idx);
 				}
-				
+
 				if(data.fillStyle1 != null) {
 					bits.writeBits(style_info.fillBits, data.fillStyle1.idx);
 				}
-				
+
 				if(data.lineStyle != null) {
 					bits.writeBits(style_info.lineBits, data.lineStyle.idx);
 				}
@@ -638,12 +638,12 @@ class Writer {
 				if(data.newStyles != null) {
 					writeFillStyles(ver, data.newStyles.fillStyles);
 					writeLineStyles(ver, data.newStyles.lineStyles);
-					
+
 					style_info.numFillStyles += data.newStyles.fillStyles.length;
 					style_info.numLineStyles += data.newStyles.lineStyles.length;
 					style_info.fillBits = Tools.minBits([style_info.numFillStyles]);
 					style_info.lineBits = Tools.minBits([style_info.numLineStyles]);
-					
+
 					bits.writeBits(4, style_info.fillBits);
 					bits.writeBits(4, style_info.lineBits);
 				}
@@ -651,7 +651,7 @@ class Writer {
 			case SHREdge(dx, dy):
 				bits.writeBit(true);
 				bits.writeBit(true);
-				
+
 				var mb = Tools.minBits([dx, dy]) + 1;
 				mb = if(mb < 2) 0 else mb - 2;
 				bits.writeBits(4, mb);
@@ -671,11 +671,11 @@ class Writer {
 					bits.writeBits(mb, dx);
 					bits.writeBits(mb, dy);
 				}
-					
+
 			case SHRCurvedEdge(cdx, cdy, adx, ady):
 				bits.writeBit(true);
 				bits.writeBit(false);
-				
+
 				var mb = Tools.minBits([cdx, cdy, adx, ady]) + 1;
 				mb = if(mb < 2) 0 else mb - 2;
 				bits.writeBits(4, mb);
@@ -687,7 +687,7 @@ class Writer {
 				bits.writeBits(mb, ady);
 		}
 	}
-	
+
 	function writeShapeWithoutStyle(ver: Int, data: ShapeWithoutStyleData) {
 		var style_info: ShapeStyleInfo = {
 			numFillStyles: 0,
@@ -695,7 +695,7 @@ class Writer {
 			numLineStyles: 0,
 			lineBits: 1
 		};
-		
+
 		bits.writeBits(4, style_info.fillBits);
 		bits.writeBits(4, style_info.lineBits);
 		bits.flush();
@@ -716,7 +716,7 @@ class Writer {
 			numLineStyles: data.lineStyles.length,
 			lineBits: Tools.minBits([data.lineStyles.length]),
 		};
-		
+
 		bits.writeBits(4, style_info.fillBits);
 		bits.writeBits(4, style_info.lineBits);
 		bits.flush();
@@ -726,7 +726,7 @@ class Writer {
 		}
 		bits.flush();
 	}
-	
+
 	public function writeShape(id: Int, data: ShapeData) {
 		var old = openTMP();
 
@@ -805,7 +805,7 @@ class Writer {
 				writeMatrix(startMatrix);
 				writeMatrix(endMatrix);
 				writeMorphGradients(ver, gradients);
-			
+
 			case MFSRadialGradient(startMatrix, endMatrix, gradients):
 				o.writeByte(FillStyleTypeId.LinearGradient);
 				writeMatrix(startMatrix);
@@ -885,7 +885,7 @@ class Writer {
 			case LCNone:	1;
 			case LCSquare:	2;
 		});
-		
+
 		bits.writeBits(2, switch(m2data.joinStyle) {
 			case LJRound:					0;
 			case LJBevel:					1;
@@ -905,7 +905,7 @@ class Writer {
 		bits.writeBit(m2data.pixelHinting);
 		bits.writeBits(5, 0);
 		bits.writeBit(m2data.noClose);
-		
+
 		bits.writeBits(2, switch(m2data.endCapStyle) {
 			case LCRound:	0;
 			case LCNone:	1;
@@ -927,7 +927,7 @@ class Writer {
 				writeMorphFillStyle(2, fill);
 		}
 	}
-	
+
 	function writeMorph2LineStyles(line_styles: Array<Morph2LineStyle>) {
 		var num_styles = line_styles.length;
 
@@ -960,7 +960,7 @@ class Writer {
 				writeMorph1LineStyles(sh1data.lineStyles);
 				writeShapeWithoutStyle(3, sh1data.startEdges);
 				bits.flush();
-				
+
 				var part_data = closeTMP(old);
 
 				writeInt(part_data.length);
@@ -983,7 +983,7 @@ class Writer {
 				writeMorph2LineStyles(sh2data.lineStyles);
 				writeShapeWithoutStyle(4, sh2data.startEdges);
 				bits.flush();
-				
+
 				var part_data = closeTMP(old);
 
 				writeInt(part_data.length);
@@ -997,7 +997,7 @@ class Writer {
 		switch(data) {
 			case MSDShape1(_):
 				writeTID(TagId.DefineMorphShape, morph_shape_data.length);
-			
+
 			case MSDShape2(_):
 				writeTID(TagId.DefineMorphShape2, morph_shape_data.length);
 
@@ -1014,7 +1014,7 @@ class Writer {
 
 		for(shape in glyphs) {
 			offsets.push(offs);
-			
+
 			var old = openTMP();
 			writeShapeWithoutStyle(1, shape);
 			bits.flush();
@@ -1023,7 +1023,7 @@ class Writer {
 			o.write(shape_data);
 			offs += shape_data.length;
 		}
-		
+
 		var glyph_data = closeTMP(old);
 
 		o.write(glyph_data);
@@ -1035,7 +1035,7 @@ class Writer {
 		var old = openTMP();
 
 		var offset_table = writeFontGlyphs(data.glyphs);
-		
+
 		if(offset_table.length * 2 + offset_table[offset_table.length - 1] > 0xffff)
 			throw "Font version 1 only supports font sizes up to 64kB!";
 
@@ -1055,7 +1055,7 @@ class Writer {
 		var num_glyphs: Int = data.glyphs.length;
 		for(glyph in data.glyphs)
 			glyphs.push(glyph.shape);
-		
+
 		var old = openTMP();
 		var offset_table = writeFontGlyphs(glyphs);
 		bits.flush();
@@ -1088,14 +1088,14 @@ class Writer {
 		if(hasWideOffsets) {
 			// OffsetTable size + CodeTabbleOffset field (32bit version)
 			var first_glyph_offset = num_glyphs * 4 + 4;
-			
+
 			for(offset in offset_table)
 				writeInt(first_glyph_offset + offset);
 			writeInt(first_glyph_offset + shape_data.length);
 		} else {
 			// OffsetTable size + CodeTabbleOffset field (16bit version)
 			var first_glyph_offset = num_glyphs * 2 + 2;
-			
+
 			for(offset in offset_table) {
 				o.writeUInt16(first_glyph_offset + offset);
 			}
@@ -1167,7 +1167,7 @@ class Writer {
 		switch(data) {
 			case FDFont1(_):
 				writeTID(TagId.DefineFont, font_data.length);
-				
+
 			case FDFont2(_, _):
 				writeTID(TagId.DefineFont2, font_data.length);
 
@@ -1251,7 +1251,7 @@ class Writer {
 
 		case TFont(id, data):
 			writeFont(id, data);
-		
+
 		case TFontInfo(id, data):
 			writeFontInfo(id, data);
 
@@ -1411,9 +1411,9 @@ class Writer {
 
 		case TSound(data):
 			writeSound(data);
-			
+
 		}
-		
+
 	}
 
 	public function writeEnd() {
