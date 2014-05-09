@@ -80,7 +80,11 @@ class Filter {
 				#if neko
 				return neko.zip.Uncompress.run(b);
 				#else
+				#if cpp
+				return cpp.zip.Uncompress.run(b);
+				#else
 				throw "Can't apply deflate filter";
+				#end
 				#end
 			}
 		default:
