@@ -26,6 +26,10 @@
  */
 package format.pdf;
 import format.pdf.Data;
+import haxe.io.Bytes;
+import haxe.io.BytesBuffer;
+import haxe.io.BytesData;
+import haxe.io.BytesInput;
 
 private enum Break {
 	BDictEnd;
@@ -60,10 +64,11 @@ class Reader {
 
 	function readObjectEof( i : haxe.io.Input ) {
 		if( char == null ) {
-			try
-				char = i.readByte()
-			catch( e : haxe.io.Eof )
+			try {
+				char = i.readByte();
+			} catch( e : haxe.io.Eof ) {
 				return null;
+			}
 		}
 		switch( char ) {
 		case 0,9,10,12,13,32: // whitespace
@@ -169,6 +174,16 @@ class Reader {
 			while( true ) {
 				if( char == null )
 					char = i.readByte();
+
+				// skip spaces
+				while (true) {
+					switch (char) {
+						case 0, 9, 10, 12, 13, 32: // whitespace
+						case _: break;
+					}
+					char = i.readByte();
+				}
+
 				if( char == 93 ) { // ]
 					char = null;
 					break;
@@ -201,7 +216,8 @@ class Reader {
 					case 10,13:
 						// ignore
 					default:
-						throw "Invalid escape sequence "+String.fromCharCode(c);
+						buf.addChar(c); // had values such has 0, 2 & 3 here with real world pdfs; adding the char allowed to parse the pdf.
+//						throw "Invalid escape sequence  <"+buf.toString() + "> "   +String.fromCharCode(c);
 					}
 				} else switch( c ) {
 				case 40: // (
@@ -249,6 +265,7 @@ class Reader {
 			default: throw "Unknown id "+id;
 			}
 		default:
+			
 			invalidChar(c);
 		}
 		throw "Assert";
@@ -259,7 +276,11 @@ class Reader {
 		var old = objects;
 		objects = new Array();
 		while( true ) {
-			try objects.push(readObject(i)) catch( e : Break ) if( e == BDictEnd ) break else invalidBreak(e);
+			try { // not caught on hxcpp if no '{' '}'
+				objects.push(readObject(i)); 
+			} catch ( e : Break ) {
+				if( e == BDictEnd ) break else invalidBreak(e);
+			}
 		}
 		var values = objects;
 		objects = old;
@@ -283,10 +304,11 @@ class Reader {
 		var old = objects;
 		objects = new Array();
 		while( true ) {
-			try
-				objects.push(readObject(i))
-			catch( e : Break )
-				if( e == BEndObj ) break else invalidBreak(e);
+			try {
+				objects.push(readObject(i));
+			} catch( e : Break ) {
+				if ( e == BEndObj ) break else invalidBreak(e);
+			}
 		}
 		if( objects.length != 1 ) throw "Multiple values in object";
 		var value = objects[0];
@@ -308,17 +330,46 @@ class Reader {
 				throw "Invalid stream dict "+dict;
 			switch( len ) {
 			case DNumber(n): size = Std.int(n);
+			case DRef(id, rev): size = -1; // should read indirects; these can be unknow, hence our specific handling (see below)
 			default: throw "Invalid stream length "+len;
 			}
 		default:
 			throw "Invalid stream dict "+dict;
 		}
-		var b = haxe.io.Bytes.alloc(size);
-		i.readFullBytes(b,0,size);
-		readEOL(i);
-		if( i.readString(9) != "endstream" )
-			throw "Invalid stream end";
-		return DStream(b,props);
+		if (size != -1) {
+			var b = haxe.io.Bytes.alloc(size);
+			i.readFullBytes(b,0,size);
+			readEOL(i);
+			if( i.readString(9) != "endstream" )
+				throw "Invalid stream end";
+			return DStream(b, props);			
+			
+		} else { // consume stream until we match the pattern
+			var data =  new BytesBuffer();
+			var ref = Bytes.ofString("endstream");
+			var refLength = ref.length;
+			var refMatch = 0;
+			var toMatch = ref.get(refMatch);
+			
+			while (refMatch < refLength) {
+				var b = i.readByte();
+				if (b == toMatch) {
+					refMatch ++;
+					toMatch = ref.get(refMatch);
+				} else {
+					if (refMatch != 0) {
+						for (i in 0 ... refMatch) {
+						  data.addByte(ref.get(i));						
+						}
+						refMatch = 0;
+						toMatch = ref.get(refMatch);
+					}
+					data.addByte(b);
+				}
+			}	
+			var b = data.getBytes();
+			return DStream(b,props);
+		}
 	}
 
 	function readXRefTable(i) {
