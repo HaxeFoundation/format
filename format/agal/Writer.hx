@@ -35,7 +35,7 @@ class Writer {
 		this.o = o;
 		o.bigEndian = false;
 	}
-	
+
 	inline function writeInt( v : Int ) {
 		#if haxe3
 		o.writeInt32(v);
@@ -46,7 +46,7 @@ class Writer {
 
 	public function write( data : Data ) {
 		o.writeByte(0xA0);
-		writeInt(1); // version
+		writeInt(data.version);
 		o.writeByte(0xA1);
 		o.writeByte(data.fragmentShader ? 1 : 0);
 		var idKil = Type.enumIndex(OKil(null));

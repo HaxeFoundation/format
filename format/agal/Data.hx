@@ -84,6 +84,8 @@ enum RegType {
 	RTemp;
 	ROut;
 	RVar;
+	RTexture;
+	RDepth;
 }
 
 typedef Tex = {
@@ -112,6 +114,7 @@ enum TexFlag {
 }
 
 typedef Data = {
+	var version : Int;
 	var code : Array<Opcode>;
 	var fragmentShader : Bool;
 }

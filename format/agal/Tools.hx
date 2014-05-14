@@ -39,7 +39,8 @@ class Tools {
 		case RTemp: { read : true, write : true, count : 8 };
 		case ROut: { read : false, write : true, count : 1 };
 		case RVar: { read : true, write : true, count : 8 };
-		//case RSampler: if( fragment ) { read : true, write : false, count : 8 } else { read : false, write : false, count : 0 };
+		case RTexture: if( fragment ) { read : true, write : false, count : 8 } else { read : false, write : false, count : 0 };
+		case RDepth: { read : true, write : true, count : 1 };
 		}
 	}
 
