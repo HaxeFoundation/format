@@ -76,5 +76,14 @@ class Tools {
 		if( pl[2] != null ) str += ", " + regStr(pl[2]);
 		return str;
 	}
+	
+	public static function toString( d : Data ) {
+		var a = [
+			(d.fragmentShader ? "fragment" : "vertex") + " ver=" + d.version,
+		];
+		for( o in d.code )
+			a.push("  " + opStr(o));
+		return a.join("\n");
+	}
 
 }
