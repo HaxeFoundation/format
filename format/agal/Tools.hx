@@ -54,6 +54,8 @@ class Tools {
 	}
 
 	public static function regStr( r : Data.Reg ) {
+		if( r == null )
+			return "NULL";
 		var str = Std.string(r.t).charAt(1).toLowerCase() + r.index;
 		if( str == "o0" ) str = "out";
 		var acc = r.access;
@@ -66,7 +68,10 @@ class Tools {
 
 	public static function opStr( op : Data.Opcode ) {
 		var pl = Type.enumParameters(op);
-		var str = Type.enumConstructor(op).substr(1).toLowerCase() + " " + regStr(pl[0]);
+		var cst = Type.enumConstructor(op).substr(1).toLowerCase();
+		if( pl.length == 0 )
+			return cst;
+		var str = cst + " " + regStr(pl[0]);
 		switch( op ) {
 		case OKil(_): return str;
 		case OTex(_, _, tex): return str + ", tex" + tex.index + "[" + regStr(pl[1]) + "]" + (tex.flags.length == 0  ? "" : " <" + tex.flags.join(",") + ">");
@@ -76,7 +81,7 @@ class Tools {
 		if( pl[2] != null ) str += ", " + regStr(pl[2]);
 		return str;
 	}
-	
+
 	public static function toString( d : Data ) {
 		var a = [
 			(d.fragmentShader ? "fragment" : "vertex") + " ver=" + d.version,
