@@ -32,15 +32,19 @@ class Tools {
 		return 8;
 	}
 
-	public static function getProps( r : Data.RegType, fragment : Bool ) {
+	public static function getMaxOps( fragment : Bool, version = 1 ) {
+		return version == 1 ? 200 : 1024;
+	}
+
+	public static function getProps( r : Data.RegType, fragment : Bool, version = 1 ) {
 		return switch( r ) {
 		case RAttr: if( fragment ) { read : false, write : false, count : 0 } else { read : true, write : false, count : 8 };
-		case RConst: { read : true, write : false, count : fragment ? 28 : 128 };
-		case RTemp: { read : true, write : true, count : 8 };
-		case ROut: { read : false, write : true, count : 1 };
-		case RVar: { read : true, write : true, count : 8 };
+		case RConst: { read : true, write : false, count : version == 1 ? (fragment ? 28 : 128) : (fragment ? 64 : 250) };
+		case RTemp: { read : true, write : true, count : version == 1 ? 8 : 26 };
+		case ROut: { read : false, write : true, count : version == 1 ? 1 : (fragment ? 4 : 1) };
+		case RVar: { read : true, write : true, count : version == 1 ? 8 : 10 };
 		case RTexture: if( fragment ) { read : true, write : false, count : 8 } else { read : false, write : false, count : 0 };
-		case RDepth: { read : true, write : true, count : 1 };
+		case RDepth: { read : true, write : true, count : version == 1 ? 0 : 1 };
 		}
 	}
 
@@ -61,8 +65,11 @@ class Tools {
 		var acc = r.access;
 		if( acc != null )
 			str = regStr( { t : acc.t, index : acc.offset, access : null, swiz : null } ) + "[" + str + "." + Std.string(acc.comp).toLowerCase() + "]";
-		if( r.swiz != null )
-			str += "." + r.swiz.join("").toLowerCase();
+		if( r.swiz != null ) {
+			str += ".";
+			for( s in r.swiz )
+				str += Std.string(s).toLowerCase();
+		}
 		return str;
 	}
 
