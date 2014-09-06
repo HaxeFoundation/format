@@ -1,9 +1,9 @@
 {
 	"name" : "format",
-	"url" : "http://code.google.com/p/hxformat",
+	"url" : "https://github.com/HaxeFoundation/format",
 	"license" : "BSD",
 	"contributors" : ["ncannasse"],
-    "description" : "A Haxe Library for supporting different file formats.",
-    "version" : "3.1.1",
+	"description" : "A Haxe Library for supporting different file formats.",
+	"version" : "3.1.1",
 	"releasenote" : "See CHANGES.txt"
 }
