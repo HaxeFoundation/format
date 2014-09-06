@@ -45,6 +45,7 @@ class Writer {
 	}
 
 	public function write( data : Data ) {
+		if( data.version == null ) data.version = 1;
 		o.writeByte(0xA0);
 		writeInt(data.version);
 		o.writeByte(0xA1);

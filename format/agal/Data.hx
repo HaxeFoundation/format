@@ -114,7 +114,7 @@ enum TexFlag {
 }
 
 typedef Data = {
-	var version : Int;
+	@:optional var version : Int;
 	var code : Array<Opcode>;
 	var fragmentShader : Bool;
 }
