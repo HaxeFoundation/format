@@ -34,6 +34,13 @@ class Reader {
 	public function new(i) {
 		this.i = i;
 	}
+	
+	public function read() {
+		var h = readHeader();
+		var o = new haxe.io.BytesOutput();
+		readData(o);
+		return { file : h.fileName, data : o.getBytes() };
+	}
 
 	public function readHeader() : Header {
 		if( i.readByte() != 0x1F || i.readByte() != 0x8B )
