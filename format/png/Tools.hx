@@ -241,8 +241,17 @@ class Tools {
 				default:
 				}
 			
+			// if alpha is incomplete, pad with 0xFF
+			if( alpha != null && alpha.length < 1 << h.colbits ) {
+				var alpha2 = haxe.io.Bytes.alloc(1 << h.colbits);
+				alpha2.blit(0,alpha,0,alpha.length);
+				alpha2.fill(alpha.length, alpha2.length - alpha.length, 0xFF);
+				alpha = alpha2;
+			}
+			
 			var width = h.width;
-			var stride = width + 1;
+			var stride = Math.ceil(width * h.colbits / 8) + 1;
+			
 			if( data.length < h.height * stride ) throw "Not enough data";
 
 			#if flash10
@@ -257,19 +266,19 @@ class Tools {
 			#end
 
 			var vr, vg, vb, va = 0xFF;
-			inline function decode() {
-				var c = data.get(r++);
+			inline function decode(getValue) {
+				var c = getValue();
 				vr = pal.get(c * 3);
 				vg = pal.get(c * 3 + 1);
 				vb = pal.get(c * 3 + 2);
 				if( alpha != null ) va = alpha.get(c);
 			}
-			for( y in 0...h.height ) {
-				var f = data.get(r++);
+			
+			inline function decodeLine(y, f, getValue) {
 				switch( f ) {
 				case 0:
 					for( x in 0...width ) {
-						decode();
+						decode(getValue);
 						bgra.set(w++,vb);
 						bgra.set(w++,vg);
 						bgra.set(w++,vr);
@@ -278,7 +287,7 @@ class Tools {
 				case 1:
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					for( x in 0...width ) {
-						decode();
+						decode(getValue);
 						cb += vb;	bgra.set(w++,cb);
 						cg += vg;	bgra.set(w++,cg);
 						cr += vr;	bgra.set(w++,cr);
@@ -288,7 +297,7 @@ class Tools {
 				case 2:
 					var stride = y == 0 ? 0 : width * 4;
 					for( x in 0...width ) {
-						decode();
+						decode(getValue);
 						bgra.set(w, vb + bgra.get(w - stride));	w++;
 						bgra.set(w, vg + bgra.get(w - stride));	w++;
 						bgra.set(w, vr + bgra.get(w - stride));	w++;
@@ -298,7 +307,7 @@ class Tools {
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					var stride = y == 0 ? 0 : width * 4;
 					for( x in 0...width ) {
-						decode();
+						decode(getValue);
 						cb = (vb + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
 						cg = (vg + ((cg + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cg);
 						cr = (vr + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
@@ -308,7 +317,7 @@ class Tools {
 					var stride = width * 4;
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					for( x in 0...width ) {
-						decode();
+						decode(getValue);
 						cb = (filter(bgra, x, y, stride, cb, w) + vb) & 0xFF; bgra.set(w++, cb);
 						cg = (filter(bgra, x, y, stride, cg, w) + vg) & 0xFF; bgra.set(w++, cg);
 						cr = (filter(bgra, x, y, stride, cr, w) + vr) & 0xFF; bgra.set(w++, cr);
@@ -318,6 +327,30 @@ class Tools {
 					throw "Invalid filter "+f;
 				}
 			}
+			
+			if( h.colbits == 8 ) {
+				for( y in 0...h.height ) {
+					var f = data.get(r++);
+					decodeLine(y, f, function() return data.get(r++));
+				}
+			} else if( h.colbits < 8 ) {
+				var req = h.colbits;
+				var mask = (1 << req) - 1;
+				for( y in 0...h.height ) {					
+					var f = data.get(r++);
+					var bits = 0, nbits = 0, v;			
+					decodeLine(y, f, function() {
+						if( nbits < req ) {
+							bits = (bits << 8) | data.get(r++); 
+							nbits += 8;
+						}
+						v = (bits >>> (nbits - req)) & mask;
+						nbits -= req;
+						return v;
+					});
+				}
+			} else
+				throw h.colbits+" indexed bits per pixel not supported";
 
 			#if flash10
 			var b = realRgba.getData();
