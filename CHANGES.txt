@@ -1,6 +1,7 @@
 2014-09-06: 3.1.1
 	added indexed png with <8 bits palette indexes support
 	completed AGAL2 support
+	added format.gz.Reader.read
 	
 2014-08-29: 3.1.0
 	added LZ4 support
