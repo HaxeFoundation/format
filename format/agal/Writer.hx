@@ -115,14 +115,21 @@ class Writer {
 				case TMipMapLinear: mipmap = 2;
 				case TWrap: wrap = 1;
 				case TClamp: wrap = 0;
+				case TClampURepeatV: wrap = 2;
+				case TRepeatUClampV: wrap = 3;
 				case TFilterNearest: filter = 0;
 				case TFilterLinear: filter = 1;
+				case TFilterAnisotropic2x: filter = 2;
+				case TFilterAnisotropic4x: filter = 3;
+				case TFilterAnisotropic8x: filter = 4;
+				case TFilterAnisotropic16x: filter = 5;
 				case TCentroid: extra |= 1;
 				case TSingle: extra |= 2;
 				case TIgnoreSampler: extra |= 4;
 				case TRgba: type = 0;
 				case TDxt1: type = 1;
 				case TDxt5: type = 2;
+				case TVideo: type = 3;
 				case TLodBias(v):
 					var v = Std.int(v*8);
 					if( v < -128 ) v = -128 else if( v > 127 ) v = 127;

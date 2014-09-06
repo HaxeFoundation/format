@@ -53,11 +53,22 @@ enum Opcode {
 	OM33( dst : Reg, a : Reg, b : Reg );
 	OM44( dst : Reg, a : Reg, b : Reg );
 	OM34( dst : Reg, a : Reg, b : Reg );
+	// agal 2
+	ODdx( dst : Reg, v : Reg );
+	ODdy( dst : Reg, v : Reg );
+	OIfe( a : Reg, b : Reg );
+	OIne( a : Reg, b : Reg );
+	OIfg( a : Reg, b : Reg );
+	OIfl( a : Reg, b : Reg );
+	OEls;
+	OEif;
+	// --
+	OUnused;
 	OKil( v : Reg );
 	OTex( dst : Reg, pt : Reg, tex : Tex );
 	OSge( dst : Reg, a : Reg, b : Reg );
 	OSlt( dst : Reg, a : Reg, b : Reg );
-	OUnused;
+	OSgn( dst : Reg, v : Reg );
 	OSeq( dst : Reg, a : Reg, b : Reg );
 	OSne( dst : Reg, a : Reg, b : Reg );
 }
@@ -102,11 +113,18 @@ enum TexFlag {
 	TMipMapLinear;
 	TWrap;
 	TClamp;	// default
+	TClampURepeatV;
+	TRepeatUClampV;
 	TFilterNearest;
 	TFilterLinear; // default
+	TFilterAnisotropic2x;
+	TFilterAnisotropic4x;
+	TFilterAnisotropic8x;
+	TFilterAnisotropic16x;
 	TRgba; // default
 	TDxt1;
 	TDxt5;
+	TVideo;
 	TCentroid; // default;
 	TSingle; 		  // Float texture?
 	TIgnoreSampler;   // see Context3D.setSamplerStateAt
