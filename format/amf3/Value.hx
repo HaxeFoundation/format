@@ -24,76 +24,19 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.amf;
+package tools;
 
-class Writer {
-
-	var o : haxe.io.Output;
-
-	public function new(o) {
-		this.o = o;
-		o.bigEndian = true;
-	}
-
-	public function write( v : Value ) {
-		var o = this.o;
-		switch( v ) {
-		case ANumber(n):
-			o.writeByte(0x00);
-			o.writeDouble(n);
-		case ABool(b):
-			o.writeByte(0x01);
-			o.writeByte(if( b ) 1 else 0);
-		case AString(s):
-			if( s.length <= 0xFFFF ) {
-				o.writeByte(0x02);
-				o.writeUInt16(s.length);
-			} else {
-				o.writeByte(0x0C);
-				#if haxe3
-				o.writeInt32(s.length);
-				#else
-				o.writeUInt30(s.length);
-				#end
-			}
-			o.writeString(s);
-		case AObject(h,size):
-			if( size == null )
-				o.writeByte(0x03);
-			else {
-				o.writeByte(0x08);
-				#if haxe3
-				o.writeInt32(size);
-				#else
-				o.writeUInt30(size);
-				#end
-			}
-			for( f in h.keys() ) {
-				o.writeUInt16(f.length);
-				o.writeString(f);
-				write(h.get(f));
-			}
-			o.writeByte(0);
-			o.writeByte(0);
-			o.writeByte(0x09);
-		case ANull:
-			o.writeByte(0x05);
-		case AUndefined:
-			o.writeByte(0x06);
-		case ADate(d):
-			o.writeByte(0x0B);
-			o.writeDouble(d.getTime());
-			o.writeUInt16(0); // loose TZ
-		case AArray(a):
-			o.writeByte(0x0A);
-			#if haxe3
-			o.writeInt32(a.length);
-			#else
-			o.writeUInt30(a.length);
-			#end
-			for(f in a)
-				write(f);
-		}
-	}
-
+enum Value {
+	AUndefined;
+	ANull;
+	ABool( b : Bool );
+	AInt( i : Int );
+	ANumber( f : Float );
+	AString( s : String );
+	ADate( d : Date );
+	AObject( fields : Map<String,Value>, ?size : Int );
+	AArray( values : Array<Value> );
+	AXml( x : Xml );
+	ABytes( b : haxe.io.Bytes );
+	AMap( m : Map<Value, Value> );
 }

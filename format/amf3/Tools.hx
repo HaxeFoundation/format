@@ -24,43 +24,97 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package format.amf;
-import format.amf.Value;
+package tools;
+import tools.Value;
 
 class Tools {
 
 	public static function encode( o : Dynamic ) {
 		return switch( Type.typeof(o) ) {
 		case TNull: ANull;
-		case TInt: ANumber(o);
-		case TFloat: ANumber(o);
 		case TBool: ABool(o);
+		case TInt: AInt(o);
+		case TFloat: ANumber(o);
 		case TObject:
 			var h = new Map();
-			for( f in Reflect.fields(o) )
-				h.set(f,encode(Reflect.field(o,f)));
+			for ( f in Reflect.fields(o) ) {
+				h.set(f, encode(Reflect.field(o, f)));
+			}
 			AObject(h);
 		case TClass(c):
 			switch( c ) {
 			case cast String:
 				AString(o);
-			case cast haxe.ds.StringMap:
-				var o : Map<String,Dynamic> = o;
+			case cast Xml:
+				AXml(o);
+			case cast Map:
+				var o : Map<Dynamic,Dynamic> = o;
 				var h = new Map();
 				for( f in o.keys() )
-					h.set(f,encode(o.get(f)));
-				AObject(h);
+					h.set(encode(f), encode(o.get(f)));
+				AMap(h);
 			case cast Array:
 				var o : Array<Dynamic> = o;
 				var a = new Array();
 				for(v in o)
 					a.push(encode(v));
 				AArray(a);
-			default:
-				throw "Can't encode instance of "+Type.getClassName(c);
+			case cast haxe.io.Bytes:
+				ABytes(o);
+			case cast Date:
+				ADate(o);
+			case _:
+				var h = new Map();
+				var i = 0;
+				for ( f in Type.getInstanceFields(Type.getClass(o)) ) {
+					h.set(f, encode(Reflect.getProperty(o, f)));
+					i++;
+				}
+				AObject(h, i);
 			}
 		default:
 			throw "Can't encode "+Std.string(o);
+		}
+	}
+	
+	public static function decode( a : Value ) : Dynamic {
+		return switch ( a ) {
+			case AUndefined: undefined(a);
+			case ANull: anull(a);
+			case ABool(_): bool(a);
+			case AInt(_): int(a);
+			case ANumber(_): number(a);
+			case AString(_): string(a);
+			case ADate(_): date(a);
+			case AArray(_): array(a);
+			case AObject(_,_): object(a);
+			case AXml(_): xml(a);
+			case ABytes(_): bytes(a);
+			case AMap(_): map(a);
+		}
+	}
+
+	public static function undefined( a : Value ) {
+		return null;
+	}
+
+	public static function anull( a : Value ) {
+		return null;
+	}
+
+	public static function bool( a : Value ) {
+		if( a == null ) return null;
+		return switch( a ) {
+		case ABool(b): b;
+		default: null;
+		}
+	}
+
+	public static function int( a : Value ) {
+		if( a == null ) return null;
+		return switch( a ) {
+		case AInt(n): n;
+		default: null;
 		}
 	}
 
@@ -80,18 +134,10 @@ class Tools {
 		}
 	}
 
-	public static function object( a : Value ) {
+	public static function date( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
-		case AObject(o,_): o;
-		default: null;
-		}
-	}
-
-	public static function abool( a : Value ) {
-		if( a == null ) return null;
-		return switch( a ) {
-		case ABool(b): b;
+		case ADate(d): d;
 		default: null;
 		}
 	}
@@ -100,6 +146,38 @@ class Tools {
 		if( a == null ) return null;
 		return switch( a ) {
 		case AArray(a): a;
+		default: null;
+		}
+	}
+
+	public static function object( a : Value ) {
+		if( a == null ) return null;
+		return switch( a ) {
+		case AObject(o,_): o;
+		default: null;
+		}
+	}
+
+	public static function xml( a : Value ) {
+		if( a == null ) return null;
+		return switch( a ) {
+		case AXml(x): x;
+		default: null;
+		}
+	}
+
+	public static function bytes( a : Value ) {
+		if( a == null ) return null;
+		return switch( a ) {
+		case ABytes(b): b;
+		default: null;
+		}
+	}
+
+	public static function map( a : Value ) {
+		if( a == null ) return null;
+		return switch( a ) {
+		case AMap(m): m;
 		default: null;
 		}
 	}
