@@ -47,7 +47,7 @@ class Tools {
 				AString(o);
 			case cast Xml:
 				AXml(o);
-			case cast Map:
+			case cast haxe.ds.StringMap, haxe.ds.IntMap, haxe.ds.ObjectMap:
 				var o : Map<Dynamic,Dynamic> = o;
 				var h = new Map();
 				for( f in o.keys() )
@@ -145,7 +145,11 @@ class Tools {
 	public static function array( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
-		case AArray(a): a;
+		case AArray(a):
+			var b = [];
+			for (f in a)
+				b.push(decode(f));
+			b;
 		default: null;
 		}
 	}
@@ -153,7 +157,11 @@ class Tools {
 	public static function object( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
-		case AObject(o,_): o;
+		case AObject(o, _):
+			var m = new Map();
+			for (f in o.keys())
+				m.set(f, decode(o.get(f)));
+			m;
 		default: null;
 		}
 	}
@@ -177,7 +185,11 @@ class Tools {
 	public static function map( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
-		case AMap(m): m;
+		case AMap(m):
+			var p = new Map();
+			for (f in m.keys())
+				p.set(decode(f), decode(m.get(f)));
+			p;
 		default: null;
 		}
 	}
