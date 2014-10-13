@@ -24,8 +24,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-package tools;
-import tools.Value;
+package format.amf3;
+import format.amf3.Value;
 
 class Reader {
 
