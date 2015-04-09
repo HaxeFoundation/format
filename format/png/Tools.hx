@@ -202,7 +202,7 @@ class Tools {
 		Decode the PNG data and apply filters. By default this will output BGRA low-endian format. You can use the [reverseBytes] function to inverse the bytes to ARGB big-endian format.
 	**/
 	@:noDebug
-	public static function extract32( d : Data, ?bytes ) : haxe.io.Bytes {
+	public static function extract32( d : Data, ?bytes, ?flipY ) : haxe.io.Bytes {
 		var h = getHeader(d);
 		var bgra = bytes == null ? haxe.io.Bytes.alloc(h.width * h.height * 4) : bytes;
 		var data = null;
@@ -228,11 +228,17 @@ class Tools {
 			throw "Data not found";
 		data = format.tools.Inflate.run(data);
 		var r = 0, w = 0;
+		var lineDelta = 0;
+		if( flipY ) {
+			lineDelta = -h.width * 8;
+			w = (h.height - 1) * (h.width * 4);
+		}
+		var flipY = flipY ? -1 : 1;
 		switch( h.color ) {
 		case ColIndexed:
 			var pal = getPalette(d);
 			if( pal == null ) throw "PNG Palette is missing";
-			
+
 			// transparent palette extension
 			var alpha = null;
 			for( t in d )
@@ -240,7 +246,7 @@ class Tools {
 				case CUnknown("tRNS", data): alpha = data; break;
 				default:
 				}
-			
+
 			// if alpha is incomplete, pad with 0xFF
 			if( alpha != null && alpha.length < 1 << h.colbits ) {
 				var alpha2 = haxe.io.Bytes.alloc(1 << h.colbits);
@@ -248,10 +254,10 @@ class Tools {
 				alpha2.fill(alpha.length, alpha2.length - alpha.length, 0xFF);
 				alpha = alpha2;
 			}
-			
+
 			var width = h.width;
 			var stride = Math.ceil(width * h.colbits / 8) + 1;
-			
+
 			if( data.length < h.height * stride ) throw "Not enough data";
 
 			#if flash10
@@ -273,7 +279,7 @@ class Tools {
 				vb = pal.get(c * 3 + 2);
 				if( alpha != null ) va = alpha.get(c);
 			}
-			
+
 			inline function decodeLine(y, f, getValue) {
 				switch( f ) {
 				case 0:
@@ -295,7 +301,7 @@ class Tools {
 						bgra.set(w++, va);
 					}
 				case 2:
-					var stride = y == 0 ? 0 : width * 4;
+					var stride = y == 0 ? 0 : width * 4 * flipY;
 					for( x in 0...width ) {
 						decode(getValue);
 						bgra.set(w, vb + bgra.get(w - stride));	w++;
@@ -305,7 +311,7 @@ class Tools {
 					}
 				case 3:
 					var cr = 0, cg = 0, cb = 0, ca = 0;
-					var stride = y == 0 ? 0 : width * 4;
+					var stride = y == 0 ? 0 : width * 4 * flipY;
 					for( x in 0...width ) {
 						decode(getValue);
 						cb = (vb + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
@@ -314,7 +320,7 @@ class Tools {
 						cr = (va + ((ca + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, ca);
 					}
 				case 4:
-					var stride = width * 4;
+					var stride = width * 4 * flipY;
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					for( x in 0...width ) {
 						decode(getValue);
@@ -327,27 +333,29 @@ class Tools {
 					throw "Invalid filter "+f;
 				}
 			}
-			
+
 			if( h.colbits == 8 ) {
 				for( y in 0...h.height ) {
 					var f = data.get(r++);
 					decodeLine(y, f, function() return data.get(r++));
+					w += lineDelta;
 				}
 			} else if( h.colbits < 8 ) {
 				var req = h.colbits;
 				var mask = (1 << req) - 1;
-				for( y in 0...h.height ) {					
+				for( y in 0...h.height ) {
 					var f = data.get(r++);
-					var bits = 0, nbits = 0, v;			
+					var bits = 0, nbits = 0, v;
 					decodeLine(y, f, function() {
 						if( nbits < req ) {
-							bits = (bits << 8) | data.get(r++); 
+							bits = (bits << 8) | data.get(r++);
 							nbits += 8;
 						}
 						v = (bits >>> (nbits - req)) & mask;
 						nbits -= req;
 						return v;
 					});
+					w += lineDelta;
 				}
 			} else
 				throw h.colbits+" indexed bits per pixel not supported";
@@ -416,7 +424,7 @@ class Tools {
 							bgra.set(w++,0xFF);
 						}
 				case 2:
-					var stride = y == 0 ? 0 : width * 4;
+					var stride = y == 0 ? 0 : width * 4 * flipY;
 					if( alpha )
 						for( x in 0...width ) {
 							var v = data.get(r++) + bgra.get(w - stride);
@@ -435,7 +443,7 @@ class Tools {
 						}
 				case 3:
 					var cv = 0, ca = 0;
-					var stride = y == 0 ? 0 : width * 4;
+					var stride = y == 0 ? 0 : width * 4 * flipY;
 					if( alpha )
 						for( x in 0...width ) {
 							cv = (data.get(r++) + ((cv + bgra.get(w - stride)) >> 1)) & 0xFF;
@@ -454,7 +462,7 @@ class Tools {
 							bgra.set(w++,0xFF);
 						}
 				case 4:
-					var stride = width * 4;
+					var stride = width * 4 * flipY;
 					var cv = 0, ca = 0;
 					if( alpha )
 						for( x in 0...width ) {
@@ -476,6 +484,7 @@ class Tools {
 				default:
 					throw "Invalid filter "+f;
 				}
+				w += lineDelta;
 			}
 
 			#if flash10
@@ -542,7 +551,7 @@ class Tools {
 							r += 3;
 						}
 				case 2:
-					var stride = y == 0 ? 0 : width * 4;
+					var stride = y == 0 ? 0 : width * 4 * flipY;
 					if( alpha )
 						for( x in 0...width ) {
 							bgra.set(w, data.get(r + 2) + bgra.get(w - stride));	w++;
@@ -561,7 +570,7 @@ class Tools {
 						}
 				case 3:
 					var cr = 0, cg = 0, cb = 0, ca = 0;
-					var stride = y == 0 ? 0 : width * 4;
+					var stride = y == 0 ? 0 : width * flipY;
 					if( alpha )
 						for( x in 0...width ) {
 							cb = (data.get(r + 2) + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
@@ -579,7 +588,7 @@ class Tools {
 							r += 3;
 						}
 				case 4:
-					var stride = width * 4;
+					var stride = width * flipY;
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					if( alpha )
 						for( x in 0...width ) {
@@ -600,6 +609,7 @@ class Tools {
 				default:
 					throw "Invalid filter "+f;
 				}
+				w += lineDelta;
 			}
 
 			#if flash10
