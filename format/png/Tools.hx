@@ -570,7 +570,7 @@ class Tools {
 						}
 				case 3:
 					var cr = 0, cg = 0, cb = 0, ca = 0;
-					var stride = y == 0 ? 0 : width * flipY;
+					var stride = y == 0 ? 0 : width * 4 * flipY;
 					if( alpha )
 						for( x in 0...width ) {
 							cb = (data.get(r + 2) + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
@@ -588,7 +588,7 @@ class Tools {
 							r += 3;
 						}
 				case 4:
-					var stride = width * flipY;
+					var stride = width * 4 * flipY;
 					var cr = 0, cg = 0, cb = 0, ca = 0;
 					if( alpha )
 						for( x in 0...width ) {
