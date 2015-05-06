@@ -28,6 +28,8 @@ package format.agal;
 
 class Tools {
 
+	public static var NB_MAX_TEMP = 8;
+	
 	public static function getMaxTextures() {
 		return 8;
 	}
@@ -40,7 +42,7 @@ class Tools {
 		return switch( r ) {
 		case RAttr: if( fragment ) { read : false, write : false, count : 0 } else { read : true, write : false, count : 8 };
 		case RConst: { read : true, write : false, count : version == 1 ? (fragment ? 28 : 128) : (fragment ? 64 : 250) };
-		case RTemp: { read : true, write : true, count : version == 1 ? 8 : 26 };
+		case RTemp: { read : true, write : true, count : version == 1 ? NB_MAX_TEMP : 26 };
 		case ROut: { read : false, write : true, count : version == 1 ? 1 : (fragment ? 4 : 1) };
 		case RVar: { read : true, write : true, count : version == 1 ? 8 : 10 };
 		case RTexture: if( fragment ) { read : true, write : false, count : 8 } else { read : false, write : false, count : 0 };
