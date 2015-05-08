@@ -23,6 +23,7 @@ Currently supported formats are :
   * TGZ (TAR+GZ Archive)
   * WAV (Raw sound)
   * ZIP (Compressed Archive)
+  * GIF (Image file format - reader only atm)
 
 Installation
 ============
