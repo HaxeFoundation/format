@@ -15,7 +15,7 @@ class Test
     var frames:Int = Tools.framesCount(data);
     for (i in 0...frames)
     {
-      var frame:Frame = Tools.frameAtIndex(data, i);
+      var frame:Frame = Tools.frame(data, i);
       var bytes:Bytes = Tools.extractBGRA(data, i);
       var pngData:format.png.Data = format.png.Tools.build32BGRA(frame.width, frame.height, bytes);
       var out = File.write("frame_" + i + ".png", true);
