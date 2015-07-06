@@ -38,6 +38,8 @@ class Deflate {
 		return haxe.io.Bytes.ofData(data);
 		#elseif cpp
 		return cpp.zip.Compress.run(b,9);
+		#elseif java
+		return haxe.zip.Compress.run(b, 9);
 		#else
 		throw "Deflate is not supported on this platform";
 		return null;
