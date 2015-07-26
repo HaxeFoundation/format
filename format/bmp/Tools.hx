@@ -32,47 +32,48 @@ package format.bmp;
 
 class Tools {
 
-
+	//												  a  r  g  b
+	static var ARGB_MAP(default, never):Array<Int> = [0, 1, 2, 3];
+	static var BGRA_MAP(default, never):Array<Int> = [3, 2, 1, 0];
+	
 	/**
 		Extract BMP pixel data (24bpp in BGR format) and expands it to BGRA, removing any padding in the process.
 	**/
-	public static function extractBGRA( bmp : format.bmp.Data ) : haxe.io.Bytes {
-		var srcBytes = bmp.pixels;
-		var dstLen = bmp.header.width * bmp.header.height * 4;
-		var bytesBGRA = haxe.io.Bytes.alloc( dstLen );
-		var srcStride = bmp.header.width * 3;
-		var srcPaddedStride = bmp.header.paddedStride;
-		
-		var yDir = -1;
-		var dstPos = 0;
-		var srcPos = bmp.header.dataLength - srcPaddedStride;
-		
-		if ( bmp.header.topToBottom ) {
-			yDir = 1;
-			srcPos = 0;
-		}
-		
-		while( dstPos < dstLen ) {
-			var i = srcPos;
-			while( i < srcPos + srcStride ) {
-				bytesBGRA.blit(dstPos, srcBytes, i, 3);
-				bytesBGRA.set(dstPos + 3, 0xFF); // alpha
-				
-				i += 3;
-				dstPos += 4;
-		  }
-		  srcPos += yDir * srcPaddedStride;
-		}
-		return bytesBGRA;
+	inline static public function extractBGRA( bmp : format.bmp.Data ) : haxe.io.Bytes {
+		return _extract32(bmp, BGRA_MAP, 0xFF);
 	}
 
 	/**
 		Extract BMP pixel data (24bpp in BGR format) and converts it to ARGB.
 	**/
-	public static function extractARGB( bmp : format.bmp.Data ) : haxe.io.Bytes {
+	inline static public function extractARGB( bmp : format.bmp.Data ) : haxe.io.Bytes {
+		return _extract32(bmp, ARGB_MAP, 0xFF);
+	}
+  
+	/**
+		Creates BMP data from bytes in BGRA format for each pixel.
+	**/
+	inline static public function buildFromBGRA( width : Int, height : Int, srcBytes : haxe.io.Bytes, topToBottom : Bool = false ) : Data {
+		return _buildFrom32(width, height, srcBytes, BGRA_MAP, topToBottom);
+	}
+  
+	/**
+		Creates BMP data from bytes in ARGB format for each pixel.
+	**/
+	inline static public function buildFromARGB( width : Int, height : Int, srcBytes : haxe.io.Bytes, topToBottom : Bool = false ) : Data {
+		return _buildFrom32(width, height, srcBytes, ARGB_MAP, topToBottom);
+	}
+
+	inline static public function computePaddedStride(width:Int, bpp:Int):Int {
+		return ((((width * bpp) + 31) & ~31) >> 3);
+	}
+	
+	
+	// `channelMap` contains indices to map into ARGB (f.e. the mapping for ARGB is [0,1,2,3], while for BGRA is [3,2,1,0])
+	static function _extract32( bmp : format.bmp.Data, channelMap : Array<Int>, alpha : Int = 0xFF) : haxe.io.Bytes {
 		var srcBytes = bmp.pixels;
 		var dstLen = bmp.header.width * bmp.header.height * 4;
-		var bytesARGB = haxe.io.Bytes.alloc( dstLen );
+		var dstBytes = haxe.io.Bytes.alloc( dstLen );
 		var srcStride = bmp.header.width * 3;
 		var srcPaddedStride = bmp.header.paddedStride;
 		
@@ -92,66 +93,21 @@ class Tools {
 				var g = srcBytes.get(i + 1);
 				var r = srcBytes.get(i + 2);
 				
-				bytesARGB.set(dstPos++, 0xFF); // alpha
-				bytesARGB.set(dstPos++, r);
-				bytesARGB.set(dstPos++, g);
-				bytesARGB.set(dstPos++, b);
+				dstBytes.set(dstPos + channelMap[0], alpha); // alpha
+				dstBytes.set(dstPos + channelMap[1], r);
+				dstBytes.set(dstPos + channelMap[2], g);
+				dstBytes.set(dstPos + channelMap[3], b);
 				
 				i += 3;
+				dstPos += 4;
 			}
 			srcPos += yDir * srcPaddedStride;
 		}
-		return bytesARGB;
+		return dstBytes;
 	}
-  
-	/**
-		Creates BMP data from bytes in BGRA format for each pixel.
-	**/
-	public static function buildFromBGRA( width : Int, height : Int, srcBytes : haxe.io.Bytes, topToBottom : Bool = false ) : Data {
-		var bpp = 24;
-		var paddedStride = computePaddedStride(width, bpp);
-		var bytesBGR = haxe.io.Bytes.alloc(paddedStride * height);
-		var topToBottom = topToBottom;
-		var dataLength = bytesBGR.length;
-		
-		var dstStride = width * 3;
-		var srcLen = width * height * 4;
-		var yDir = -1;
-		var dstPos = dataLength - paddedStride;
-		var srcPos = 0;
-		
-		if ( topToBottom ) {
-			yDir = 1;
-			dstPos = 0;
-		}
-		
-		while( srcPos < srcLen ) {
-		  var i = dstPos;
-		  while( i < dstPos + dstStride ) {
-			bytesBGR.blit(i, srcBytes, srcPos, 3);
-			i += 3;
-			srcPos += 4;
-		  }
-		  dstPos += yDir * paddedStride;
-		}
-		
-		return {
-			header: {
-				width: width,
-				height: height,
-				paddedStride: paddedStride,
-				topToBottom: topToBottom,
-				bpp: bpp,
-				dataLength: dataLength
-			},
-			pixels: bytesBGR
-		}
-	}
-  
-	/**
-		Creates BMP data from bytes in ARGB format for each pixel.
-	**/
-	public static function buildFromARGB( width : Int, height : Int, srcBytes : haxe.io.Bytes, topToBottom : Bool = false ) : Data {
+	
+	// `channelMap` contains indices to map into ARGB (f.e. the mapping for ARGB is [0,1,2,3], while for BGRA is [3,2,1,0])
+	static function _buildFrom32( width : Int, height : Int, srcBytes : haxe.io.Bytes, channelMap : Array<Int>, topToBottom : Bool = false ) : Data {
 		var bpp = 24;
 		var paddedStride = computePaddedStride(width, bpp);
 		var bytesBGR = haxe.io.Bytes.alloc(paddedStride * height);
@@ -172,14 +128,15 @@ class Tools {
 		while( srcPos < srcLen ) {
 			var i = dstPos;
 			while( i < dstPos + dstStride ) {
-				srcPos++; // skip alpha
-				var r = srcBytes.get(srcPos++);
-				var g = srcBytes.get(srcPos++);
-				var b = srcBytes.get(srcPos++);
+				var r = srcBytes.get(srcPos + channelMap[1]);
+				var g = srcBytes.get(srcPos + channelMap[2]);
+				var b = srcBytes.get(srcPos + channelMap[3]);
 				
 				bytesBGR.set(i++, b);
 				bytesBGR.set(i++, g);
 				bytesBGR.set(i++, r);
+				
+				srcPos += 4;
 			}
 			dstPos += yDir * paddedStride;
 		}
@@ -195,9 +152,5 @@ class Tools {
 			},
 			pixels: bytesBGR
 		}
-	}
-
-	inline public static function computePaddedStride(width:Int, bpp:Int):Int {
-		return ((((width * bpp) + 31) & ~31) >> 3);
 	}
 }
