@@ -35,6 +35,10 @@ typedef Data = {
 }
 
 typedef Header = {
-	var width : Int;
-	var height : Int;
+	var width : Int;          // real width (in pixels)
+	var height : Int;         // real height (in pixels)
+	var paddedStride : Int;   // number of bytes in a stride (including padding)
+	var topToBottom : Bool;   // whether the bitmap is stored top to bottom
+	var bpp : Int;            // bits per pixel
+	var dataLength : Int;     // equal to `paddedStride` * `height`
 }
