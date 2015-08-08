@@ -33,12 +33,12 @@ class Tests extends TestCase
 			pixelARGB: [   0xFFFFFFFF  ,   0xFFFF0000   ],
 		},
 		"lena.bmp" => {
-			size : { w:511, h:511 },
-			dataLength : 784896,
-			pixelPos : [ {x:  1, y:  1}, {x:510, y:510} ],
-			pixelBGR : [   0x004E73C5,     0x00242644   ],
-			pixelBGRA: [   0x4E73C5FF  ,   0x242644FF   ],
-			pixelARGB: [   0xFFC5734E  ,   0xFF442624   ],
+			size : { w:199, h:199 },
+			dataLength : 119400,
+			pixelPos : [ {x:  1, y:  1}, {x:198, y:198} ],
+			pixelBGR : [   0x004D71C5,     0x00252745   ],
+			pixelBGRA: [   0x4D71C5FF  ,   0x252745FF   ],
+			pixelARGB: [   0xFFC5714D  ,   0xFF452725   ],
 		},
 		"xing_b24.bmp" => {
 			size : { w:240, h:164 },

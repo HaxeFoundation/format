@@ -3,6 +3,7 @@
 -x tests
 #-swf tests.swf
 -swf-header 900:600:30
+#-cpp bin/cpp
 
 -resource bgrw.bmp
 -resource lena.bmp
