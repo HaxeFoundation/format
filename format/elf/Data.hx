@@ -22,6 +22,21 @@ typedef Header = {
 	var sectionNameIndex : Int;
 }
 
+typedef SectionHeader = {
+	var nameIndex : Int;
+	var type : Int;
+	var flags : haxe.Int64;
+	var address : Address;
+	var offset : Address;
+	var size : haxe.Int64;
+	var link : Int;
+	var info : Int;
+	var addressAlign : Int;
+	var entSize : Int;
+}
+
 typedef Data = {
 	var header : Header;
+	var sections : Array<SectionHeader>;
+	var data : haxe.io.Bytes;
 }

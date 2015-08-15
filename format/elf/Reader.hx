@@ -17,6 +17,8 @@ class Reader {
 		var sections = [for( i in 0...h.sectionHeaderEntries ) readSectionHeader()];
 		return {
 			header : h,
+			sections : sections,
+			data : data,
 		};
 	}
 
