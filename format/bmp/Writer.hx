@@ -31,9 +31,7 @@
 package format.bmp;
 
 import format.bmp.Data;
-#if !haxe3
-import haxe.Int32;
-#end
+
 
 class Writer {
 
@@ -41,70 +39,36 @@ class Writer {
 
 	var output : haxe.io.Output;
 
-	/**
-	 * Specs: http://s223767089.online.de/en/file-format-bmp
-	 */
 	public function new(o) {
 		output = o;
 	}
 	
-	inline function writeInt(o : haxe.io.Output, v) {
-		#if haxe3
-		o.writeInt32(v);
-		#else
-		o.writeInt31(v);
-		#end
-	}
+	/**
+	 * Specs: http://s223767089.online.de/en/file-format-bmp
+	 */
+	public function write( bmp : Data ) {
+		// Write Header (14 bytes)
+		output.writeString( "BM" );								// Signature
+		output.writeInt32(bmp.pixels.length + DATA_OFFSET );	// FileSize
+		output.writeInt32( 0 );									// Reserved
+		output.writeInt32( DATA_OFFSET );						// Offset
 
-	public function write( b : Data ) {
-		// Write Header
-		var h = new haxe.io.BytesOutput();
-		h.prepare( 14 );
-		h.writeString( "BM" );							// Signature
-		writeInt(h, b.pixels.length + DATA_OFFSET );	// FileSize
-		writeInt(h, 0 );								// Reserved
-		writeInt(h, DATA_OFFSET );						// Offset
-		output.write( h.getBytes() );
+		// Write InfoHeader (40 bytes)
+		output.writeInt32( 40 );								// InfoHeader size
+		output.writeInt32( bmp.header.width );					// Image width
+		var height = bmp.header.height;
+		if (bmp.header.topToBottom) height = -height; 
+		output.writeInt32( height );							// Image height
+		output.writeInt16( 1 );									// Number of planes
+		output.writeInt16( 24 );								// Bits per pixel (24bit RGB)
+		output.writeInt32( 0 );									// Compression type (no compression)
+		output.writeInt32( bmp.header.dataLength );				// Image data size (0 when uncompressed)
+		output.writeInt32( 0x2e30 );							// Horizontal resolution
+		output.writeInt32( 0x2e30 );							// Vertical resolution
+		output.writeInt32( 0 );									// Colors used (0 when uncompressed)
+		output.writeInt32( 0 );									// Important colors (0 when uncompressed)
 
-		// Write InfoHeader
-		var i = new haxe.io.BytesOutput();
-		i.prepare( 40 );
-		writeInt(i, 40 );								// InfoHeader size
-		writeInt(i, b.header.width );					// Image width
-		writeInt(i, b.header.height );					// Image height
-		i.writeInt16( 1 );								// Number of planes
-		i.writeInt16( 24 );								// Bits per pixel (24bit RGB)
-		writeInt(i, 0 );								// Compression type (no compression)
-		writeInt(i, 0 );								// Image data size (0 when uncompressed)
-		writeInt(i, 0x2e30 );							// Horizontal resolution
-		writeInt(i, 0x2e30 );							// Vertical resolution
-		writeInt(i, 0 );								// Colors used (0 when uncompressed)
-		writeInt(i, 0 );								// Important colors (0 when uncompressed)
-		output.write( i.getBytes() );
-
-		// Write Raster Data (backwards)
-		var pixels = new haxe.io.BytesInput( b.pixels );
-		var p = haxe.io.Bytes.alloc( b.pixels.length );
-		var pos = 0;
-		while( pos < b.pixels.length ) {
-			var px = pixels.readInt32();
-			#if haxe3
-			var b = px >>> 24;
-			var g = (px >> 16) & 0xFF;
-			var r = (px >> 8) & 0xFF;
-			var a = px & 0xFF;
-			#else
-			var b = Int32.toInt( Int32.and( Int32.shr( px , 24 ) , Int32.ofInt( 0xFF ) ) );
-			var g = Int32.toInt( Int32.and( Int32.shr( px , 16 ) , Int32.ofInt( 0xFF ) ) );
-			var r = Int32.toInt( Int32.and( Int32.shr( px ,  8 ) , Int32.ofInt( 0xFF ) ) );
-			var a = Int32.toInt( Int32.and( px , Int32.ofInt( 0xFF ) ) );
-			#end
-			p.set( pos + 3 , a );
-			p.set( pos + 2 , r );
-			p.set( pos + 1 , g );
-			p.set( pos + 0 , b );
-			pos += 4;
-		}
-		output.write( p );
-	}
+		// Write Raster Data
+		output.write(bmp.pixels);
+  }
 }

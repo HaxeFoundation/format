@@ -31,9 +31,7 @@
 package format.bmp;
 
 import format.bmp.Data;
-#if !haxe3
-import haxe.Int32;
-#end
+
 
 class Reader {
 
@@ -43,67 +41,62 @@ class Reader {
 		input = i;
 	}
 
-	inline function readInt() {
-		#if haxe3
-		return input.readInt32();
-		#else
-		return input.readInt31();
-		#end
-	}
-	
+	/** 
+	 * Only supports uncompressed 24bpp bitmaps (the most common format).
+	 * 
+	 * The returned bytes in `Data.pixels` will be in BGR order, and with padding (if present).
+	 * 
+	 * @see https://msdn.microsoft.com/en-us/library/windows/desktop/dd318229(v=vs.85).aspx
+	 * @see https://en.wikipedia.org/wiki/BMP_file_format#Bitmap_file_header
+	 */
 	public function read() : format.bmp.Data {
 		// Read Header
-		var signature = input.readString( 2 );
-		var fileSize = readInt();
-		readInt(		); 						// Reserved
-		var offset = readInt();
+		for (b in ["B".code, "M".code]) {
+			if (input.readByte() != b) throw "Invalid header";
+		}
+	
+		var fileSize = input.readInt32();
+		input.readInt32();							// Reserved
+		var offset = input.readInt32();
 
 		// Read InfoHeader
-		var infoHeaderSize = readInt();			// InfoHeader size
-		var width = readInt();					// Image width
-		var height = readInt();					// Image height
-		var numPlanes = input.readInt16();		// Number of planes
-		var bits = input.readInt16();			// Bits per pixel (24bit RGB)
-		var compression = readInt();			// Compression type (no compression)
-		var dataLength = readInt();				// Image data size
-		readInt();								// Horizontal resolution
-		readInt();								// Vertical resolution
-		readInt();								// Colors used (0 when uncompressed)
-		readInt();								// Important colors (0 when uncompressed)
+		var infoHeaderSize = input.readInt32();		// InfoHeader size
+		var width = input.readInt32();				// Image width (actual, not padded)
+		var height = input.readInt32();				// Image height
+		var numPlanes = input.readInt16();			// Number of planes
+		var bits = input.readInt16();				// Bits per pixel (24bit BGR)
+		var compression = input.readInt32();		// Compression type (no compression)
+		var dataLength = input.readInt32();			// Image data size (includes padding!)
+		input.readInt32();							// Horizontal resolution
+		input.readInt32();							// Vertical resolution
+		input.readInt32();							// Colors used (0 when uncompressed)
+		input.readInt32();							// Important colors (0 when uncompressed)
 
 		// If there's no compression, the dataLength may be 0
 		if( compression == 0 && dataLength == 0 ) dataLength = fileSize - offset;
-
-		// Not sure why it's upside down, but the bmp from pixelmator is...
-		if( height < 0 ) height = -height;
-
-		// Read Raster Data
+		
+		if (bits != 24) throw '${bits}bpp bitmaps not implemented.';
+		
 		var p = haxe.io.Bytes.alloc( dataLength );
-		var pos = 0;
-		while( pos < dataLength ) {
-			var px = input.readInt32();
-			#if haxe3
-			var a = px >>> 24;
-			var r = (px >> 16) & 0xFF;
-			var g = (px >> 8) & 0xFF;
-			var b = px & 0xFF;
-			#else
-			var a = Int32.toInt( Int32.and( Int32.shr( px , 24 ) , Int32.ofInt( 0xFF ) ) );
-			var r = Int32.toInt( Int32.and( Int32.shr( px , 16 ) , Int32.ofInt( 0xFF ) ) );
-			var g = Int32.toInt( Int32.and( Int32.shr( px ,  8 ) , Int32.ofInt( 0xFF ) ) );
-			var b = Int32.toInt( Int32.and( px , Int32.ofInt( 0xFF ) ) );
-			#end
-			p.set( pos + 0 , a );
-			p.set( pos + 1 , r );
-			p.set( pos + 2 , g );
-			p.set( pos + 3 , b );
-			pos += 4;
+		
+		// Read Raster Data
+		var paddedStride = Tools.computePaddedStride(width, bits);
+		var topToBottom = false;
+		if ( height < 0 ) { // if bitmap is stored top to bottom
+			topToBottom = true;
+			height = -height;
 		}
-
+    
+		input.readFullBytes(p, 0, dataLength);
+			
 		return {
 			header: {
 				width: width,
-				height: height
+				height: height,
+				paddedStride: paddedStride,
+				topToBottom: topToBottom,
+				bpp: bits,
+				dataLength: dataLength
 			},
 			pixels: p
 		}
