@@ -1,3 +1,11 @@
+2015-03-09: 3.2.0
+	improved bmp support [azrafe7]
+	deflate java support
+	gif support [yanrishatum]
+	allow decode PNG with y flipped
+	fixed png filters in palette mode
+	added elf reader
+	
 2014-11-12: 3.1.2
 	fix for png
 	added format.amf3 support
