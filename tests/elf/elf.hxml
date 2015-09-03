@@ -1,0 +1,3 @@
+-cp ../..
+-neko elf.n
+-main Test

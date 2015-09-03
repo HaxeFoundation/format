@@ -1,0 +1,259 @@
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           Intel 80386
+  Version:                           0x1
+  Entry point address:               0x8048e20
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          9180 (bytes into file)
+  Flags:                             0x0
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         7
+  Size of section headers:           40 (bytes)
+  Number of section headers:         27
+  Section header string table index: 26
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] .interp           PROGBITS        08048114 000114 000013 00   A  0   0  1
+  [ 2] .note.ABI-tag     NOTE            08048128 000128 000020 00   A  0   0  4
+  [ 3] .hash             HASH            08048148 000148 000174 04   A  5   0  4
+  [ 4] .gnu.hash         GNU_HASH        080482bc 0002bc 000048 04   A  5   0  4
+  [ 5] .dynsym           DYNSYM          08048304 000304 000360 10   A  6   1  4
+  [ 6] .dynstr           STRTAB          08048664 000664 0002c3 00   A  0   0  1
+  [ 7] .gnu.version      VERSYM          08048928 000928 00006c 02   A  5   0  2
+  [ 8] .gnu.version_r    VERNEED         08048994 000994 000050 00   A  6   2  4
+  [ 9] .rel.dyn          REL             080489e4 0009e4 000020 08   A  5   0  4
+  [10] .rel.plt          REL             08048a04 000a04 000148 08   A  5  12  4
+  [11] .init             PROGBITS        08048b4c 000b4c 000030 00  AX  0   0  4
+  [12] .plt              PROGBITS        08048b7c 000b7c 0002a0 04  AX  0   0  4
+  [13] .text             PROGBITS        08048e20 000e20 00103c 00  AX  0   0 16
+  [14] .fini             PROGBITS        08049e5c 001e5c 00001c 00  AX  0   0  4
+  [15] .rodata           PROGBITS        08049e78 001e78 00017c 00   A  0   0  4
+  [16] .eh_frame         PROGBITS        08049ff4 001ff4 000004 00   A  0   0  4
+  [17] .ctors            PROGBITS        0804a000 002000 000008 00  WA  0   0  4
+  [18] .dtors            PROGBITS        0804a008 002008 000008 00  WA  0   0  4
+  [19] .jcr              PROGBITS        0804a010 002010 000004 00  WA  0   0  4
+  [20] .dynamic          DYNAMIC         0804a014 002014 0000e0 08  WA  6   0  4
+  [21] .got              PROGBITS        0804a0f4 0020f4 000010 04  WA  0   0  4
+  [22] .got.plt          PROGBITS        0804a104 002104 0000b0 04  WA  0   0  4
+  [23] .data             PROGBITS        0804a1b4 0021b4 00000c 00  WA  0   0  4
+  [24] .bss              NOBITS          0804a1c0 0021c0 0000ec 00  WA  0   0 32
+  [25] .comment          PROGBITS        00000000 0021c0 000150 00      0   0  1
+  [26] .shstrtab         STRTAB          00000000 002310 0000cb 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings)
+  I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
+  O (extra OS processing required) o (OS specific), p (processor specific)
+
+There are no section groups in this file.
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  PHDR           0x000034 0x08048034 0x08048034 0x000e0 0x000e0 R E 0x4
+  INTERP         0x000114 0x08048114 0x08048114 0x00013 0x00013 R   0x1
+      [Requesting program interpreter: /lib/ld-linux.so.2]
+  LOAD           0x000000 0x08048000 0x08048000 0x01ff8 0x01ff8 R E 0x1000
+  LOAD           0x002000 0x0804a000 0x0804a000 0x001c0 0x002ac RW  0x1000
+  DYNAMIC        0x002014 0x0804a014 0x0804a014 0x000e0 0x000e0 RW  0x4
+  NOTE           0x000128 0x08048128 0x08048128 0x00020 0x00020 R   0x4
+  GNU_STACK      0x000000 0x00000000 0x00000000 0x00000 0x00000 RW  0x4
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     
+   01     .interp 
+   02     .interp .note.ABI-tag .hash .gnu.hash .dynsym .dynstr .gnu.version .gnu.version_r .rel.dyn .rel.plt .init .plt .text .fini .rodata .eh_frame 
+   03     .ctors .dtors .jcr .dynamic .got .got.plt .data .bss 
+   04     .dynamic 
+   05     .note.ABI-tag 
+   06     
+
+Dynamic section at offset 0x2014 contains 23 entries:
+  Tag        Type                         Name/Value
+ 0x00000001 (NEEDED)                     Shared library: [libneko.so]
+ 0x00000001 (NEEDED)                     Shared library: [libpthread.so.0]
+ 0x00000001 (NEEDED)                     Shared library: [libc.so.6]
+ 0x0000000c (INIT)                       0x8048b4c
+ 0x0000000d (FINI)                       0x8049e5c
+ 0x00000004 (HASH)                       0x8048148
+ 0x6ffffef5 (GNU_HASH)                   0x80482bc
+ 0x00000005 (STRTAB)                     0x8048664
+ 0x00000006 (SYMTAB)                     0x8048304
+ 0x0000000a (STRSZ)                      707 (bytes)
+ 0x0000000b (SYMENT)                     16 (bytes)
+ 0x00000015 (DEBUG)                      0x0
+ 0x00000003 (PLTGOT)                     0x804a104
+ 0x00000002 (PLTRELSZ)                   328 (bytes)
+ 0x00000014 (PLTREL)                     REL
+ 0x00000017 (JMPREL)                     0x8048a04
+ 0x00000011 (REL)                        0x80489e4
+ 0x00000012 (RELSZ)                      32 (bytes)
+ 0x00000013 (RELENT)                     8 (bytes)
+ 0x6ffffffe (VERNEED)                    0x8048994
+ 0x6fffffff (VERNEEDNUM)                 2
+ 0x6ffffff0 (VERSYM)                     0x8048928
+ 0x00000000 (NULL)                       0x0
+
+Relocation section '.rel.dyn' at offset 0x9e4 contains 4 entries:
+ Offset     Info    Type            Sym.Value  Sym. Name
+0804a0f4  00000906 R_386_GLOB_DAT    00000000   __gmon_start__
+0804a0f8  00000c06 R_386_GLOB_DAT    00000000   val_null
+0804a0fc  00001906 R_386_GLOB_DAT    00000000   stderr
+0804a100  00003206 R_386_GLOB_DAT    080490e0   neko_stats_measure
+
+Relocation section '.rel.plt' at offset 0xa04 contains 41 entries:
+ Offset     Info    Type            Sym.Value  Sym. Name
+0804a110  00000107 R_386_JUMP_SLOT   00000000   neko_global_init
+0804a114  00000207 R_386_JUMP_SLOT   00000000   sigemptyset
+0804a118  00000307 R_386_JUMP_SLOT   00000000   sprintf
+0804a11c  00000407 R_386_JUMP_SLOT   00000000   neko_vm_alloc
+0804a120  00000507 R_386_JUMP_SLOT   00000000   neko_vm_set_stats
+0804a124  00000607 R_386_JUMP_SLOT   00000000   neko_buffer_to_string
+0804a128  00000707 R_386_JUMP_SLOT   00000000   neko_alloc_field
+0804a12c  00000807 R_386_JUMP_SLOT   00000000   neko_val_print
+0804a130  00000907 R_386_JUMP_SLOT   00000000   __gmon_start__
+0804a134  00000b07 R_386_JUMP_SLOT   00000000   getenv
+0804a138  00000d07 R_386_JUMP_SLOT   00000000   neko_alloc_function
+0804a13c  00000e07 R_386_JUMP_SLOT   00000000   __libc_start_main
+0804a140  00000f07 R_386_JUMP_SLOT   00000000   neko_val_buffer
+0804a144  00001007 R_386_JUMP_SLOT   00000000   neko_default_loader
+0804a148  00001107 R_386_JUMP_SLOT   00000000   gettimeofday
+0804a14c  00001207 R_386_JUMP_SLOT   00000000   free
+0804a150  00001307 R_386_JUMP_SLOT   00000000   neko_buffer_append_cha
+0804a154  00001407 R_386_JUMP_SLOT   00000000   sigaction
+0804a158  00001507 R_386_JUMP_SLOT   00000000   neko_val_throw
+0804a15c  00001607 R_386_JUMP_SLOT   00000000   fseek
+0804a160  00001707 R_386_JUMP_SLOT   00000000   neko_alloc_buffer
+0804a164  00001807 R_386_JUMP_SLOT   00000000   fclose
+0804a168  00001a07 R_386_JUMP_SLOT   00000000   neko_alloc_array
+0804a16c  00001b07 R_386_JUMP_SLOT   00000000   strlen
+0804a170  00001c07 R_386_JUMP_SLOT   00000000   fopen
+0804a174  00001d07 R_386_JUMP_SLOT   00000000   neko_global_free
+0804a178  00001e07 R_386_JUMP_SLOT   00000000   neko_buffer_append
+0804a17c  00001f07 R_386_JUMP_SLOT   00000000   neko_val_callEx
+0804a180  00002007 R_386_JUMP_SLOT   00000000   printf
+0804a184  00002107 R_386_JUMP_SLOT   00000000   fprintf
+0804a188  00002207 R_386_JUMP_SLOT   00000000   malloc
+0804a18c  00002307 R_386_JUMP_SLOT   00000000   neko_vm_jit
+0804a190  00002407 R_386_JUMP_SLOT   00000000   readlink
+0804a194  00002507 R_386_JUMP_SLOT   00000000   neko_vm_select
+0804a198  00002607 R_386_JUMP_SLOT   00000000   neko_val_ocall0
+0804a19c  00002707 R_386_JUMP_SLOT   00000000   neko_val_id
+0804a1a0  00002807 R_386_JUMP_SLOT   00000000   neko_val_field
+0804a1a4  00002907 R_386_JUMP_SLOT   00000000   fread
+0804a1a8  00002a07 R_386_JUMP_SLOT   00000000   neko_exc_stack
+0804a1ac  00002b07 R_386_JUMP_SLOT   00000000   __strdup
+0804a1b0  00002c07 R_386_JUMP_SLOT   00000000   neko_alloc_string
+
+The decoding of unwind sections for machine type Intel 80386 is not currently supported.
+
+Symbol table '.dynsym' contains 54 entries:
+   Num:    Value  Size Type    Bind   Vis      Ndx Name
+     0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 00000000   660 FUNC    GLOBAL DEFAULT  UND neko_global_init
+     2: 00000000    84 FUNC    GLOBAL DEFAULT  UND sigemptyset@GLIBC_2.0 (2)
+     3: 00000000    52 FUNC    GLOBAL DEFAULT  UND sprintf@GLIBC_2.0 (2)
+     4: 00000000   299 FUNC    GLOBAL DEFAULT  UND neko_vm_alloc
+     5: 00000000    25 FUNC    GLOBAL DEFAULT  UND neko_vm_set_stats
+     6: 00000000    90 FUNC    GLOBAL DEFAULT  UND neko_buffer_to_string
+     7: 00000000    51 FUNC    GLOBAL DEFAULT  UND neko_alloc_field
+     8: 00000000   147 FUNC    GLOBAL DEFAULT  UND neko_val_print
+     9: 00000000     0 NOTYPE  WEAK   DEFAULT  UND __gmon_start__
+    10: 00000000     0 NOTYPE  WEAK   DEFAULT  UND _Jv_RegisterClasses
+    11: 00000000   220 FUNC    GLOBAL DEFAULT  UND getenv@GLIBC_2.0 (2)
+    12: 00000000     4 OBJECT  GLOBAL DEFAULT  UND val_null
+    13: 00000000   154 FUNC    GLOBAL DEFAULT  UND neko_alloc_function
+    14: 00000000   434 FUNC    GLOBAL DEFAULT  UND __libc_start_main@GLIBC_2.0 (2)
+    15: 00000000    15 FUNC    GLOBAL DEFAULT  UND neko_val_buffer
+    16: 00000000   957 FUNC    GLOBAL DEFAULT  UND neko_default_loader
+    17: 00000000    62 FUNC    GLOBAL DEFAULT  UND gettimeofday@GLIBC_2.0 (2)
+    18: 00000000   227 FUNC    GLOBAL DEFAULT  UND free@GLIBC_2.0 (2)
+    19: 00000000   194 FUNC    GLOBAL DEFAULT  UND neko_buffer_append_char
+    20: 00000000    84 FUNC    GLOBAL DEFAULT  UND sigaction@GLIBC_2.0 (3)
+    21: 00000000   114 FUNC    GLOBAL DEFAULT  UND neko_val_throw
+    22: 00000000   250 FUNC    GLOBAL DEFAULT  UND fseek@GLIBC_2.0 (2)
+    23: 00000000    98 FUNC    GLOBAL DEFAULT  UND neko_alloc_buffer
+    24: 00000000   488 FUNC    GLOBAL DEFAULT  UND fclose@GLIBC_2.1 (4)
+    25: 00000000     4 OBJECT  GLOBAL DEFAULT  UND stderr@GLIBC_2.0 (2)
+    26: 00000000   152 FUNC    GLOBAL DEFAULT  UND neko_alloc_array
+    27: 00000000   175 FUNC    GLOBAL DEFAULT  UND strlen@GLIBC_2.0 (2)
+    28: 00000000    50 FUNC    GLOBAL DEFAULT  UND fopen@GLIBC_2.1 (4)
+    29: 00000000   132 FUNC    GLOBAL DEFAULT  UND neko_global_free
+    30: 00000000    70 FUNC    GLOBAL DEFAULT  UND neko_buffer_append
+    31: 00000000  1358 FUNC    GLOBAL DEFAULT  UND neko_val_callEx
+    32: 00000000    57 FUNC    GLOBAL DEFAULT  UND printf@GLIBC_2.0 (2)
+    33: 00000000    36 FUNC    GLOBAL DEFAULT  UND fprintf@GLIBC_2.0 (2)
+    34: 00000000   380 FUNC    GLOBAL DEFAULT  UND malloc@GLIBC_2.0 (2)
+    35: 00000000    87 FUNC    GLOBAL DEFAULT  UND neko_vm_jit
+    36: 00000000    64 FUNC    GLOBAL DEFAULT  UND readlink@GLIBC_2.0 (2)
+    37: 00000000    44 FUNC    GLOBAL DEFAULT  UND neko_vm_select
+    38: 00000000    56 FUNC    GLOBAL DEFAULT  UND neko_val_ocall0
+    39: 00000000   741 FUNC    GLOBAL DEFAULT  UND neko_val_id
+    40: 00000000   119 FUNC    GLOBAL DEFAULT  UND neko_val_field
+    41: 00000000   272 FUNC    GLOBAL DEFAULT  UND fread@GLIBC_2.0 (2)
+    42: 00000000    11 FUNC    GLOBAL DEFAULT  UND neko_exc_stack
+    43: 00000000    87 FUNC    GLOBAL DEFAULT  UND __strdup@GLIBC_2.0 (2)
+    44: 00000000    84 FUNC    GLOBAL DEFAULT  UND neko_alloc_string
+    45: 0804a1b4     0 NOTYPE  GLOBAL DEFAULT   23 __data_start
+    46: 0804a2ac     0 NOTYPE  GLOBAL DEFAULT  ABS _end
+    47: 0804a1c0     0 NOTYPE  GLOBAL DEFAULT  ABS _edata
+    48: 0804a1b4     0 NOTYPE  WEAK   DEFAULT   23 data_start
+    49: 08049e7c     4 OBJECT  GLOBAL DEFAULT   15 _IO_stdin_used
+    50: 080490e0   523 FUNC    GLOBAL DEFAULT   13 neko_stats_measure
+    51: 0804a1c0     0 NOTYPE  GLOBAL DEFAULT  ABS __bss_start
+    52: 08048b4c     0 FUNC    GLOBAL DEFAULT   11 _init
+    53: 08049e5c     0 FUNC    GLOBAL DEFAULT   14 _fini
+
+Histogram for bucket list length (total of 37 buckets):
+ Length  Number     % of total  Coverage
+      0  5          ( 13.5%)
+      1  17         ( 45.9%)     32.1%
+      2  9          ( 24.3%)     66.0%
+      3  6          ( 16.2%)    100.0%
+
+Histogram for `.gnu.hash' bucket list length (total of 3 buckets):
+ Length  Number     % of total  Coverage
+      0  0          (  0.0%)
+      1  1          ( 33.3%)     11.1%
+      2  0          (  0.0%)     11.1%
+      3  1          ( 33.3%)     44.4%
+      4  0          (  0.0%)     44.4%
+      5  1          ( 33.3%)    100.0%
+
+Version symbols section '.gnu.version' contains 54 entries:
+ Addr: 0000000008048928  Offset: 0x000928  Link: 5 (.dynsym)
+  000:   0 (*local*)       0 (*local*)       2 (GLIBC_2.0)     2 (GLIBC_2.0)  
+  004:   0 (*local*)       0 (*local*)       0 (*local*)       0 (*local*)    
+  008:   0 (*local*)       0 (*local*)       0 (*local*)       2 (GLIBC_2.0)  
+  00c:   0 (*local*)       0 (*local*)       2 (GLIBC_2.0)     0 (*local*)    
+  010:   0 (*local*)       2 (GLIBC_2.0)     2 (GLIBC_2.0)     0 (*local*)    
+  014:   3 (GLIBC_2.0)     0 (*local*)       2 (GLIBC_2.0)     0 (*local*)    
+  018:   4 (GLIBC_2.1)     2 (GLIBC_2.0)     0 (*local*)       2 (GLIBC_2.0)  
+  01c:   4 (GLIBC_2.1)     0 (*local*)       0 (*local*)       0 (*local*)    
+  020:   2 (GLIBC_2.0)     2 (GLIBC_2.0)     2 (GLIBC_2.0)     0 (*local*)    
+  024:   2 (GLIBC_2.0)     0 (*local*)       0 (*local*)       0 (*local*)    
+  028:   0 (*local*)       2 (GLIBC_2.0)     0 (*local*)       2 (GLIBC_2.0)  
+  02c:   0 (*local*)       1 (*global*)      1 (*global*)      1 (*global*)   
+  030:   1 (*global*)      1 (*global*)      1 (*global*)      1 (*global*)   
+  034:   1 (*global*)      1 (*global*)   
+
+Version needs section '.gnu.version_r' contains 2 entries:
+ Addr: 0x0000000008048994  Offset: 0x000994  Link: 6 (.dynstr)
+  000000: Version: 1  File: libpthread.so.0  Cnt: 1
+  0x0010:   Name: GLIBC_2.0  Flags: none  Version: 3
+  0x0020: Version: 1  File: libc.so.6  Cnt: 2
+  0x0030:   Name: GLIBC_2.1  Flags: none  Version: 4
+  0x0040:   Name: GLIBC_2.0  Flags: none  Version: 2
+
+Displaying notes found at file offset 0x00000128 with length 0x00000020:
+  Owner                 Data size	Description
+  GNU                  0x00000010	NT_GNU_ABI_TAG (ABI version tag)
+    OS: Linux, ABI: 2.6.8
