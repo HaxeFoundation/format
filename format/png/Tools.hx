@@ -271,90 +271,80 @@ class Tools {
 			var bgra = format.tools.MemoryBytes.make(start);
 			#end
 
-			var vr, vg, vb, va = 0xFF;
-			inline function decode(getValue) {
-				var c = getValue();
-				vr = pal.get(c * 3);
-				vg = pal.get(c * 3 + 1);
-				vb = pal.get(c * 3 + 2);
-				if( alpha != null ) va = alpha.get(c);
-			}
-
-			inline function decodeLine(y, f, getValue) {
+			var rline = (h.width * h.colbits) >> 3;
+			for( y in 0...h.height ) {
+				var f = data.get(r++);
+				if( f == 0 ) {
+					r += rline;
+					continue;
+				}
 				switch( f ) {
-				case 0:
-					for( x in 0...width ) {
-						decode(getValue);
-						bgra.set(w++,vb);
-						bgra.set(w++,vg);
-						bgra.set(w++,vr);
-						bgra.set(w++,va);
-					}
 				case 1:
-					var cr = 0, cg = 0, cb = 0, ca = 0;
+					var c = 0;
 					for( x in 0...width ) {
-						decode(getValue);
-						cb += vb;	bgra.set(w++,cb);
-						cg += vg;	bgra.set(w++,cg);
-						cr += vr;	bgra.set(w++,cr);
-						ca += va;	bgra.set(w++,ca);
-						bgra.set(w++, va);
+						var v = data.get(r);
+						c += v;
+						data.set(r++, c & 0xFF);
 					}
 				case 2:
-					var stride = y == 0 ? 0 : width * 4 * flipY;
+					var stride = y == 0 ? 0 : (rline + 1);
 					for( x in 0...width ) {
-						decode(getValue);
-						bgra.set(w, vb + bgra.get(w - stride));	w++;
-						bgra.set(w, vg + bgra.get(w - stride));	w++;
-						bgra.set(w, vr + bgra.get(w - stride));	w++;
-						bgra.set(w, va + bgra.get(w - stride));	w++;
+						var v = data.get(r);
+						data.set(r, v + data.get(r - stride));
+						r++;
 					}
 				case 3:
-					var cr = 0, cg = 0, cb = 0, ca = 0;
-					var stride = y == 0 ? 0 : width * 4 * flipY;
+					var c = 0;
+					var stride = y == 0 ? 0 : (rline + 1);
 					for( x in 0...width ) {
-						decode(getValue);
-						cb = (vb + ((cb + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cb);
-						cg = (vg + ((cg + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cg);
-						cr = (vr + ((cr + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, cr);
-						cr = (va + ((ca + bgra.get(w - stride)) >> 1)) & 0xFF;	bgra.set(w++, ca);
+						var v = data.get(r);
+						c = (v + ((c + data.get(r - stride)) >> 1)) & 0xFF;
+						data.set(r++, c);
 					}
 				case 4:
-					var stride = width * 4 * flipY;
-					var cr = 0, cg = 0, cb = 0, ca = 0;
+					var stride = rline + 1;
+					var c = 0;
 					for( x in 0...width ) {
-						decode(getValue);
-						cb = (filter(bgra, x, y, stride, cb, w) + vb) & 0xFF; bgra.set(w++, cb);
-						cg = (filter(bgra, x, y, stride, cg, w) + vg) & 0xFF; bgra.set(w++, cg);
-						cr = (filter(bgra, x, y, stride, cr, w) + vr) & 0xFF; bgra.set(w++, cr);
-						ca = (filter(bgra, x, y, stride, ca, w) + va) & 0xFF; bgra.set(w++, ca);
+						var v = data.get(r);
+						c = (filter(data, x, y, stride, c, r, 1) + v) & 0xFF;
+						data.set(r++, c);
 					}
 				default:
 					throw "Invalid filter "+f;
 				}
 			}
 
+			var r = 0;
 			if( h.colbits == 8 ) {
 				for( y in 0...h.height ) {
-					var f = data.get(r++);
-					decodeLine(y, f, function() return data.get(r++));
+					r++;
+					for( x in 0...h.width ) {
+						var c = data.get(r++);
+						bgra.set(w++, pal.get(c * 3 + 2));
+						bgra.set(w++, pal.get(c * 3 + 1));
+						bgra.set(w++, pal.get(c * 3));
+						bgra.set(w++, if( alpha != null ) alpha.get(c) else 0xFF);
+					}
 					w += lineDelta;
 				}
 			} else if( h.colbits < 8 ) {
 				var req = h.colbits;
 				var mask = (1 << req) - 1;
 				for( y in 0...h.height ) {
-					var f = data.get(r++);
+					r++;
 					var bits = 0, nbits = 0, v;
-					decodeLine(y, f, function() {
+					for( x in 0...h.width ) {
 						if( nbits < req ) {
 							bits = (bits << 8) | data.get(r++);
 							nbits += 8;
 						}
-						v = (bits >>> (nbits - req)) & mask;
+						var c = (bits >>> (nbits - req)) & mask;
 						nbits -= req;
-						return v;
-					});
+						bgra.set(w++, pal.get(c * 3 + 2));
+						bgra.set(w++, pal.get(c * 3 + 1));
+						bgra.set(w++, pal.get(c * 3));
+						bgra.set(w++, if( alpha != null ) alpha.get(c) else 0xFF);
+					}
 					w += lineDelta;
 				}
 			} else
