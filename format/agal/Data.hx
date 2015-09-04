@@ -77,15 +77,19 @@ class RegAccess {
 	public var t : RegType;
 	public var comp : C;
 	public var offset : Int;
-	
+
 	public inline function new(t,c,o) {
 		this.t = t;
 		comp = c;
 		offset = o;
 	}
-	
+
 	public inline function clone() {
 		return new RegAccess(t, comp, offset);
+	}
+
+	public function toString() {
+		return Std.string( { t : t, comp : comp, offset : offset } );
 	}
 }
 
@@ -94,16 +98,22 @@ class Reg {
 	public var index 	: Int;
 	public var swiz 	: Swizzle;
 	public var access 	: Null<RegAccess>;
-	
+
 	public inline function new(t,i,s,?a) {
 		this.t = t;
 		index = i;
 		swiz = s;
 		access = a;
 	}
-	
+
 	public inline function clone() {
 		return new Reg(t, index, swiz, access);
+	}
+
+	public function toString() {
+		if( access == null )
+			return Std.string( { t : t, index : index, swiz : swiz } );
+		return Std.string( { t : t, index : index, swiz : swiz, access : access.toString() } );
 	}
 }
 
