@@ -73,11 +73,38 @@ enum Opcode {
 	OSne( dst : Reg, a : Reg, b : Reg );
 }
 
-typedef Reg = {
-	var t : RegType;
-	var index : Int;
-	var swiz : Swizzle;
-	var access : Null<{ t : RegType, comp : C, offset : Int }>;
+class RegAccess {
+	public var t : RegType;
+	public var comp : C;
+	public var offset : Int;
+	
+	public inline function new(t,c,o) {
+		this.t = t;
+		comp = c;
+		offset = o;
+	}
+	
+	public inline function clone() {
+		return new RegAccess(t, comp, offset);
+	}
+}
+
+class Reg {
+	public var t 		: RegType;
+	public var index 	: Int;
+	public var swiz 	: Swizzle;
+	public var access 	: Null<RegAccess>;
+	
+	public inline function new(t,i,s,?a) {
+		this.t = t;
+		index = i;
+		swiz = s;
+		access = a;
+	}
+	
+	public inline function clone() {
+		return new Reg(t, index, swiz, access);
+	}
 }
 
 typedef Swizzle = Null<Array<C>>; // length 1-4
