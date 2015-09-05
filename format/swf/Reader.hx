@@ -587,8 +587,6 @@ class Reader {
 		}
 		bits = new format.tools.BitsInput(i);
 		var r = readRect();
-      if( (r.right - r.left) % 20 != 0 || (r.bottom - r.top) % 20 != 0)
-			throw error();
 		var fps = readFixed8();
 		var nframes = i.readUInt16();
 		return {
