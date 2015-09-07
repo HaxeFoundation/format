@@ -59,6 +59,7 @@ enum Action {
 	ATrace;
 	AStartDrag;
 	AStopDrag;
+	AStringCompare;
 	AThrow;
 	ACast;
 	AImplements;
