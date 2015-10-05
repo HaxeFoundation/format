@@ -38,6 +38,8 @@ class Inflate {
 		b.writeBytes(bytes.getData(),0,bytes.length);
 		b.uncompress();
 		return haxe.io.Bytes.ofData(b);
+		#elseif php
+		return haxe.zip.Uncompress.run(bytes);
 		#else
 		return InflateImpl.run(new haxe.io.BytesInput(bytes));
 		#end
