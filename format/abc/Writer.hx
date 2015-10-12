@@ -81,7 +81,9 @@ class Writer {
 
 	function writeIndex( i : Index<Dynamic> ) {
 		switch( i ) {
-		case Idx(n): writeInt(n);
+			// i may be null, see Reader.readIndexOpt
+			case null: writeInt(0); 
+			case Idx(n): writeInt(n);
 		}
 	}
 
