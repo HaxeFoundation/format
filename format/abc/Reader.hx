@@ -98,27 +98,29 @@ class Reader {
 	function readName( k = -1 ) : Name {
 		if( k == -1 ) k = i.readByte();
 		return switch( k ) {
-		case 0x07:
+		case 0x07: // QName
 			var ns = readIndex();
 			var id = readIndex();
 			NName(id,ns);
-		case 0x09:
+		case 0x0D: // QNameA
+			NAttrib(readName(0x07));
+		case 0x0F: // RTQName
+			NRuntime(readIndex());
+		case 0x10: // RTQNameA
+			NAttrib(readName(0x0F));
+		case 0x11: // RTQNameL
+			NRuntimeLate;
+		case 0x12: // RTQNameLA
+			NAttrib(readName(0x11));
+		case 0x09: // Multiname
 			var id = readIndex();
 			var ns = readIndex();
 			NMulti(id,ns);
-		case 0x0D:
-			NAttrib(readName(0x07));
-		case 0x0E:
+		case 0x0E: // MultinameA
 			NAttrib(readName(0x09));
-		case 0x0F:
-			NRuntime(readIndex());
-		case 0x10:
-			NRuntimeLate;
-		case 0x12:
-			NAttrib(readName(0x11));
-		case 0x1B:
+		case 0x1B: // MultinameL
 			NMultiLate(readIndex());
-		case 0x1C:
+		case 0x1C: // MultinameLA
 			NAttrib(readName(0x1B));
 		case 0x1D:
 			var id = readIndex();
