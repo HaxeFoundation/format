@@ -25,6 +25,7 @@
  * DAMAGE.
  */
 package format.as1;
+import format.as1.Constants;
 import format.as1.Data;
 
 class Reader {
@@ -108,115 +109,116 @@ class Reader {
 		var len = (id >= 0x80) ? i.readUInt16() : 0;
 		if( len == 0xFFFF )
 			len = 0;
-		return switch( id ) {
+		return switch( id : ActionCode ) {
 			// basic actions
-			case 0x00: AEnd;
-			case 0x04: ANextFrame;
-			case 0x05: APrevFrame;
-			case 0x06: APlay;
-			case 0x07: AStop;
-			case 0x08: AToggleHighQuality;
-			case 0x09: AStopSounds;
-			case 0x0A: AAddNum;
-			case 0x0B: ASubtract;
-			case 0x0C: AMultiply;
-			case 0x0D: ADivide;
-			case 0x0E: ACompareNum;
-			case 0x0F: AEqualNum;
-			case 0x10: ALogicalAnd;
-			case 0x11: ALogicalOr;
-			case 0x12: ANot;
-			case 0x13: AStringEqual;
-			case 0x14: AStringLength;
-			case 0x15: ASubString;
-			case 0x17: APop;
-			case 0x18: AToInt;
-			case 0x1C: AEval;
-			case 0x1D: ASet;
-			case 0x20: ATellTarget;
-			case 0x21: AStringAdd;
-			case 0x22: AGetProperty;
-			case 0x23: ASetProperty;
-			case 0x24: ADuplicateMC;
-			case 0x25: ARemoveMC;
-			case 0x26: ATrace;
-			case 0x27: AStartDrag;
-			case 0x28: AStopDrag;
-			case 0x2A: AThrow;
-			case 0x2B: ACast;
-			case 0x2C: AImplements;
-			case 0x2D: AFSCommand2;
-			case 0x30: ARandom;
-			case 0x31: AMBStringLength;
-			case 0x32: AOrd;
-			case 0x33: AChr;
-			case 0x34: AGetTimer;
-			case 0x35: AMBStringSub;
-			case 0x36: AMBOrd;
-			case 0x37: AMBChr;
-			case 0x3A: ADeleteObj;
-			case 0x3B: ADelete;
-			case 0x3C: ALocalAssign;
-			case 0x3D: ACall;
-			case 0x3E: AReturn;
-			case 0x3F: AMod;
-			case 0x40: ANew;
-			case 0x41: ALocalVar;
-			case 0x42: AInitArray;
-			case 0x43: AObject;
-			case 0x44: ATypeOf;
-			case 0x45: ATargetPath;
-			case 0x46: AEnum;
-			case 0x47: AAdd;
-			case 0x48: ACompare;
-			case 0x49: AEqual;
-			case 0x4A: AToNumber;
-			case 0x4B: AToString;
-			case 0x4C: ADup;
-			case 0x4D: ASwap;
-			case 0x4E: AObjGet;
-			case 0x4F: AObjSet;
-			case 0x50: AIncrement;
-			case 0x51: ADecrement;
-			case 0x52: AObjCall;
-			case 0x53: ANewMethod;
-			case 0x54: AInstanceOf;
-			case 0x55: AEnum2;
-			case 0x60: AAnd;
-			case 0x61: AOr;
-			case 0x62: AXor;
-			case 0x63: AShl;
-			case 0x64: AShr;
-			case 0x65: AAsr;
-			case 0x66: APhysEqual;
-			case 0x67: AGreater;
-			case 0x68: AStringGreater;
-			case 0x69: AExtends;
+			case ActionEnd:             AEnd;
+			case ActionNextFrame:       ANextFrame;
+			case ActionPrevFrame:       APrevFrame;
+			case ActionPlay:            APlay;
+			case ActionStop:            AStop;
+			case ActionToggleQuality:   AToggleHighQuality;
+			case ActionStopSounds:      AStopSounds;
+			case ActionAdd:             AAddNum;
+			case ActionSubtract:        ASubtract;
+			case ActionMultiply:        AMultiply;
+			case ActionDivide:          ADivide;
+			case ActionEquals:          AEqualNum;
+			case ActionLess:            ACompareNum;
+			case ActionAnd:             ALogicalAnd;
+			case ActionOr:              ALogicalOr;
+			case ActionNot:             ANot;
+			case ActionStringEquals:    AStringEqual;
+			case ActionStringLength:    AStringLength;
+			case ActionStringExtract:   ASubString;
+			case ActionPop:             APop;
+			case ActionToInteger:       AToInt;
+			case ActionGetVariable:     AEval;
+			case ActionSetVariable:     ASet;
+			case ActionSetTarget2:      ATellTarget;
+			case ActionStringAdd:       AStringAdd;
+			case ActionGetProperty:     AGetProperty;
+			case ActionSetProperty:     ASetProperty;
+			case ActionCloneSprite:     ADuplicateMC;
+			case ActionRemoveSprite:    ARemoveMC;
+			case ActionTrace:           ATrace;
+			case ActionStartDrag:       AStartDrag;
+			case ActionEndDrag:         AStopDrag;
+			case ActionStringLess:      AStringCompare;
+			case ActionThrow:           AThrow;
+			case ActionCastOp:          ACast;
+			case ActionImplementsOp:    AImplements;
+			case ActionFSCommand2:      AFSCommand2;
+			case ActionRandomNumber:    ARandom;
+			case ActionMBStringLength:  AMBStringLength;
+			case ActionCharToAscii:     AOrd;
+			case ActionAsciiToChar:     AChr;
+			case ActionGetTime:         AGetTimer;
+			case ActionMBStringExtract: AMBStringSub;
+			case ActionMBCharToAscii:   AMBOrd;
+			case ActionMBAsciiToChar:   AMBChr;
+			case ActionDelete:          ADeleteObj;
+			case ActionDelete2:         ADelete;
+			case ActionDefineLocal:     ALocalAssign;
+			case ActionCallFunction:    ACall;
+			case ActionReturn:          AReturn;
+			case ActionModulo:          AMod;
+			case ActionNewObject:       ANew;
+			case ActionDefineLocal2:    ALocalVar;
+			case ActionInitArray:       AInitArray;
+			case ActionInitObject:      AObject;
+			case ActionTypeOf:          ATypeOf;
+			case ActionTargetPath:      ATargetPath;
+			case ActionEnumerate:       AEnum;
+			case ActionAdd2:            AAdd;
+			case ActionLess2:           ACompare;
+			case ActionEquals2:         AEqual;
+			case ActionToNumber:        AToNumber;
+			case ActionToString:        AToString;
+			case ActionPushDuplicate:   ADup;
+			case ActionStackSwap:       ASwap;
+			case ActionGetMember:       AObjGet;
+			case ActionSetMember:       AObjSet;
+			case ActionIncrement:       AIncrement;
+			case ActionDecrement:       ADecrement;
+			case ActionCallMethod:      AObjCall;
+			case ActionNewMethod:       ANewMethod;
+			case ActionInstanceOf:      AInstanceOf;
+			case ActionEnumerate2:      AEnum2;
+			case ActionBitAnd:          AAnd;
+			case ActionBitOr:           AOr;
+			case ActionBitXor:          AXor;
+			case ActionBitLShift:       AShl;
+			case ActionBitRShift:       AShr;
+			case ActionBitURShift:      AAsr;
+			case ActionStrictEquals:    APhysEqual;
+			case ActionGreater:         AGreater;
+			case ActionStringGreater:   AStringGreater;
+			case ActionExtends:         AExtends;
 			// extended actions
-			case 0x81:
+			case ActionGotoFrame:
 				AGotoFrame(i.readUInt16());
-			case 0x83:
+			case ActionGetURL:
 				var url = readString();
 				var target = readString();
 				AGetURL(url, target);
-			case 0x87:
+			case ActionStoreRegister:
 				ASetReg(i.readByte());
-			case 0x88:
+			case ActionConstantPool:
 				var strings = new Array();
 				for( i in 0...i.readUInt16() )
 					strings.push(readString());
 				AStringPool(strings);
-			case 0x8A:
+			case ActionWaitForFrame:
 				var frame = i.readUInt16();
 				var skip = i.readByte();
 				AWaitForFrame(frame, skip);
-			case 0x8B:
+			case ActionSetTarget:
 				ASetTarget(readString());
-			case 0x8C:
+			case ActionGoToLabel:
 				AGotoLabel(readString());
-			case 0x8D:
+			case ActionWaitForFrame2:
 				AWaitForFrame2(i.readByte());
-			case 0x8E:
+			case ActionDefineFunction2:
 				var name = readString();
 				var nargs = i.readUInt16();
 				var nregs = i.readByte();
@@ -235,7 +237,7 @@ class Reader {
 					codeLength : clen,
 					nRegisters : nregs,
 				});
-			case 0x8F:
+			case ActionTry:
 				var flags = i.readByte();
 				var tsize = i.readUInt16();
 				var csize = i.readUInt16();
@@ -247,16 +249,16 @@ class Reader {
 					catchLength : if( flags & 1 == 0 ) null else csize,
 					finallyLength : if( flags & 2 == 0 ) null else fsize,
 				});
-			case 0x94:
+			case ActionWith:
 				var size = i.readUInt16();
 				AWith(size);
-			case 0x96:
+			case ActionPush:
 				APush(parsePushItems(i.read(len)));
-			case 0x99:
+			case ActionJump:
 				AJump(i.readInt16());
-			case 0x9A:
+			case ActionGetURL2:
 				AGetURL2(i.readByte());
-			case 0x9B:
+			case ActionDefineFunction:
 				var name = readString();
 				var args = new Array();
 				for( i in 0...i.readUInt16() )
@@ -267,18 +269,18 @@ class Reader {
 					args : args,
 					codeLength : clen,
 				});
-			case 0x9D:
+			case ActionIf:
 				ACondJump(i.readInt16());
-			case 0x9E:
+			case ActionCall:
 				ACallFrame;
-			case 0x9F:
+			case ActionGotoFrame2:
 				var flags = i.readByte();
 				var play = flags & 1 != 0;
 				var delta = if( flags & 2 == 0 ) null else i.readUInt16();
-				AGotoFrame2(play, delta);
-			default:
-				AUnknown(id, i.read(len));
+				AGotoFrame2(play, delta);				
 		}
+		
+		return AUnknown(id, i.read(len));
 	}
 
 }
