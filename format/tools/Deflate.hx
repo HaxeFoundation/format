@@ -38,7 +38,7 @@ class Deflate {
 		return haxe.io.Bytes.ofData(data);
 		#elseif cpp
 		return cpp.zip.Compress.run(b,9);
-		#elseif ( java || php )
+		#elseif ( java || php || nodejs )
 		return haxe.zip.Compress.run(b, 9);
 		#else
 		throw "Deflate is not supported on this platform";
