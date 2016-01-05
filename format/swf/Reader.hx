@@ -565,8 +565,8 @@ class Reader {
 		return filters;
 	}
 
-	function error() {
-		return "Invalid SWF";
+	function error( ?msg : String = "Invalid SWF" ) {
+		return msg;
 	}
 
 	public function readHeader() : SWFHeader {
@@ -577,7 +577,7 @@ class Reader {
 		else if( tag == "FWS" )
 			compressed = false;
 		else
-			throw error();
+			throw error('Unimplemented compression: $tag');
 		version = i.readByte();
 		var size = readInt();
 		if( compressed ) {
