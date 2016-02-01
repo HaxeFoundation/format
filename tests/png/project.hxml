@@ -1,4 +1,4 @@
 # hxpng
--neko hxpng.n
+-neko bin/hxpng.n
 -main Test
 -cp ../..

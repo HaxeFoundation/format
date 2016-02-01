@@ -21,7 +21,7 @@ class Test {
 				var color = (x*3) | ((y*3) << 8) | 0xFF000000;
 				bytes.writeInt32(color);
 			}
-		var data = format.png.Tools.build32LE(size,size,bytes.getBytes());
+		var data = format.png.Tools.build32BGRA(size,size,bytes.getBytes());
 
 		var out = sys.io.File.write("test32.png",true);
 		new format.png.Writer(out).write(data);

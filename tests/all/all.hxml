@@ -1,23 +1,32 @@
--cp .
--swf all8.swf
--swf-header 800:600:30:FFFFFF
---flash-strict
--swf-version 8
-params.hxml
---next
--swf all9.swf
+-swf bin/all9.swf
 params.hxml
 format.tools.MemoryInput
 format.tools.MemoryBytes
+
 --next
--neko all.n
+-neko bin/all.n
 params.hxml
+
 --next
--js all.js
+-js bin/all.js
 params.hxml
+
 --next
--php php
+-php bin/php
 params.hxml
+
 --next
--cpp cpp
+-cpp bin/cpp
+params.hxml
+
+--next
+-java bin/java
+params.hxml
+
+--next
+-cs bin/cs
+params.hxml
+
+--next
+-python bin/test.py
 params.hxml

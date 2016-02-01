@@ -1,3 +1,3 @@
 @echo off
-neko test file.swf >log.txt
+neko bin/test bin/fibasm.swf >log.txt
 pause

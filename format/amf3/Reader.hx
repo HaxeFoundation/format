@@ -101,7 +101,7 @@ class Reader {
 	function readString() {
 		var len = readInt(1);
 		var u = new haxe.Utf8(len);
-		var c = 0, d = 0, j = 0, it = 0;
+		var c = 0, d = 0, j:UInt = 0, it = 0;
 		while (j < len) {
 			c = i.readByte();
 			if (c < 0x80) {

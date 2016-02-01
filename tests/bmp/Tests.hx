@@ -64,7 +64,15 @@ class Tests extends TestCase
 	static function main() {
 		var testRunner = new TestRunner();
 		testRunner.add(new Tests());
-		testRunner.run();
+		var succeed = testRunner.run();
+		#if sys
+			Sys.exit(succeed ? 0 : 1);
+		#elseif flash
+			flash.system.System.exit(succeed ? 0 : 1);
+		#else
+			if (!succeed)
+				throw "failed";
+		#end
 	}
   
 	override function setup() {
@@ -72,17 +80,17 @@ class Tests extends TestCase
 			if (!data.exists(k)) {
 				var input = new haxe.io.BytesInput(haxe.Resource.getBytes(k));
 				data[k] = new Reader(input).read();
-				AssertTrue(data[k] != null, k);
+				_assertTrue(data[k] != null, k);
 			}
 		}
-		AssertTrue(Lambda.count(expected) >= Lambda.count(data), "count");
+		_assertTrue(Lambda.count(expected) >= Lambda.count(data), "count");
 	}
   
 	public function testSize() {
 		for (k in expected.keys()) {
 			var header = data[k].header;
-			AssertEquals(expected[k].size.w, header.width, k + " width");
-			AssertEquals(expected[k].size.h, header.height, k + " height");
+			_assertEquals(expected[k].size.w, header.width, k + " width");
+			_assertEquals(expected[k].size.h, header.height, k + " height");
 		}
 	}
   
@@ -90,9 +98,9 @@ class Tests extends TestCase
 		for (k in expected.keys()) {
 			var header = data[k].header;
 			var pixels = data[k].pixels;
-			AssertEquals(expected[k].dataLength, header.dataLength, k + " dataLength");
-			AssertEquals(expected[k].dataLength, pixels.length, k + " pixels.length");
-			AssertEquals(expected[k].dataLength, header.paddedStride * header.height, k + " paddedStride * height");
+			_assertEquals(expected[k].dataLength, header.dataLength, k + " dataLength");
+			_assertEquals(expected[k].dataLength, pixels.length, k + " pixels.length");
+			_assertEquals(expected[k].dataLength, header.paddedStride * header.height, k + " paddedStride * height");
 		}
 	}
   
@@ -101,7 +109,7 @@ class Tests extends TestCase
 			for (i in 0...Lambda.count(expected[k].pixelPos)) {
 				var pixelCoord = expected[k].pixelPos[i];
 				var bgr = PixelTools.getBGR(data[k], pixelCoord.x, pixelCoord.y);
-				AssertHexEquals(expected[k].pixelBGR[i], bgr, k + "@" + pixelCoord);
+				assertHexEquals(expected[k].pixelBGR[i], bgr, k + "@" + pixelCoord);
 			}
 		}
 	}
@@ -113,7 +121,7 @@ class Tests extends TestCase
 			for (i in 0...Lambda.count(expected[k].pixelPos)) {
 				var pixelCoord = expected[k].pixelPos[i];
 				var bgra = PixelTools.getInt32(bytesBGRA, pixelCoord.x, pixelCoord.y, header.width);
-				AssertHexEquals(expected[k].pixelBGRA[i], bgra, k + "@" + pixelCoord);
+				assertHexEquals(expected[k].pixelBGRA[i], bgra, k + "@" + pixelCoord);
 			}
 		}
 	}
@@ -125,7 +133,7 @@ class Tests extends TestCase
 			for (i in 0...Lambda.count(expected[k].pixelPos)) {
 				var pixelCoord = expected[k].pixelPos[i];
 				var argb = PixelTools.getInt32(bytesARGB, pixelCoord.x, pixelCoord.y, header.width);
-				AssertHexEquals(expected[k].pixelARGB[i], argb, k + "@" + pixelCoord);
+				assertHexEquals(expected[k].pixelARGB[i], argb, k + "@" + pixelCoord);
 			}
 		}
 	}
@@ -136,11 +144,11 @@ class Tests extends TestCase
 
 			var extractedARGB = Tools.extractARGB(data[k]);
 			var builtFromARGB = Tools.buildFromARGB(header.width, header.height, extractedARGB, header.topToBottom);
-			AssertBytesEquals(data[k].pixels, builtFromARGB.pixels, k + " ARGB");
+			assertBytesEquals(data[k].pixels, builtFromARGB.pixels, k + " ARGB");
 
 			var extractedBGRA = Tools.extractBGRA(data[k]);
 			var builtFromBGRA = Tools.buildFromBGRA(header.width, header.height, extractedBGRA, header.topToBottom);
-			AssertBytesEquals(data[k].pixels, builtFromBGRA.pixels, k + " BGRA");
+			assertBytesEquals(data[k].pixels, builtFromBGRA.pixels, k + " BGRA");
 		}
 	}
   
@@ -161,7 +169,7 @@ class Tests extends TestCase
 			var bmpReader = new format.bmp.Reader(inFile);
 			var writtenData = bmpReader.read();
 			inFile.close();
-			AssertBytesEquals(data[k].pixels, writtenData.pixels, k + " ARGB");
+			assertBytesEquals(data[k].pixels, writtenData.pixels, k + " ARGB");
 
 
 			var extractedBGRA = Tools.extractBGRA(data[k]);
@@ -176,7 +184,7 @@ class Tests extends TestCase
 			bmpReader = new format.bmp.Reader(inFile);
 			writtenData = bmpReader.read();
 			inFile.close();
-			AssertBytesEquals(data[k].pixels, writtenData.pixels, k + " BGRA");
+			assertBytesEquals(data[k].pixels, writtenData.pixels, k + " BGRA");
 		}
 	}
 #end
@@ -198,7 +206,7 @@ class Tests extends TestCase
 			for (i in 0...Lambda.count(expected[k].pixelPos)) {
 				var pixelCoord = expected[k].pixelPos[i];
 				var argb = bmd.getPixel32(pixelCoord.x, pixelCoord.y);
-				AssertHexEquals(expected[k].pixelARGB[i], argb, k + "@" + pixelCoord);
+				assertHexEquals(expected[k].pixelARGB[i], argb, k + "@" + pixelCoord);
 			}
 			offset += bmd.width + 5;
 		}
@@ -207,7 +215,7 @@ class Tests extends TestCase
 
 	// wrap asserts to show optional msg
 
-	function AssertTrue(b:Bool, ?c:PosInfos, ?msg:String):Void {
+	function _assertTrue(b:Bool, ?c:PosInfos, ?msg:String):Void {
 		try {
 			super.assertTrue(b, c);
 		} catch (err:Dynamic) {
@@ -216,16 +224,16 @@ class Tests extends TestCase
 		}
 	}
   
-	function AssertEquals<T>(expected:T, actual:T, ?c:PosInfos, ?msg:String):Void	{
+	function _assertEquals<T>(expected:T, actual:T, ?c:PosInfos, ?msg:String):Void	{
 		try {
 			super.assertEquals(expected, actual, c);
 		} catch (err:Dynamic) {
 			if (msg != null) currentTest.error = msg + ": " + currentTest.error;
 			throw currentTest;
 		}
-  }
+	}
     
-	function AssertHexEquals(expected:Int, actual:Int, ?c:PosInfos, ?msg:String):Void	{
+	function assertHexEquals(expected:Int, actual:Int, ?c:PosInfos, ?msg:String):Void	{
 		try {
 			super.assertEquals("0x" + expected.hex(8), "0x" + actual.hex(8), c);
 		} catch (err:Dynamic) {
@@ -234,9 +242,9 @@ class Tests extends TestCase
 		}
 	}
 
-	function AssertBytesEquals(expected:Bytes, actual:Bytes, ?c:PosInfos, ?msg:String):Void	{
-		AssertEquals(expected.length, actual.length, msg + " length");
-		for (i in 0...expected.length) AssertEquals(expected.get(i), actual.get(i), msg + " byte@" + i);
+	function assertBytesEquals(expected:Bytes, actual:Bytes, ?c:PosInfos, ?msg:String):Void	{
+		_assertEquals(expected.length, actual.length, msg + " length");
+		for (i in 0...expected.length) _assertEquals(expected.get(i), actual.get(i), msg + " byte@" + i);
 	}
 }
 

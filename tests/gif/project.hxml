@@ -1,4 +1,4 @@
 # hxgif
--neko hxgif.n
+-neko bin/hxgif.n
 -main Test
 -cp ../..

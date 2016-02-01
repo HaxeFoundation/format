@@ -1,3 +1,5 @@
+[![TravisCI Build Status](https://travis-ci.org/HaxeFoundation/format.svg?branch=master)](https://travis-ci.org/HaxeFoundation/format)
+
 The `format` library contains support for different file-formats for the Haxe programming language.
 
 Formats

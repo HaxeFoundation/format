@@ -1,4 +1,4 @@
 # hxpdf
--neko hxpdf.n
+-neko bin/hxpdf.n
 -main Test
 -cp ../..
