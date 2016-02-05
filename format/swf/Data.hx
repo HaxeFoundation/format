@@ -62,6 +62,7 @@ enum SWFTag {
 	TJPEGTables( data : haxe.io.Bytes );
 	TBinaryData( id : Int, data : haxe.io.Bytes );
 	TSound( data : Sound );
+	TScenes(scenes:Array<{offset:Int, name:String}>, labels:Array<{offset:Int, name:String}>);
 	TUnknown( id : Int, data : haxe.io.Bytes );
 }
 

@@ -56,20 +56,20 @@ class Tools {
 	public inline static function floatFixed8( i : Int ) {
 		return i / 256.0;
 	}
-	
+
 	public inline static function toFixed8( f : Float ) {
 		if( f < -128.0 || f >= 128.0 )
 			throw haxe.io.Error.Overflow;
 		return Std.int( f * 256.0 );
 	}
-	
+
 	public inline static function toFixed16( f : Float ) {
 		if( f < -32768.0 || f >= 32768.0 )
 			throw haxe.io.Error.Overflow;
 		return Std.int( f * 65536.0 );
 	}
 
-	// All values are treated as unsigned! 
+	// All values are treated as unsigned!
 	public inline static function minBits(values: Array<Int>): Int {
 		// Accumulate bits in x
 		var x: Int = 0;
@@ -127,6 +127,20 @@ class Tools {
 		return buf.toString();
 	}
 
+	public static function intLength(i:Int) {
+		return if ((i >>> 28) > 0) {
+			5;
+		} else if ((i >> 21) > 0) {
+			4;
+		} else if ((i >> 14) > 0) {
+			3;
+		} else if ((i >> 7) > 0) {
+			2;
+		} else {
+			1;
+		}
+	}
+
 	public static function dumpTag( t : SWFTag, ?max : Int ) {
 		var infos : Array<Dynamic> = switch( t ) {
 		case TShowFrame: [];
@@ -152,16 +166,16 @@ class Tools {
 		case TActionScript3(data,context): ["context",context,"data",hex(data,max)];
 		case TSymbolClass(symbols): [Std.string(symbols)];
 		case TExportAssets(symbols): [Std.string(symbols)];
-	   case TSandBox(useDirectBlit, useGpu, hasMeta, useAs3, useNetwork): [
-         "directBlit", useDirectBlit,
-         "gpu", useGpu,
-         "meta/symbols", hasMeta,
-         "as3", useAs3,
-         "net", useNetwork
-      ];
+		case TSandBox(useDirectBlit, useGpu, hasMeta, useAs3, useNetwork): [
+			 "directBlit", useDirectBlit,
+			 "gpu", useGpu,
+			 "meta/symbols", hasMeta,
+			 "as3", useAs3,
+			 "net", useNetwork
+		];
 		case TBitsLossless(l),TBitsLossless2(l): ["id",l.cid,"color",l.color,"width",l.width,"height",l.height,"data",hex(l.data,max)];
 		case TJPEGTables(data): ["data", hex(data,max)];
-		case TBitsJPEG(id, jdata): 
+		case TBitsJPEG(id, jdata):
 			switch (jdata) {
 			case JDJPEG1(data): ["id", id, "ver", 1, "data", hex(data,max)];
 			case JDJPEG2(data): ["id", id, "ver", 2, "data", hex(data,max)];
@@ -173,7 +187,8 @@ class Tools {
 				case SDOther(data), SDRaw(data): hex(data,max);
 			};
 			["sid", s.sid, "format", s.format, "rate", s.rate, "16bit", s.is16bit, "stereo", s.isStereo, "samples", s.samples, "data", data ];
-		case TDoActions(data) : ["data",hex(data,max)];
+		case TDoActions(data) : ["data", hex(data, max)];
+		case TScenes(scenes, labels) : ["scenes", scenes, "labels", labels];
 		case TUnknown(id,data): ["id",id,"data",hex(data,max)];
 		}
 		var b = new StringBuf();

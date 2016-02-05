@@ -1413,7 +1413,30 @@ class Writer {
 
 		case TSound(data):
 			writeSound(data);
-
+		case TScenes(scenes, labels):
+			trace("writing " + scenes + ", " + labels);
+			var scenesLength = Tools.intLength(scenes.length);
+			var labelsLength = Tools.intLength(labels.length);
+			var dataLength = 0;
+			for (scene in scenes) {
+				dataLength += Tools.intLength(scene.offset) + scene.name.length + 1;
+			}
+			for (label in labels) {
+				dataLength += Tools.intLength(label.offset) + label.name.length + 1;
+			}
+			writeTIDExt(TagId.DefineSceneAndFrameLabelData, scenesLength + labelsLength + dataLength + 6);
+			writeAs3Int(scenes.length);
+			for (scene in scenes) {
+				writeAs3Int(scene.offset);
+				o.write(haxe.io.Bytes.ofString(scene.name));
+				o.writeByte(0);
+			}
+			writeAs3Int(labels.length);
+			for (label in labels) {
+				writeAs3Int(label.offset);
+				o.write(haxe.io.Bytes.ofString(label.name));
+				o.writeByte(0);
+			}
 		}
 
 	}
@@ -1429,6 +1452,35 @@ class Writer {
 		output.writeUInt30(size + 8);
 		#end
 		output.write(bytes);
+	}
+
+	function writeAs3Int(i:Int) {
+		var e = i >>> 28;
+		var d = i >> 21 & 0x7F;
+		var c = i >> 14 & 0x7F;
+		var b = i >> 7 & 0x7F;
+		var a = i & 0x7F;
+		if (b != 0 || c != 0 || d != 0 || e != 0) {
+			o.writeByte(a | 0x80);
+			if (c != 0 || d != 0 || e != 0) {
+				o.writeByte(b | 0x80);
+				if (d != 0 || e != 0) {
+					o.writeByte(c | 0x80);
+					if (e != 0) {
+						o.writeByte(d | 0x80);
+						o.writeByte(e);
+					} else {
+						o.writeByte(d);
+					}
+				} else {
+					o.writeByte(c);
+				}
+			} else {
+				o.writeByte(b);
+			}
+		} else {
+			o.writeByte(a);
+		}
 	}
 
 }
