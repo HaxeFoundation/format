@@ -80,7 +80,7 @@ class Writer {
 		if( m == null ) return 15;
 		var bits = 0;
 		for( c in m )
-			bits |= 1 << Type.enumIndex(c);
+			bits |= 1 << c.getIndex();
 		return bits;
 	}
 
@@ -90,7 +90,7 @@ class Writer {
 		var p = 0;
 		var last = 0;
 		for( c in s ) {
-			last = Type.enumIndex(c);
+			last = c.getIndex();
 			bits |= last << p;
 			p += 2;
 		}
@@ -157,7 +157,7 @@ class Writer {
 			o.writeByte( swizzleBits(s.swiz) );
 			o.writeByte( regType(s.access.t) );
 			o.writeByte( regType(s.t) );
-			o.writeByte( Type.enumIndex(s.access.comp) );
+			o.writeByte( s.access.comp.getIndex() );
 			o.writeByte( 0x80 );
 		}
 	}

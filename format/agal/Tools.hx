@@ -29,7 +29,7 @@ package format.agal;
 class Tools {
 
 	public static var NB_MAX_TEMP = 8;
-	
+
 	public static function getMaxTextures() {
 		return 8;
 	}
@@ -70,7 +70,12 @@ class Tools {
 		if( r.swiz != null ) {
 			str += ".";
 			for( s in r.swiz )
-				str += Std.string(s).toLowerCase();
+				str += switch( s ) {
+				case X: "x";
+				case Y: "y";
+				case Z: "z";
+				case W: "w";
+				}
 		}
 		return str;
 	}
