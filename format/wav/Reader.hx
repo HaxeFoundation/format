@@ -67,7 +67,7 @@ class Reader {
 		var fmtlen = readInt();
 		
 		var format = switch (i.readUInt16()) {
-			case 1: WF_PCM;
+			case 1,3: WF_PCM;
 			default: throw "only PCM (uncompressed) WAV files are supported";
 		}
 		var channels = i.readUInt16();
@@ -76,27 +76,17 @@ class Reader {
 		var blockAlign = i.readUInt16();
 		var bitsPerSample = i.readUInt16();
 		
-		if (fmtlen > 16) {
-			
+		if (fmtlen > 16) 
 			i.read(fmtlen - 16);
-			
-		}
 		
 		var nextChunk = i.readString (4);
-		
 		while (nextChunk != "data") {
-			
 			// read past other subchunks
-			
 			i.read(readInt());
-			
 			nextChunk = i.readString (4);
-			
 		}
 		
-		//
 		// data
-		//
 		if (nextChunk != "data")
 			throw "expected data subchunk";
 		
@@ -104,14 +94,9 @@ class Reader {
 		
 		// Some files report an incorrect length, so we'll
 		// read the whole file, then subtract if necessary
-		
 		var data = i.readAll ();
-		
-		if (data.length > datalen) {
-			
+		if (data.length > datalen) 
 			data = data.sub (0, datalen);
-			
-		}
 		
 		return {
 			header: {
