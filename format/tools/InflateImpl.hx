@@ -29,6 +29,15 @@
  * DAMAGE.
  */
 package format.tools;
+
+#if (haxe_ver >= 3.2)
+
+typedef InflateImpl = haxe.zip.InflateImpl;
+
+#else
+
+// legacy
+
 import format.tools.Huffman;
 
 private class Window {
@@ -379,3 +388,5 @@ class InflateImpl {
 	}
 
 }
+
+#end

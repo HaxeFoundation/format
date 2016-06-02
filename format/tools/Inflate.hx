@@ -29,6 +29,13 @@ package format.tools;
 class Inflate {
 
 	public static function run( bytes : haxe.io.Bytes ) {
+		#if (haxe_ver >= 3.2)
+
+		return haxe.zip.Uncompress.run(bytes);
+
+		#else
+
+		// legacy support
 		#if neko
 		return neko.zip.Uncompress.run(bytes);
 		#elseif cpp
@@ -42,6 +49,8 @@ class Inflate {
 		return haxe.zip.Uncompress.run(bytes);
 		#else
 		return InflateImpl.run(new haxe.io.BytesInput(bytes));
+		#end
+
 		#end
 	}
 

@@ -29,6 +29,12 @@ package format.tools;
 class Deflate {
 
 	public static function run( b : haxe.io.Bytes ) : haxe.io.Bytes {
+		#if (haxe_ver >= 3.2)
+
+		return haxe.zip.Compress.run(b,9);
+
+		#else
+		// legacy
 		#if neko
 		return neko.zip.Compress.run(b,9);
 		#elseif flash9
@@ -43,6 +49,8 @@ class Deflate {
 		#else
 		throw "Deflate is not supported on this platform";
 		return null;
+		#end
+
 		#end
 	}
 
