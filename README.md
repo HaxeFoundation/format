@@ -25,7 +25,8 @@ Currently supported formats are :
   * TGZ (TAR+GZ Archive)
   * WAV (Raw sound)
   * ZIP (Compressed Archive)
-  * GIF (Image file format - reader only atm)
+  * GIF (Image file format - writer don't have tools)
+  * TGA (TARGA Image file format; Reader/Writer does not support developer data chunk; Writer does not support RLE encoding)
 
 Installation
 ============
