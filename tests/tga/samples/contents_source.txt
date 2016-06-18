@@ -1,0 +1,2 @@
+Testing TGA files and comparation PNG's are taken from Github repo:
+https://github.com/ftrvxmtrx/tga
