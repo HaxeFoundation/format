@@ -58,11 +58,22 @@ class Reader {
 		if (i.readString(4) != "WAVE")
 			throw "WAVE signature not found";
 
-		//
-		// fmt
-		//
-		if (i.readString(4) != "fmt ")
-			throw "expected fmt subchunk";
+		var fmt = i.readString(4);
+		while(fmt != "fmt ") {
+			switch( fmt ) {
+				default break;
+				case "JUNK": //protool
+				var junkLen = i.readInt32();
+				i.read(junkLen);
+				fmt = i.readString(4);
+				case "bext":
+				var bextLen = i.readInt32();
+				i.read(bextLen);
+				fmt = i.readString(4);
+			}
+		}
+		if ( fmt != "fmt " ) 
+			throw "unsupported wave chunk "+fmt;
 
 		var fmtlen = readInt();
 		
