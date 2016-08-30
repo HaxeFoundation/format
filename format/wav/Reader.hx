@@ -61,7 +61,7 @@ class Reader {
 		var fmt = i.readString(4);
 		while(fmt != "fmt ") {
 			switch( fmt ) {
-				default break;
+				default: break;
 				case "JUNK": //protool
 				var junkLen = i.readInt32();
 				i.read(junkLen);
