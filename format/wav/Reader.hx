@@ -61,22 +61,22 @@ class Reader {
 		var fmt = i.readString(4);
 		while(fmt != "fmt ") {
 			switch( fmt ) {
-				default: break;
 				case "JUNK": //protool
-				var junkLen = i.readInt32();
-				i.read(junkLen);
-				fmt = i.readString(4);
+					var junkLen = i.readInt32();
+					i.read(junkLen);
+					fmt = i.readString(4);
 				case "bext":
-				var bextLen = i.readInt32();
-				i.read(bextLen);
-				fmt = i.readString(4);
+					var bextLen = i.readInt32();
+					i.read(bextLen);
+					fmt = i.readString(4);
+				default: 
+					break;
 			}
 		}
 		if ( fmt != "fmt " ) 
 			throw "unsupported wave chunk "+fmt;
 
 		var fmtlen = readInt();
-		
 		var format = switch (i.readUInt16()) {
 			case 1,3: WF_PCM;
 			default: throw "only PCM (uncompressed) WAV files are supported";
