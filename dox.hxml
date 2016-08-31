@@ -1,0 +1,8 @@
+--macro include("format")
+-D doc-gen
+-swf out.swf
+--no-output
+-xml doc/swf.xml
+
+--next
+-cmd haxelib run dox -i doc -o doc/pages -in "^format*" --title "Format Library - API documentation" -D website "https://github.com/HaxeFoundation/format" -D logo https://haxe.org/img/haxe-logo-horizontal-on-dark.svg -D themeColor 0x141419 -D textColor 0xEA8220 -D description "This is the API documentation for the Format Library. " -D source-path https://github.com/HaxeFoundation/format/blob/master/
