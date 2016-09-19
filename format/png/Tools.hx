@@ -404,7 +404,7 @@ class Tools {
 							bgra.set(w++,v);
 							bgra.set(w++,v);
 							bgra.set(w++,v);
-							bgra.set(w++,data.get(r-1) == alphvaIdx ? 0 : 0xFF);
+							bgra.set(w++,v == alphvaIdx ? 0 : 0xFF);
 						}
 				case 1:
 					var cv = 0, ca = 0;
@@ -423,7 +423,7 @@ class Tools {
 							bgra.set(w++,cv);
 							bgra.set(w++,cv);
 							bgra.set(w++,cv);
-							bgra.set(w++,data.get(r-1) == alphvaIdx ? 0 : 0xFF);
+							bgra.set(w++,cv == alphvaIdx ? 0 : 0xFF);
 						}
 				case 2:
 					var stride = y == 0 ? 0 : width * 4 * flipY;
@@ -441,7 +441,7 @@ class Tools {
 							bgra.set(w++, v);
 							bgra.set(w++, v);
 							bgra.set(w++, v);
-							bgra.set(w++, data.get(r-1) == alphvaIdx ? 0 : 0xFF);
+							bgra.set(w++, v == alphvaIdx ? 0 : 0xFF);
 						}
 				case 3:
 					var cv = 0, ca = 0;
@@ -461,7 +461,7 @@ class Tools {
 							bgra.set(w++,cv);
 							bgra.set(w++,cv);
 							bgra.set(w++,cv);
-							bgra.set(w++, data.get(r-1) == alphvaIdx ? 0 : 0xFF);
+							bgra.set(w++, cv == alphvaIdx ? 0 : 0xFF);
 						}
 				case 4:
 					var stride = width * 4 * flipY;
@@ -481,7 +481,7 @@ class Tools {
 							bgra.set(w++, cv);
 							bgra.set(w++, cv);
 							bgra.set(w++, cv);
-							bgra.set(w++, data.get(r-1) == alphvaIdx ? 0 : 0xFF);
+							bgra.set(w++, cv == alphvaIdx ? 0 : 0xFF);
 						}
 				default:
 					throw "Invalid filter "+f;
@@ -530,9 +530,10 @@ class Tools {
 					default:
 					}
 			
+			var cr = 0, cg = 0, cb = 0, ca = 0;
 			inline function getAlphaValue():Int
 			{
-				return (data.get(r) == alphaRed && data.get(r + 1) == alphaGreen && data.get(r + 2) == alphaBlue) ? 0 : 0xff;
+				return (cr == alphaRed && cg == alphaGreen && cb == alphaBlue) ? 0 : 0xff;
 			}
 			
 			// PNG data is encoded as RGB[A]
@@ -550,14 +551,13 @@ class Tools {
 						}
 					else
 						for( x in 0...width ) {
-							bgra.set(w++,data.get(r+2));
-							bgra.set(w++,data.get(r+1));
-							bgra.set(w++,data.get(r));
+							bgra.set(w++,cb = data.get(r+2));
+							bgra.set(w++,cg = data.get(r+1));
+							bgra.set(w++,cr = data.get(r));
 							bgra.set(w++,getAlphaValue());
 							r += 3;
 						}
 				case 1:
-					var cr = 0, cg = 0, cb = 0, ca = 0;
 					if( alpha )
 						for( x in 0...width ) {
 							cb += data.get(r + 2);	bgra.set(w++,cb);
@@ -586,9 +586,9 @@ class Tools {
 						}
 					else
 						for( x in 0...width ) {
-							bgra.set(w, data.get(r + 2) + bgra.get(w - stride));	w++;
-							bgra.set(w, data.get(r + 1) + bgra.get(w - stride));	w++;
-							bgra.set(w, data.get(r) + bgra.get(w - stride));		w++;
+							bgra.set(w, cb = data.get(r + 2) + bgra.get(w - stride));	w++;
+							bgra.set(w, cg = data.get(r + 1) + bgra.get(w - stride));	w++;
+							bgra.set(w, cr = data.get(r) + bgra.get(w - stride));		w++;
 							bgra.set(w++,getAlphaValue());
 							r += 3;
 						}
