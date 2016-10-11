@@ -47,3 +47,8 @@ Each format must provide the following files :
   * some other classes that might be necessary for manipulating the data structures
 
 It's important in particular that the data structures storing the decoded information are separated from the actual classes manipulating it. This enable full access to all the file format infos and the ability to easily write libraries that manipulate the format, even if later the Reader implementation is changed for example.
+
+Contributing
+============
+
+We're accepting contributions if they are following the package structure rules (see above), please send them as Pull Requests.
