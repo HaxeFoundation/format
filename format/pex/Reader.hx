@@ -12,6 +12,14 @@ class Reader
 	public static function read(i:Input):PexParticle
 	{
 		var contents = i.readAll().toString();
+		return parse(contents);
+	}
+
+	/**
+	 * Parse a PexParticle from a string contianing .pex XML.
+	 */
+	public static function parse(contents:String):PexParticle
+	{
 		var data = new Fast(Xml.parse(contents).firstElement());
 		var particle:PexParticle = new PexParticle();
 
