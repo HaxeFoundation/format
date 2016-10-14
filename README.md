@@ -19,6 +19,7 @@ Currently supported formats are :
   * NEKO (NekoVM bytecode)
   * PBJ (PixelBender Binary file)
   * PDF (only generic file structure and partial decryption)
+  * PEX (particle effect format)
   * PNG (image file format)
   * SWF (Flash file format)
   * TAR (Archive)
