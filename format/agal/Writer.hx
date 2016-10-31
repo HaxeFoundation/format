@@ -52,6 +52,8 @@ class Writer {
 		o.writeByte(data.fragmentShader ? 1 : 0);
 		var idKil = Type.enumIndex(OKil(null));
 		var idTex = Type.enumIndex(OTex(null, null, null));
+		var idIf1 = Type.enumIndex(OIfe(null, null));
+		var idIf2 = Type.enumIndex(OEif);
 		for( c in data.code ) {
 			var idx = Type.enumIndex(c);
 			var params = Type.enumParameters(c);
@@ -61,6 +63,11 @@ class Writer {
 				writeInt(0);
 				writeSrc(dst);
 				writeSrc(null);
+				continue;
+			} else if( idx >= idIf1 && idx <= idIf2 ) {
+				writeInt(0);
+				writeSrc(dst);
+				writeSrc(params[1]);
 				continue;
 			}
 			writeInt( dst.index | (maskBits(dst.swiz) << 16) | (regType(dst.t) << 24));
