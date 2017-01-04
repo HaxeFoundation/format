@@ -1,3 +1,13 @@
+2016-01-04: 3.3.0
+	various agal/SWF improvements
+	avm1 writer [herschel]
+	php inflate/deflate [clemos]
+	gif writer [yanrishatum]
+	tga support [yanrishatum]
+	fixes for wav files
+	png tRNS support [yanrishatum]
+	pex support [benmorris]
+	
 2015-03-09: 3.2.0
 	improved bmp support [azrafe7]
 	deflate java support
