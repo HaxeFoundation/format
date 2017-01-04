@@ -1,4 +1,4 @@
-2016-01-04: 3.3.0
+2017-01-04: 3.3.0
 	various agal/SWF improvements
 	avm1 writer [herschel]
 	php inflate/deflate [clemos]
