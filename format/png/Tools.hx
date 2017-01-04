@@ -362,7 +362,7 @@ class Tools {
 			var width = h.width;
 			var stride = (alpha ? 2 : 1) * width + 1;
 			if( data.length < h.height * stride ) throw "Not enough data";
-			
+
 			// transparent palette extension
 			var alphvaIdx:Int = -1;
 			if (!alpha)
@@ -373,8 +373,8 @@ class Tools {
 						break;
 					default:
 					}
-			
-			
+
+
 			#if flash10
 			var bytes = data.getData();
 			var start = h.height * stride;
@@ -529,13 +529,13 @@ class Tools {
 						break;
 					default:
 					}
-			
+
 			var cr = 0, cg = 0, cb = 0, ca = 0;
 			inline function getAlphaValue():Int
 			{
 				return (cr == alphaRed && cg == alphaGreen && cb == alphaBlue) ? 0 : 0xff;
 			}
-			
+
 			// PNG data is encoded as RGB[A]
 			for( y in 0...h.height ) {
 				var f = data.get(r++);
@@ -649,7 +649,7 @@ class Tools {
 	/**
 		Creates PNG data from bytes that contains one bytes (grey values) for each pixel.
 	**/
-	public static function buildGrey( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+	public static function buildGrey( width : Int, height : Int, data : haxe.io.Bytes, ?level = 9 ) : Data {
 		var rgb = haxe.io.Bytes.alloc(width * height + height);
 		// translate RGB to BGR and add filter byte
 		var w = 0, r = 0;
@@ -660,7 +660,7 @@ class Tools {
 		}
 		var l = new List();
 		l.add(CHeader({ width : width, height : height, colbits : 8, color : ColGrey(false), interlaced : false }));
-		l.add(CData(format.tools.Deflate.run(rgb)));
+		l.add(CData(format.tools.Deflate.run(rgb,level)));
 		l.add(CEnd);
 		return l;
 	}
@@ -668,7 +668,7 @@ class Tools {
 	/**
 		Creates PNG data from bytes that contains three bytes (R,G and B values) for each pixel.
 	**/
-	public static function buildRGB( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+	public static function buildRGB( width : Int, height : Int, data : haxe.io.Bytes, ?level = 9 ) : Data {
 		var rgb = haxe.io.Bytes.alloc(width * height * 3 + height);
 		// translate RGB to BGR and add filter byte
 		var w = 0, r = 0;
@@ -683,7 +683,7 @@ class Tools {
 		}
 		var l = new List();
 		l.add(CHeader({ width : width, height : height, colbits : 8, color : ColTrue(false), interlaced : false }));
-		l.add(CData(format.tools.Deflate.run(rgb)));
+		l.add(CData(format.tools.Deflate.run(rgb,level)));
 		l.add(CEnd);
 		return l;
 	}
@@ -691,7 +691,7 @@ class Tools {
 	/**
 		Creates PNG data from bytes that contains four bytes in ARGB format for each pixel.
 	**/
-	public static function build32ARGB( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+	public static function build32ARGB( width : Int, height : Int, data : haxe.io.Bytes, ?level = 9 ) : Data {
 		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
 		// translate ARGB to RGBA and add filter byte
 		var w = 0, r = 0;
@@ -707,7 +707,7 @@ class Tools {
 		}
 		var l = new List();
 		l.add(CHeader({ width : width, height : height, colbits : 8, color : ColTrue(true), interlaced : false }));
-		l.add(CData(format.tools.Deflate.run(rgba)));
+		l.add(CData(format.tools.Deflate.run(rgba,level)));
 		l.add(CEnd);
 		return l;
 	}
@@ -715,7 +715,7 @@ class Tools {
 	/**
 		Creates PNG data from bytes that contains four bytes in BGRA format for each pixel.
 	**/
-	public static function build32BGRA( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+	public static function build32BGRA( width : Int, height : Int, data : haxe.io.Bytes, ?level = 9 ) : Data {
 		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
 		// translate ARGB to RGBA and add filter byte
 		var w = 0, r = 0;
@@ -731,7 +731,7 @@ class Tools {
 		}
 		var l = new List();
 		l.add(CHeader({ width : width, height : height, colbits : 8, color : ColTrue(true), interlaced : false }));
-		l.add(CData(format.tools.Deflate.run(rgba)));
+		l.add(CData(format.tools.Deflate.run(rgba,level)));
 		l.add(CEnd);
 		return l;
 	}

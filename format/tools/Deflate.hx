@@ -28,24 +28,24 @@ package format.tools;
 
 class Deflate {
 
-	public static function run( b : haxe.io.Bytes ) : haxe.io.Bytes {
+	public static function run( b : haxe.io.Bytes, ?level = 9 ) : haxe.io.Bytes {
 		#if (haxe_ver >= 3.2)
 
-		return haxe.zip.Compress.run(b,9);
+		return haxe.zip.Compress.run(b,level);
 
 		#else
 		// legacy
 		#if neko
-		return neko.zip.Compress.run(b,9);
+		return neko.zip.Compress.run(b,level);
 		#elseif flash9
 		var bytes = b.sub(0,b.length);
 		var data = bytes.getData();
 		data.compress();
 		return haxe.io.Bytes.ofData(data);
 		#elseif cpp
-		return cpp.zip.Compress.run(b,9);
+		return cpp.zip.Compress.run(b,level);
 		#elseif ( java || php )
-		return haxe.zip.Compress.run(b, 9);
+		return haxe.zip.Compress.run(b,level);
 		#else
 		throw "Deflate is not supported on this platform";
 		return null;
