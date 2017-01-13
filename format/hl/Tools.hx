@@ -25,6 +25,30 @@ class Tools {
 		}
 	}
 
+	public static function containsPointer( t : HLType ) {
+		switch( t ) {
+		case HVoid, HUi8, HUi16, HI32, HF32, HF64, HBool, HAt(_), HBytes, HType, HRef(_):
+			return false;
+		case HNull(t):
+			return isPtr(t);
+		case HDyn, HFun(_), HArray, HDynObj, HVirtual(_), HAbstract(_):
+			return true;
+		case HEnum(e):
+			for( c in e.constructs )
+				for( t in c.params )
+					if( isPtr(t) )
+						return true;
+			return false;
+		case HObj(p):
+			for( f in p.fields )
+				if( isPtr(f.t) )
+					return true;
+			if( p.tsuper == null )
+				return false;
+			return containsPointer(p.tsuper);
+		}
+	}
+
 	public static function hash( name : String ) {
 		var h = 0;
 		for( i in 0...name.length )
