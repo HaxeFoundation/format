@@ -1122,8 +1122,13 @@ class Writer {
 			o.writeInt16(data.layout.descent);
 			o.writeInt16(data.layout.leading);
 
-			for (g in data.layout.glyphs)
-				o.writeInt16(g.advance > 0xFFFF ? 0xFFFF : g.advance);
+			var advance;
+			for (g in data.layout.glyphs) {
+				advance = g.advance;
+				if (advance < -0x8000) advance = -0x8000;
+				if (advance > 0x7FFF) advance = 0x7FFF;
+				o.writeInt16(advance);
+			}
 
 			for(g in data.layout.glyphs)
 				writeRect(g.bounds);
