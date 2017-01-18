@@ -23,21 +23,21 @@ class Reader {
 		args4 = [0, 0, 0, 0];
 	}
 
-	inline function READ() {
+	inline function _read() {
 		return i.readByte();
 	}
 
 	function index() {
-		var b = READ();
+		var b = _read();
 		if( (b & 0x80) == 0 )
 			return b & 0x7F;
 		if( (b & 0x40) == 0 ) {
-			var v = READ() | ((b & 31) << 8);
+			var v = _read() | ((b & 31) << 8);
 			return (b & 0x20) == 0 ? v : -v;
 		}
-		var c = READ();
-		var d = READ();
-		var e = READ();
+		var c = _read();
+		var d = _read();
+		var e = _read();
 		var v = ((b & 31) << 24) | (c << 16) | (d << 8) | e;
 		return (b & 0x20) == 0 ? v : -v;
 	}
@@ -77,7 +77,7 @@ class Reader {
 	}
 
 	function readType() {
-		switch( READ() ) {
+		switch( _read() ) {
 		case 0:
 			return HVoid;
 		case 1:
@@ -97,7 +97,7 @@ class Reader {
 		case 8:
 			return HDyn;
 		case 9:
-			return HFun({ args : [for( i in 0...READ() ) HAt(uindex())], ret : HAt(uindex()) });
+			return HFun({ args : [for( i in 0..._read() ) HAt(uindex())], ret : HAt(uindex()) });
 		case 10:
 			var p : ObjPrototype = {
 				name : getString(),
@@ -170,7 +170,7 @@ class Reader {
 
 	function skipOps(nops) {
 		for( i in 0...nops ) {
-			var op = READ();
+			var op = _read();
 			var args = OP_ARGS[op];
 			if( args < 0 ) {
 				switch( op ) {
@@ -195,7 +195,7 @@ class Reader {
 	}
 
 	function readOp() {
-		var op = READ();
+		var op = _read();
 		var args = OP_ARGS[op];
 		switch( args ) {
 		case -1:
@@ -244,10 +244,10 @@ class Reader {
 		var debug = [];
 		var i = 0;
 		while( i < nops ) {
-			var c = READ();
+			var c = _read();
 			if( (c & 1) != 0 ) {
 				c >>= 1;
-				curfile = (c << 8) | READ();
+				curfile = (c << 8) | _read();
 				if( curfile >= debugFiles.length )
 					throw "Invalid debug file";
 			} else if( (c & 2) != 0 ) {
@@ -267,8 +267,8 @@ class Reader {
 				debug[(i<<1)|1] = curline;
 				i++;
 			} else {
-				var b2 = READ();
-				var b3 = READ();
+				var b2 = _read();
+				var b3 = _read();
 				curline = (c >> 3) | (b2 << 5) | (b3 << 13);
 				debug[i<<1] = curfile;
 				debug[(i<<1)|1] = curline;
@@ -282,7 +282,7 @@ class Reader {
 		this.i = i;
 		if( i.readString(3) != "HLB" )
 			throw "Invalid HL file";
-		version = READ();
+		version = _read();
 		if( version > 1 )
 			throw "HL Version " + version + " is not supported";
 		flags = haxe.EnumFlags.ofInt(uindex());
