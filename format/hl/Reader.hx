@@ -102,8 +102,9 @@ class Reader {
 			var p : ObjPrototype = {
 				name : getString(),
 				tsuper : null,
-				fields : [],
-				proto : [],
+				fields : null,
+				proto : null,
+				bindings : null,
 				globalValue : null,
 			};
 			var sup = index();
@@ -115,8 +116,10 @@ class Reader {
 			if( p.globalValue < 0 ) p.globalValue = null;
 			var nfields = uindex();
 			var nproto = uindex();
+			var nbindings = uindex();
 			p.fields = [for( i in 0...nfields ) { name : getString(), t : HAt(uindex()) }];
 			p.proto = [for( i in 0...nproto ) { name : getString(), findex : uindex(), pindex : index() }];
+			p.bindings = [for( i in 0...nbindings ) { fid : uindex(), mid : uindex() }];
 			return HObj(p);
 		case 11:
 			return HArray;
@@ -174,11 +177,11 @@ class Reader {
 			var args = OP_ARGS[op];
 			if( args < 0 ) {
 				switch( op ) {
-				case 29, 30, 31, 32, 93:
+				case 29, 30, 31, 32, 92:
 					index();
 					index();
 					for( i in 0...uindex() ) index();
-				case 69:
+				case 68:
 					// OSwitch
 					uindex();
 					for( i in 0...uindex() ) uindex();
@@ -200,12 +203,12 @@ class Reader {
 		switch( args ) {
 		case -1:
 			switch( op ) {
-			case 29, 30, 31, 32, 93:
+			case 29, 30, 31, 32, 92:
 				args3[0] = index();
 				args3[1] = index();
 				args3[2] = [for( i in 0...uindex() ) index()];
 				return Type.createEnumIndex(Opcode, op, args3);
-			case 69:
+			case 68:
 				// OSwitch
 				args3[0] = uindex();
 				args3[1] = [for( i in 0...uindex() ) uindex()];
@@ -384,7 +387,6 @@ class Reader {
 		3,
 		2,
 		2,
-		3,
 		3,
 		3,
 

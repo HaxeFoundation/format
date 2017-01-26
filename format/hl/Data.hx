@@ -53,6 +53,7 @@ typedef ObjPrototype = {
 	var fields : Array<{ name : String, t : HLType }>;
 	var proto : Array<{ name : String, findex : Int, pindex : Int }>;
 	var globalValue : Null<Int>;
+	var bindings : Array<{ fid : Int, mid : Index<FunTable> }>;
 }
 
 typedef EnumPrototype = {
@@ -134,7 +135,6 @@ enum Opcode {
 	OSetThis( i : Index<ObjField>, a : Reg );
 	ODynGet( dst : Reg, a : Reg, i : Index<String> );
 	ODynSet( dst : Reg, i : Index<String>, a : Reg );
-	OSetMethod( dst : Reg, i : Index<String>, t : Index<FunTable> );
 	OJTrue( dst : Reg, offset : Int );
 	OJFalse( dst : Reg, offset : Int );
 	OJNull( dst : Reg, offset : Int );
