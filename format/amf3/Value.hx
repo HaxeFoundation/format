@@ -26,6 +26,8 @@
  */
 package format.amf3;
 
+import haxe.ds.Vector;
+
 enum Value {
 	AUndefined;
 	ANull;
@@ -36,6 +38,7 @@ enum Value {
 	ADate( d : Date );
 	AObject( fields : Map<String,Value>, ?size : Int );
 	AArray( values : Array<Value> );
+	AVector( values : Vector<Value> );
 	AXml( x : Xml );
 	ABytes( b : haxe.io.Bytes );
 	AMap( m : Map<Value, Value> );
