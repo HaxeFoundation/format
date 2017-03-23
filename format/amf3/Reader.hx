@@ -172,13 +172,14 @@ class Reader {
 		}
 		n >>= 1;  // the rest of the header is the dense indexed array length
 		var a = new Array();
-		var ret = AArray( a );
+		var m = new Map<String, Value>();
+		var ret = AArray( a, m );
 		complexObjectsTable.push(ret);
 		var assocName:String = Tools.decode(readString());
 		while( assocName.length != 0 )
 		{
 			// got associative array element, get value
-			Reflect.setField(a, assocName, read());
+			m[assocName] = read();
 
 			// next name
 			assocName = Tools.decode(readString());

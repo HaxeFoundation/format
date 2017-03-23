@@ -148,12 +148,21 @@ class Writer {
 			o.writeByte(0x08);
 			o.writeByte(0x01);
 			o.writeDouble(d.getTime());
-		case AArray(a):
+		case AArray(a,extra):
 			o.writeByte(0x09);
 			writeUInt(a.length, true);
-			o.writeByte(0x01);
+			if( extra != null )  // check for assoc array values
+			{
+				for( mk in extra.keys() )
+				{
+					o.writeString(mk);
+					write(extra[mk]);
+				}
+			}
+			o.writeByte(0x01);  // end of assoc array values
 			for(f in a)
 				write(f);
+		//case AVector(v):  // TODO add vector writing support
 		case AObject(h,n):
 			o.writeByte(0x0a);
 			writeObject(h, n);

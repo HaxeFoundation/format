@@ -25,9 +25,9 @@
  * DAMAGE.
  */
 package format.amf3;
-import Type.ValueType;
-import haxe.ds.Vector;
+import format.amf3.Amf3Array;
 import format.amf3.Value;
+import haxe.ds.Vector;
 
 class Tools {
 
@@ -58,9 +58,18 @@ class Tools {
 			case cast Array:
 				var o : Array<Dynamic> = o;
 				var a = new Array();
-				for(k in Reflect.fields(o))
-					Reflect.setField(a,k,encode(Reflect.field(o,k)));
+				for(v in o)
+					a.push(encode(v));
 				AArray(a);
+			case cast Amf3Array:
+				var o : Amf3Array = o;
+				var a = new Array();
+				var m = new Map<String,Value>();
+				for(v in o.a)
+					a.push(encode(v));
+				for(k in o.extra)
+					m[k] = encode(o.extra[k]);
+				AArray(a, m);
 			case cast Vector:
 				var o : Vector<Dynamic> = o;
 				var a = new Vector<Value>(o.length);
@@ -94,66 +103,13 @@ class Tools {
 			case ANumber(_): number(a);
 			case AString(_): string(a);
 			case ADate(_): date(a);
-			case AArray(_): array(a);
+			case AArray(_,_): array(a);
 			case AVector(_): vector(a);
 			case AObject(_,_): object(a);
 			case AXml(_): xml(a);
 			case ABytes(_): bytes(a);
 			case AMap(_): map(a);
 		}
-	}
-
-	public static function decodeWithAnonymousStruct(o:Value):Dynamic
-	{
-		switch(o)
-		{
-			case AObject(f,_):
-				var s:Dynamic = {};
-				for( k in f.keys() )
-				{
-					var so:Value = f[k];
-					var ss:Dynamic = decodeWithAnonymousStruct(so);
-					Reflect.setField(s, k, ss);
-				}
-				return s;
-			case AArray(oa):
-				var a:Array<Dynamic> = [];
-				// get both associative array and indexed/dense array values
-				for (af in Reflect.fields(oa))
-				{
-					Reflect.setField(a, af, decodeWithAnonymousStruct(Reflect.field(oa, af)));
-				}
-				return a;
-			case AVector(va):
-				var a:Vector<Dynamic> = new Vector(va.length);
-				for( i in 0...va.length )
-				{
-					a[i] = decodeWithAnonymousStruct(va[i]);
-				}
-				return a;
-			case AMap(m):
-				var k = decodeWithAnonymousStruct(m.keys().next());
-				var p = getMapOfType(k);
-				for (f in m.keys())
-					p.set(decodeWithAnonymousStruct(f), decodeWithAnonymousStruct(m[f]));
-				return p;
-			default:
-				// other non-container value types should convert fine with regular decode
-				return decode(o);
-		}
-	}
-
-	public static function getMapOfType(k:Dynamic):Dynamic {
-		if( Std.is(k,Int) )
-			return new Map<Int,Dynamic>();
-		else if( Std.is(k,String) )
-			return new Map<String,Dynamic>();
-		else if( Reflect.isEnumValue(k) )
-			return new Map<EnumValue,Dynamic>();
-		else if( Reflect.isObject(k) )
-			return new Map<{},Dynamic>();
-		else
-			throw "invalid map key type found!";
 	}
 
 	public static function undefined( a : Value ) {
@@ -204,14 +160,17 @@ class Tools {
 		}
 	}
 
-	public static function array( a : Value ) {
+	public static function array( a : Value ) : Amf3Array {
 		if( a == null ) return null;
 		return switch( a ) {
-		case AArray(a):
+		case AArray(a, m):
 			var b = [];
-			for (af in Reflect.fields(a))
-				Reflect.setField(b, af, decode(Reflect.field(a, af)));
-			b;
+			for (f in a)
+				b.push(decode(f));
+			var c = new Map<String, Dynamic>();
+			for (mk in m.keys())
+				c[mk] = decode(m[mk]);
+			new Amf3Array(b,c);
 		default: null;
 		}
 	}

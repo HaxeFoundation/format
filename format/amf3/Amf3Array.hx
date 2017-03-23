@@ -26,20 +26,14 @@
  */
 package format.amf3;
 
-import haxe.ds.Vector;
+class Amf3Array
+{
+	public var a:Array<Dynamic>;
+	@optional public var extra:Map<String,Dynamic>;
 
-enum Value {
-	AUndefined;
-	ANull;
-	ABool( b : Bool );
-	AInt( i : Int );
-	ANumber( f : Float );
-	AString( s : String );
-	ADate( d : Date );
-	AObject( fields : Map<String,Value>, ?size : Int );
-	AArray( values : Array<Value>, ?extra : Map<String,Value> );
-	AVector( values : Vector<Value> );
-	AXml( x : Xml );
-	ABytes( b : haxe.io.Bytes );
-	AMap( m : Map<Value, Value> );
+	public function new(initA:Array<Dynamic>, ?initExtra:Map<String,Dynamic>)
+	{
+		a = initA;
+		extra = initExtra;
+	}
 }
