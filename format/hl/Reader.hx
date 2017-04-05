@@ -87,18 +87,20 @@ class Reader {
 		case 3:
 			return HI32;
 		case 4:
-			return HF32;
+			return HI64;
 		case 5:
-			return HF64;
+			return HF32;
 		case 6:
-			return HBool;
+			return HF64;
 		case 7:
-			return HBytes;
+			return HBool;
 		case 8:
-			return HDyn;
+			return HBytes;
 		case 9:
-			return HFun({ args : [for( i in 0..._read() ) HAt(uindex())], ret : HAt(uindex()) });
+			return HDyn;
 		case 10:
+			return HFun({ args : [for( i in 0..._read() ) HAt(uindex())], ret : HAt(uindex()) });
+		case 11:
 			var p : ObjPrototype = {
 				name : getString(),
 				tsuper : null,
@@ -121,19 +123,19 @@ class Reader {
 			p.proto = [for( i in 0...nproto ) { name : getString(), findex : uindex(), pindex : index() }];
 			p.bindings = [for( i in 0...nbindings ) { fid : uindex(), mid : uindex() }];
 			return HObj(p);
-		case 11:
-			return HArray;
 		case 12:
-			return HType;
+			return HArray;
 		case 13:
-			return HRef(getType());
+			return HType;
 		case 14:
-			return HVirtual([for( i in 0...uindex() ) { name : getString(), t : HAt(uindex()) }]);
+			return HRef(getType());
 		case 15:
-			return HDynObj;
+			return HVirtual([for( i in 0...uindex() ) { name : getString(), t : HAt(uindex()) }]);
 		case 16:
-			return HAbstract(getString());
+			return HDynObj;
 		case 17:
+			return HAbstract(getString());
+		case 18:
 			var name = getString();
 			var global = uindex() - 1;
 			return HEnum({
@@ -141,7 +143,7 @@ class Reader {
 				globalValue : global < 0 ? null : global,
 				constructs : [for( i in 0...uindex() ) { name : getString(), params : [for( i in 0...uindex() ) HAt(uindex())] }],
 			});
-		case 18:
+		case 19:
 			return HNull(getType());
 		case x:
 			throw "Unsupported type value " + x;
@@ -286,7 +288,7 @@ class Reader {
 		if( i.readString(3) != "HLB" )
 			throw "Invalid HL file";
 		version = _read();
-		if( version > 1 )
+		if( version <= 1 || version > 2 )
 			throw "HL Version " + version + " is not supported";
 		flags = haxe.EnumFlags.ofInt(uindex());
 		var nints = uindex();
@@ -340,6 +342,7 @@ class Reader {
 
 
 	static var OP_ARGS = [
+		// OMov
 		2,
 		2,
 		2,
@@ -347,7 +350,7 @@ class Reader {
 		2,
 		2,
 		1,
-
+		// OAdd
 		3,
 		3,
 		3,
@@ -361,12 +364,12 @@ class Reader {
 		3,
 		3,
 		3,
-
+		// ONeg
 		2,
 		2,
 		1,
 		1,
-
+		// OCall0
 		2,
 		3,
 		4,
@@ -376,20 +379,20 @@ class Reader {
 		-1,
 		-1,
 		-1,
-
+		// OStaticClosure
 		2,
 		3,
 		3,
-
-		 2,
-		2,
-		3,
-		3,
+		// OGetGlobal
 		2,
 		2,
 		3,
 		3,
-
+		2,
+		2,
+		3,
+		3,
+		// OJTrue
 		2,
 		2,
 		2,
@@ -403,7 +406,7 @@ class Reader {
 		3,
 		3,
 		1,
-
+		// OToDyn
 		2,
 		2,
 		2,
@@ -411,7 +414,7 @@ class Reader {
 		2,
 		2,
 		2,
-
+		// OLabel
 		0,
 		1,
 		1,
@@ -420,7 +423,7 @@ class Reader {
 		1,
 		2,
 		1,
-
+		// OGetUI8
 		3,
 		3,
 		3,
@@ -429,21 +432,17 @@ class Reader {
 		3,
 		3,
 		3,
-		3,
-		3,
-		3,
-		3,
-
+		// ONew
 		1,
 		2,
 		2,
 		2,
 		2,
-
+		// ORef
 		2,
 		2,
 		2,
-
+		// OMakeEnum
 		-1,
 		2,
 		2,

@@ -23,6 +23,7 @@ enum HLType {
 	HUi8;
 	HUi16;
 	HI32;
+	HI64;
 	HF32;
 	HF64;
 	HBool;
@@ -165,15 +166,11 @@ enum Opcode {
 	OEndTrap( last : Bool );
 	OGetUI8( dst : Reg, a : Reg, b : Reg );
 	OGetUI16( dst : Reg, a : Reg, b : Reg );
-	OGetI32( dst : Reg, a : Reg, b : Reg );
-	OGetF32( dst : Reg, a : Reg, b : Reg );
-	OGetF64( dst : Reg, a : Reg, b : Reg );
+	OGetMem( dst : Reg, a : Reg, b : Reg );
 	OGetArray( dst : Reg, a : Reg, b : Reg );
 	OSetUI8( dst : Reg, a : Reg, b : Reg );
 	OSetUI16( dst : Reg, a : Reg, b : Reg );
-	OSetI32( dst : Reg, a : Reg, b : Reg );
-	OSetF32( dst : Reg, a : Reg, b : Reg );
-	OSetF64( dst : Reg, a : Reg, b : Reg );
+	OSetMem( dst : Reg, a : Reg, b : Reg );
 	OSetArray( dst : Reg, a : Reg, b : Reg );
 	ONew( dst : Reg );
 	OArraySize( dst : Reg, a : Reg );

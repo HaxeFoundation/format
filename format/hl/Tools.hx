@@ -5,7 +5,7 @@ class Tools {
 
 	public static function isDynamic( t : HLType ) {
 		return switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HF32, HF64, HBool, HAt(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_):
 			false;
 		case HBytes, HType, HRef(_), HAbstract(_), HEnum(_):
 			false;
@@ -16,7 +16,7 @@ class Tools {
 
 	public static function isPtr( t : HLType ) {
 		return switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HF32, HF64, HBool, HAt(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_):
 			false;
 		case HBytes, HType, HRef(_), HAbstract(_), HEnum(_):
 			true;
@@ -27,7 +27,7 @@ class Tools {
 
 	public static function containsPointer( t : HLType ) {
 		switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HF32, HF64, HBool, HAt(_), HBytes, HType, HRef(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HBytes, HType, HRef(_):
 			return false;
 		case HNull(t):
 			return isPtr(t);
@@ -71,6 +71,7 @@ class Tools {
 		case HUi8: "hl.UI8";
 		case HUi16: "hl.UI16";
 		case HI32: "Int";
+		case HI64: "hl.I64";
 		case HF32: "Single";
 		case HF64: "Float";
 		case HBool: "Bool";
