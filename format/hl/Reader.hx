@@ -179,7 +179,7 @@ class Reader {
 			var args = OP_ARGS[op];
 			if( args < 0 ) {
 				switch( op ) {
-				case 29, 30, 31, 32, 92:
+				case 29, 30, 31, 32, 88:
 					index();
 					index();
 					for( i in 0...uindex() ) index();
