@@ -6,6 +6,12 @@ os:
 
 osx_image: xcode6.4
 
+script: bash ./deploy.sh
+env:
+  global:
+  - ENCRYPTION_LABEL: "a6ef887d3fba"
+  - COMMIT_AUTHOR_EMAIL: "nadako@gmail.com"
+
 haxe:
   - "3.2.1"
   - "3.4.2"
@@ -94,3 +100,5 @@ script:
   -   haxe project.hxml
   -   neko bin/test bin/fibasm.swf
   - popd
+  - bash doc-deploy.sh
+
