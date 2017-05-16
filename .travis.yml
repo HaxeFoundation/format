@@ -6,7 +6,6 @@ os:
 
 osx_image: xcode6.4
 
-script: bash ./deploy.sh
 env:
   global:
   - ENCRYPTION_LABEL: "a6ef887d3fba"
@@ -101,4 +100,3 @@ script:
   -   neko bin/test bin/fibasm.swf
   - popd
   - bash doc-deploy.sh
-
