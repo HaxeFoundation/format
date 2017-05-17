@@ -205,7 +205,7 @@ class Reader {
 		switch( args ) {
 		case -1:
 			switch( op ) {
-			case 29, 30, 31, 32, 92:
+			case 29, 30, 31, 32, 92, 88:
 				args3[0] = index();
 				args3[1] = index();
 				args3[2] = [for( i in 0...uindex() ) index()];
