@@ -1,0 +1,190 @@
+2017-01-04: 3.3.0
+	various agal/SWF improvements
+	avm1 writer [herschel]
+	php inflate/deflate [clemos]
+	gif writer [yanrishatum]
+	tga support [yanrishatum]
+	fixes for wav files
+	png tRNS support [yanrishatum]
+	pex support [benmorris]
+	
+2015-03-09: 3.2.0
+	improved bmp support [azrafe7]
+	deflate java support
+	gif support [yanrishatum]
+	allow decode PNG with y flipped
+	fixed png filters in palette mode
+	added elf reader
+	
+2014-11-12: 3.1.2
+	fix for png
+	added format.amf3 support
+
+2014-09-06: 3.1.1
+	added indexed png with <8 bits palette indexes support
+	completed AGAL2 support
+	added format.gz.Reader.read
+	
+2014-08-29: 3.1.0
+	added LZ4 support
+	fixes for AGAL2
+
+2014-04-20: 3.0.5
+	fixed rare bug in PNG decoding
+	bug fixes in WAV and SWF
+
+2013-09-09: 3.0.4
+	handle transparency extension in 8 bit pngs
+
+2013-09-02: 3.0.3
+	minor changes
+
+2013-06-05: 3.0.2
+	png : added support for 8 bit and gray scale extract
+	
+2013-05-21: 3.0.1
+	agal : added support for ATF textures
+
+2013-02-23: 3.0
+	haxe3 RC fixes
+	removed hxsl (hxsl2 is on http://github.com/ncannasse/hxsl)
+	
+2013-01-16: 1.26
+	more haxe3 fixes
+	added format.wav (@joshuagranick)
+
+2012-10-29: 1.25
+	added tgz support
+	added haxe3 suppport
+
+2012-09-27: 1.24
+	hxsl fixes
+	2.11 SVN compatibility
+	
+2012-06-19: 1.23
+	minor fixes for Haxe 2.10 and 3.x compatibility
+
+2012-04-24: 1.22
+	png : improved decoding speed by using MemoryBytes for flash10+
+	tar : do not check 'ustar' signature (not always correctly set for all entries)
+	zip : fixed CRC32 with Haxe/SVN
+
+2012-03-05: 1.21
+	png : added scanline filters decoding
+	hxsl : fixed % emulation in AGAL
+
+2012-01-09: 1.20
+	hxsl + agal : added seq, sne, lod bias, removed centroid
+	hxsl + agal : added indirect access
+	hxsl : removed Color3, added Int (=Color), fixed Int in input
+	hxsl : make public select() and getVertex/Fragment constants
+
+2011-10-05: 1.19.5
+	hxsl : fix for haxe 2.08
+	tar : bugfix
+
+2011-09-12: 1.19.4
+	hxsl : minor fix preventing compilation with 2.08
+	hxsl : allowed static var SRC shader decl
+	agal : bugfix with molehill beta
+
+2011-06-07: 1.19.3
+	swf : added TMorpShape
+	tools : little change in BitsInput, added MemoryInput
+
+2011-05-17: 1.19.2
+	hxsl : bugfixes, added helper functions and % operator
+	hxsl : better register allocation
+	hxsl : optimizations (const propagation)
+
+2011-03-05: 1.19.1
+	hxsl/agal : bugfixes & optimizations
+
+2011-02-28: 1.19
+	amf : added Array support
+	agal : added Data, Writer
+	hxsl : added Parser + Build + agal Compiler + Shader
+
+2010-12-08: 1.18
+	neko : added Reader, VM
+	neko : added Templo loader
+	tar : fixed Reader
+	swf : fixed some blendMode inversions
+
+2010-09-15: 1.17
+	swf : added TDoActions, TExport
+	swf : header.fps is now a Float (instead of Fixed8)
+	abc : fixed superclass redefinition, always call superconstructor
+	as1 : added Data and Reader
+
+2010-06-10: 1.16
+	flv : readHeader fixes
+	zip : added utf8 bit support
+	zip : added progressive read support
+	tools : allow no CRC check in InflateImpl
+
+2010-02-23: 1.15
+	swf : fixed TBackgroundColor (use bigEndian r/w)
+	tools : fixed CRC32 with -cpp
+	jpg : added (contributed by Robert Sköld)
+	bmp : added (contributed by Robert Sköld)
+	swf : fixed readLossless with 8bits bitmaps
+	swf : fixed issue when rect is not rounded
+	tools : added Inflate/Deflate support for cpp
+
+2009-10-24: 1.14
+	png : added
+
+2009-09-11: 1.13
+	zip : added extra fields handling
+	zip : fixed .run was renamed to .execute in haXe 2.04
+	abc : fixed ODebugReg
+	swf : added BinaryData, JPEG and Sound tags
+	swf : fixed Lossless bitmap tags (8 bit colormodel)
+	mp3 : added (contributed by Robin Palatoi)
+
+2009-04-25: 1.12
+	swf : fixed TBackgroundColor write bug
+
+2009-04-21: 1.11
+	abc : added missing flash10 + alchemy opcodes
+
+2009-04-19: 1.10
+	swf : fixed typo
+	pbj : bugfix for opcodes with various lengths
+
+2009-04-18: 1.09
+	swf : added TBackgroundColor tag
+	swf : fixed InflateImpl for JS/Flash8
+	abc : fixed field metadata
+
+2009-01-12: 1.08
+	swf : fixed UTF8 issues in labels and instance names
+	swf : added lossless bits (require "ext" tag mode)
+
+2008-12-27: 1.07
+	bugfix in Zip Writer with multiples files
+	added Tar Writer (contributed by Ian Liu)
+	bugfix in ABC Context (classes were not properly registered)
+
+2008-12-23: 1.06
+	added ABC support (merged from hxASM)
+	completed SWF support
+
+2008-12-04: 1.05
+	fixes in Inflate and Deflate
+
+2008-12-04: 1.04
+	added SWF support
+	added Inflate support
+
+2008-11-23: 1.03
+	added PBJ support
+
+2008-08-04: 1.02
+	minor fixes
+
+2008-08-03: 1.0
+	AMF and FLV (from haxeVideo)
+	PDF (from hxPDF)
+	ZIP, TAR, GZ (from haXe Neko Library)

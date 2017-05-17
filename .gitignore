@@ -1,0 +1,5 @@
+/tests/**/bin/
+/tests/bmp/out_*.bmp
+/tests/elf/*.n
+/tests/swf/*.swf
+/doc
