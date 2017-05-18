@@ -29,6 +29,11 @@ Currently supported formats are :
   * GIF (Image file format - writer don't have tools)
   * TGA (TARGA Image file format; Reader/Writer does not support developer data chunk; Writer does not support RLE encoding)
 
+Documentation
+=============
+
+Automatically generated API documentation is here: http://haxefoundation.github.io/format/
+
 Installation
 ============
 
