@@ -179,11 +179,11 @@ class Reader {
 			var args = OP_ARGS[op];
 			if( args < 0 ) {
 				switch( op ) {
-				case 29, 30, 31, 32, 88:
+				case 29, 30, 31, 32, 90:
 					index();
 					index();
 					for( i in 0...uindex() ) index();
-				case 68:
+				case 70:
 					// OSwitch
 					uindex();
 					for( i in 0...uindex() ) uindex();
@@ -205,12 +205,12 @@ class Reader {
 		switch( args ) {
 		case -1:
 			switch( op ) {
-			case 29, 30, 31, 32, 92:
+			case 29, 30, 31, 32, 90:
 				args3[0] = index();
 				args3[1] = index();
 				args3[2] = [for( i in 0...uindex() ) index()];
 				return Type.createEnumIndex(Opcode, op, args3);
-			case 68:
+			case 70:
 				// OSwitch
 				args3[0] = uindex();
 				args3[1] = [for( i in 0...uindex() ) uindex()];
@@ -397,6 +397,8 @@ class Reader {
 		2,
 		2,
 		2,
+		3,
+		3,
 		3,
 		3,
 		3,

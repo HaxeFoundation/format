@@ -146,6 +146,8 @@ enum Opcode {
 	OJSLte( dst : Reg, a : Reg, offset : Int );
 	OJULt( dst : Reg, a : Reg, offset : Int );
 	OJUGte( dst : Reg, a : Reg, offset : Int );
+	OJNotLt( dst : Reg, a : Reg, offset : Int );
+	OJNotGte( dst : Reg, a : Reg, offset : Int );
 	OJEq( dst : Reg, a : Reg, offset : Int );
 	OJNotEq( dst : Reg, a : Reg, offset : Int );
 	OJAlways( offset : Int );
