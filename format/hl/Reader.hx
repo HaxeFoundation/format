@@ -450,6 +450,9 @@ class Reader {
 		2,
 		4,
 		3,
+		// OAssert
+		0,
+		0,
 	];
 
 }

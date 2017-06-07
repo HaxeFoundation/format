@@ -7,9 +7,9 @@ class Tools {
 		return switch( t ) {
 		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_):
 			false;
-		case HBytes, HType, HRef(_), HAbstract(_), HEnum(_):
+		case HBytes, HType, HRef(_), HAbstract(_):
 			false;
-		case HDyn, HFun(_), HObj(_), HArray, HVirtual(_), HDynObj, HNull(_):
+		case HDyn, HFun(_), HObj(_), HArray, HVirtual(_), HDynObj, HNull(_), HEnum(_):
 			true;
 		}
 	}
