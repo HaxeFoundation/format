@@ -303,7 +303,7 @@ class Reader {
 		if( c < 0x80 )
 			return c >> preShift;
 
-		var ret:UInt = (c & 0x7f) << 7;
+		var ret:Int = (c & 0x7f) << 7;
 		c = i.readByte() & 0xFF;
 		if( c < 0x80 )
 			return (ret | c) >> preShift;
