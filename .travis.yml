@@ -4,7 +4,8 @@ os:
   - linux
   - osx
 
-osx_image: xcode6.4
+sudo: false
+dist: trusty
 
 env:
   global:
@@ -27,14 +28,8 @@ addons:
       - mono-devel
       - mono-mcs
       # Flash
-      - libcurl3:i386
-      - libglib2.0-0:i386
-      - libx11-6:i386
-      - libxext6:i386
-      - libxt6:i386
-      - libxcursor1:i386
-      - libnss3:i386
-      - libgtk2.0-0:i386
+      - libglib2.0
+      - libfreetype6
       # C++
       - gcc-multilib
       - g++-multilib
