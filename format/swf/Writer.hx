@@ -1123,10 +1123,7 @@ class Writer {
 			o.writeInt16(data.layout.leading);
 
 			for (g in data.layout.glyphs) {
-				var advance = if(g.advance > 32767) 32767
-					else if(g.advance < -32768) -32768
-					else g.advance;
-				o.writeInt16(advance);
+				o.writeUInt16(g.advance & 0xFFFF);
 			}
 
 			for(g in data.layout.glyphs)
