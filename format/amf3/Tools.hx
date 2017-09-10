@@ -186,7 +186,7 @@ class Tools {
 		if( a == null ) return null;
 		return switch( a ) {
 		case AMap(m):
-			var p = new Map<Value, Value>();
+			var p = new haxe.ds.EnumValueMap<Value, Value>();
 			for (f in m.keys())
 				p.set(decode(f), decode(m.get(f)));
 			p;

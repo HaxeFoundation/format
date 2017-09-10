@@ -30,24 +30,32 @@ import format.amf3.Value;
 class Reader {
 
 	var i : haxe.io.Input;
+	var strRef : Array<String>;
 
 	public function new( i : haxe.io.Input ) {
 		this.i = i;
 		i.bigEndian = true;
+		this.strRef = new Array<String>();
 	}
 
 	function readObject() {
 		var n = readInt();
-		var dyn = ((n >> 3) & 0x01) == 1;
+		var dyn = ((n >> 3) & 0x01) == 1 || ((n & 0x01) == 1);
+		if (n != 0x01)
+			i.readByte();
 		n >>= 4;
-		i.readByte();
 		var h = new Map();
 		if (dyn) {
 			var s;
-			while ( true ) {
+			var done = false;
+			while ( !done ) {
 				s = readString();
-				if (s == "") break;
-				h.set(s, read());
+				if (s == "") {
+					done = true;
+				}
+				else {
+					h.set(s, read());
+				}
 			}
 		}
 		else {
@@ -99,36 +107,50 @@ class Reader {
 	}
 
 	function readString() {
-		var len = readInt(1);
-		var u = new haxe.Utf8(len);
-		var c = 0, d = 0, j:UInt = 0, it = 0;
-		while (j < len) {
-			c = i.readByte();
-			if (c < 0x80) {
-				it = 0;
-				d = c;
+		var len = readInt();
+		if ((len & 0x01) == 1) {
+			len >>= 1;
+			var s = "";
+			var c = 0, d = 0, j:UInt = 0, it = 0;
+			while (j < len) {
+				c = i.readByte();
+				if (c < 0x80) {
+					it = 0;
+					d = c;
+				}
+				else if (c < 0xe0) {
+					it = 1;
+					d = c & 0x1f;
+				}
+				else if (c < 0xf0) {
+					it = 2;
+					d = c & 0x0f;
+				}
+				else if (c < 0xf1) {
+					it = 3;
+					d = c & 0x07;
+				}
+				c = it;
+				while (c-- > 0) {
+					d <<= 6;
+					d |= i.readByte() & 0x3f;
+				}
+				j += it + 1;
+				if (d != 0x01) {
+					var u = new haxe.Utf8();
+					u.addChar(d);
+					s += u.toString();
+				}
 			}
-			else if (c < 0xe0) {
-				it = 1;
-				d = c & 0x1f;
+			if (s != "") {
+				this.strRef.push(s);
 			}
-			else if (c < 0xf0) {
-				it = 2;
-				d = c & 0x0f;
-			}
-			else if (c < 0xf1) {
-				it = 3;
-				d = c & 0x07;
-			}
-			c = it;
-			while (c-- > 0) {
-				d <<= 6;
-				d |= i.readByte() & 0x3f;
-			}
-			j += it + 1;
-			if (d != 0x01) u.addChar(d);
+			return s;
 		}
-		return u.toString();
+		else {
+			var id = len >> 1;
+			return this.strRef[id];
+		}
 	}
 	
 	public function readWithCode( id ) {
