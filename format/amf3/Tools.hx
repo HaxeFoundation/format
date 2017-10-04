@@ -25,11 +25,13 @@
  * DAMAGE.
  */
 package format.amf3;
+import format.amf3.Amf3Array;
 import format.amf3.Value;
+import haxe.ds.Vector;
 
 class Tools {
 
-	public static function encode( o : Dynamic ) {
+	public static function encode( o : Dynamic ) : Value {
 		return switch( Type.typeof(o) ) {
 		case TNull: ANull;
 		case TBool: ABool(o);
@@ -59,6 +61,21 @@ class Tools {
 				for(v in o)
 					a.push(encode(v));
 				AArray(a);
+			case cast Amf3Array:
+				var o : Amf3Array = o;
+				var a = new Array();
+				var m = new Map<String,Value>();
+				for(v in o.a)
+					a.push(encode(v));
+				for(k in o.extra)
+					m[k] = encode(o.extra[k]);
+				AArray(a, m);
+			case cast Vector:
+				var o : Vector<Dynamic> = o;
+				var a = new Vector<Value>(o.length);
+				for(i in 0...o.length)
+					a[i] = encode(o[i]);
+				AVector(a);
 			case cast haxe.io.Bytes:
 				ABytes(o);
 			case cast Date:
@@ -76,7 +93,7 @@ class Tools {
 			throw "Can't encode "+Std.string(o);
 		}
 	}
-	
+
 	public static function decode( a : Value ) : Dynamic {
 		return switch ( a ) {
 			case AUndefined: undefined(a);
@@ -86,7 +103,8 @@ class Tools {
 			case ANumber(_): number(a);
 			case AString(_): string(a);
 			case ADate(_): date(a);
-			case AArray(_): array(a);
+			case AArray(_,_): array(a);
+			case AVector(_): vector(a);
 			case AObject(_,_): object(a);
 			case AXml(_): xml(a);
 			case ABytes(_): bytes(a);
@@ -142,15 +160,30 @@ class Tools {
 		}
 	}
 
-	public static function array( a : Value ) {
+	public static function array( a : Value ) : Amf3Array {
 		if( a == null ) return null;
 		return switch( a ) {
-		case AArray(a):
+		case AArray(a, m):
 			var b = [];
 			for (f in a)
 				b.push(decode(f));
-			b;
+			var c = new Map<String, Dynamic>();
+			for (mk in m.keys())
+				c[mk] = decode(m[mk]);
+			new Amf3Array(b,c);
 		default: null;
+		}
+	}
+
+	public static function vector( a : Value ) {
+		if( a == null ) return null;
+		return switch( a ) {
+			case AVector(a):
+				var v = new Vector<Dynamic>(a.length);
+				for (i in 0...a.length)
+					v[i] = decode(a[i]);
+				v;
+			default: null;
 		}
 	}
 
