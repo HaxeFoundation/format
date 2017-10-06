@@ -344,7 +344,7 @@ class Reader {
 			return AString( "" );  // 0x01 is empty string and is never sent by reference
 		// get the string characters
 		var u = new haxe.Utf8(len);
-		var c = 0, d = 0, j:UInt = 0, it = 0;
+		var c = 0, d = 0, j:Int = 0, it = 0;
 		while (j < len) {
 			c = i.readByte();
 			if (c < 0x80) {
