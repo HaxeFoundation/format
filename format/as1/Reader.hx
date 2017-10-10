@@ -277,10 +277,10 @@ class Reader {
 				var flags = i.readByte();
 				var play = flags & 1 != 0;
 				var delta = if( flags & 2 == 0 ) null else i.readUInt16();
-				AGotoFrame2(play, delta);				
+				AGotoFrame2(play, delta);
+			case _:			
+				return AUnknown(id, i.read(len));
 		}
-		
-		return AUnknown(id, i.read(len));
 	}
 
 }
