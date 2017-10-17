@@ -14,6 +14,7 @@ class Tools {
 		}
 	}
 
+
 	public static function isPtr( t : HLType ) {
 		return switch( t ) {
 		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_):

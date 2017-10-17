@@ -452,6 +452,8 @@ class Reader {
 		3,
 		// OAssert
 		0,
+		2,
+		3,
 		0,
 	];
 

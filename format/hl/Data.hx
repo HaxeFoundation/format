@@ -188,5 +188,7 @@ enum Opcode {
 	OEnumField( dst : Reg, a : Reg, i : Index<EnumConstruct>, param : Int );
 	OSetEnumField( dst : Reg, param : Int, a : Reg );
 	OAssert;
+	ORefData( dst : Reg, src : Reg );
+	ORefOffset( dst : Reg, src : Reg, offset : Reg );
 	ONop;
 }
