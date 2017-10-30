@@ -289,10 +289,15 @@ class Writer {
 				if( infos.catchLength != null ) {
 					flags |= 1;
 					o.writeUInt16( infos.catchLength );
+				} else {
+					o.writeUInt16( 0 );
 				}
+
 				if( infos.finallyLength != null ) {
 					flags |= 2;
 					o.writeUInt16( infos.finallyLength );
+				} else {
+					o.writeUInt16( 0 );
 				}
 				
 				switch( infos.style ) {
