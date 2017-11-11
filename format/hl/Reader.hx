@@ -170,6 +170,7 @@ class Reader {
 			regs : [for( i in 0...nregs ) getType()],
 			ops : readCode ? [for( i in 0...nops ) readOp()] : skipOps(nops),
 			debug : readDebug(nops),
+			assigns : flags.has(HasDebug) && version >= 3 ? [for( i in 0...uindex() ) { varName : uindex(), position : index() - 1 }] : [],
 		};
 	}
 
@@ -288,7 +289,7 @@ class Reader {
 		if( i.readString(3) != "HLB" )
 			throw "Invalid HL file";
 		version = _read();
-		if( version <= 1 || version > 2 )
+		if( version <= 1 || version > 3 )
 			throw "HL Version " + version + " is not supported";
 		flags = haxe.EnumFlags.ofInt(uindex());
 		var nints = uindex();
