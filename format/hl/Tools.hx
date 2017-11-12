@@ -81,7 +81,28 @@ class Tools {
 		case HFun(f):
 			if( f.args.length == 0 ) "Void -> " + fstr(f.ret) else [for( a in f.args ) fstr(a)].join(" -> ") + " -> " + fstr(f.ret);
 		case HObj(o):
-			o.name;
+			switch( o.name ) {
+			case "hl.types.ArrayObj":
+				"Array<T>";
+			case "hl.types.ArrayBytes_Int":
+				"Array<Int>";
+			case "hl.types.ArrayBytes_Float":
+				"Array<Float>";
+			case "hl.types.ArrayBytes_Single":
+				"Array<Single>";
+			case "hl.types.ArrayBytes_hl_UI16":
+				"Array<hl.UI16>";
+			case "hl.types.ArrayDyn":
+				"Array<Dynamic>";
+			case "haxe.ds.IntMap":
+				"Map<Int,Dynamic>";
+			case "haxe.ds.StringMap":
+				"Map<String,Dynamic>";
+			case "haxe.ds.ObjectMap":
+				"Map<{},Dynamic>";
+			default:
+				o.name;
+			}
 		case HArray:
 			"hl.NativeArray";
 		case HType:
