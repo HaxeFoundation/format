@@ -214,7 +214,7 @@ class Reader {
 			f = FVar(t,v,kind == 0x06);
 		case 0x01, 0x02, 0x03:
 			var mt = readIndex();
-			var final = kind & 0x10 != 0;
+			var isFinal = kind & 0x10 != 0;
 			var over = kind & 0x20 != 0;
 			var kind = switch( kind & 0xF  ) {
 				case 0x01: KNormal;
@@ -222,7 +222,7 @@ class Reader {
 				case 0x03: KSetter;
 				default: throw "assert";
 			}
-			f = FMethod(mt,kind,final,over);
+			f = FMethod(mt,kind,isFinal,over);
 		case 0x04:
 			f = FClass(readIndex());
 		case 0x05:
