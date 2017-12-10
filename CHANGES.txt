@@ -1,3 +1,8 @@
+2017-12-12: 3.4.0
+	added HL reader support
+	some Haxe 4.0 support
+	added amf3 parsing [sbijoshj]
+
 2017-01-04: 3.3.0
 	various agal/SWF improvements
 	avm1 writer [herschel]
