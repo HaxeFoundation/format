@@ -53,7 +53,7 @@ class Tools {
 	public static function hash( name : String ) {
 		var h = 0;
 		for( i in 0...name.length )
-			h = 223 * h + StringTools.fastCodeAt(name,i);
+			h = (223 * h + StringTools.fastCodeAt(name,i)) | 0;
 		h %= 0x1FFFFF7B;
 		return h;
 	}
