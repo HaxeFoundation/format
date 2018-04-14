@@ -1,3 +1,7 @@
+2018-04-14: 3.4.1
+	HL version 4 reader
+	bugfix JS overflow in HL hashing
+
 2017-12-12: 3.4.0
 	added HL reader support
 	some Haxe 4.0 support
