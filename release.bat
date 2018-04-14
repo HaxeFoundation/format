@@ -27,6 +27,7 @@ if '%errorlevel%' NEQ '0' (
 
 rm -rf release release.zip
 mkdir release
+set PATH=c:\progra~1\7-zip;%PATH%
 haxe -xml haxedoc.xml --macro include('format',true,['format.tools.MemoryInput','format.tools.MemoryBytes','format.hxsl.Shader'])
 cp -R format haxelib.json haxedoc.xml CHANGES.txt release
 rm -rf release/*/.svn release/*/*/.svn
