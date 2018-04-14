@@ -289,7 +289,7 @@ class Reader {
 		if( i.readString(3) != "HLB" )
 			throw "Invalid HL file";
 		version = _read();
-		if( version <= 1 || version > 3 )
+		if( version <= 1 || version > 4 )
 			throw "HL Version " + version + " is not supported";
 		flags = haxe.EnumFlags.ofInt(uindex());
 		var nints = uindex();
@@ -299,6 +299,7 @@ class Reader {
 		var nglobals = uindex();
 		var nnatives = uindex();
 		var nfunctions = uindex();
+		var nconstants = version >= 4 ? uindex() : 0;
 		var entryPoint = uindex();
 		var ints = [for( _ in 0...nints ) i.readInt32()];
 		var floats = [for( _ in 0...nfloats ) i.readDouble()];
@@ -338,6 +339,7 @@ class Reader {
 			globals : [for( i in 0...nglobals ) getType()],
 			natives : [for( i in 0...nnatives ) { lib : getString(), name : getString(), t : getType(), findex : uindex() }],
 			functions : [for( i in 0...nfunctions ) readFunction()],
+			constants : [for( i in 0...nconstants ) { global : uindex(), fields : [for( i in 0...uindex() ) uindex()] }],
 		};
 	}
 

@@ -15,6 +15,7 @@ typedef Data = {
 	var globals : Array<HLType>;
 	var natives : Array<NativeFunction>;
 	var functions : Array<HLFunction>;
+	var constants : Array<HLConstant>;
 	var entryPoint : Int;
 }
 
@@ -77,6 +78,11 @@ typedef HLFunction = {
 	var ops : Array<Opcode>;
 	var debug : Array<Int>;
 	var assigns : Array<{ varName : Index<String>, position : Index<Opcode> }>;
+}
+
+typedef HLConstant = {
+	var global : Int;
+	var fields : Array<Int>;
 }
 
 typedef FunTable = Array<AnyFunction>;
