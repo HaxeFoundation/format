@@ -41,6 +41,7 @@ install:
       brew update;
       brew install mono;
       brew upgrade python;
+      brew install php;
     fi
   # Download and setup a standalone flash player debugger
   - haxe flash/install.hxml
