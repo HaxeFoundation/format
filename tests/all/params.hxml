@@ -1,3 +1,4 @@
 -cp ../..
 -D haxe3
+--no-output
 --macro include('format',true,['format.hxsl.Shader','format.tools.MemoryInput','format.tools.MemoryBytes'])
