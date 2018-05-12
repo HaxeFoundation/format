@@ -57,6 +57,7 @@ install:
   - haxelib install hxjava
   - haxelib install hxcs
   - haxelib install dox
+  - haxelib install hx3compat
   - haxelib list
 
 script:

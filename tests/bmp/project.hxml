@@ -1,4 +1,5 @@
 -cp ../..
+-lib hx3compat
 -main Tests
 -resource bgrw.bmp
 -resource lena.bmp
