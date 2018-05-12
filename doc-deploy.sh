@@ -13,7 +13,7 @@ function doCompile {
 }
 
 # Pull requests and commits to other branches shouldn't try to deploy, just build to verify
-if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" != "$SOURCE_BRANCH" -o "$TRAVIS_HAXE_VERSION" != "3.4.2" -o "$TRAVIS_OS_NAME" != "linux" -o -z "$ENCRYPTED_KEY" -o -z "$ENCRYPTED_IV" ]; then
+if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" != "$SOURCE_BRANCH" -o "$TRAVIS_HAXE_VERSION" != "3.4.7" -o "$TRAVIS_OS_NAME" != "linux" -o -z "$ENCRYPTED_KEY" -o -z "$ENCRYPTED_IV" ]; then
     echo "Skipping deploy; just doing a build."
     doCompile
     exit 0
