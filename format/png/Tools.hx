@@ -271,7 +271,8 @@ class Tools {
 			var bgra = format.tools.MemoryBytes.make(start);
 			#end
 
-			var rline = (h.width * h.colbits) >> 3;
+			var tmp = (h.width * h.colbits);
+			var rline = tmp >> 3;
 			for( y in 0...h.height ) {
 				var f = data.get(r++);
 				if( f == 0 ) {
