@@ -34,29 +34,51 @@ import haxe.Int32;
 class OpReader {
 
 	public var i : haxe.io.Input;
+	public var bytes_read: Int = 0;
 
 	public function new(i) {
 		this.i = i;
 	}
 
+	inline function readByte() {
+		var c = i.readByte();
+		bytes_read++;
+
+		return c;
+	}
+
+	inline function readInt8() {
+		var c = i.readInt8();
+		bytes_read++;
+
+		return c;
+	}
+
+	inline function readInt24() {
+		var c = i.readInt24();
+		bytes_read += 3;
+
+		return c;
+	}
+
 	public function readInt() {
-		var a = i.readByte();
+		var a = readByte();
 		if( a < 128 )
 			return a;
 		a &= 0x7F;
-		var b = i.readByte();
+		var b = readByte();
 		if( b < 128 )
 			return (b << 7) | a;
 		b &= 0x7F;
-		var c = i.readByte();
+		var c = readByte();
 		if( c < 128 )
 			return (c << 14) | (b << 7) | a;
 		c &= 0x7F;
-		var d = i.readByte();
+		var d = readByte();
 		if( d < 128 )
 			return (d << 21) | (c << 14) | (b << 7) | a;
 		d &= 0x7F;
-		var e = i.readByte();
+		var e = readByte();
 		if( e > 15 ) throw "assert";
 		if( ((e & 8) == 0) != ((e & 4) == 0) ) throw haxe.io.Error.Overflow;
 		return (e << 28) | (d << 21) | (c << 14) | (b << 7) | a;
@@ -68,45 +90,45 @@ class OpReader {
 
 	#if haxe3
 	public function readInt32() : Int {
-		var a = i.readByte();
+		var a = readByte();
 		if( a < 128 )
 			return a;
 		a &= 0x7F;
-		var b = i.readByte();
+		var b = readByte();
 		if( b < 128 )
 			return (b << 7) | a;
 		b &= 0x7F;
-		var c = i.readByte();
+		var c = readByte();
 		if( c < 128 )
 			return (c << 14) | (b << 7) | a;
 		c &= 0x7F;
-		var d = i.readByte();
+		var d = readByte();
 		if( d < 128 )
 			return (d << 21) | (c << 14) | (b << 7) | a;
 		d &= 0x7F;
-		var e = i.readByte();
+		var e = readByte();
 		if( e > 15 ) throw "assert";
 		return (e << 28) | (d << 21) | (c << 14) | (b << 7) | a;
 	}
 	#else
 	public function readInt32() : Int32 {
-		var a = i.readByte();
+		var a = readByte();
 		if( a < 128 )
 			return Int32.ofInt(a);
 		a &= 0x7F;
-		var b = i.readByte();
+		var b = readByte();
 		if( b < 128 )
 			return Int32.ofInt((b << 7) | a);
 		b &= 0x7F;
-		var c = i.readByte();
+		var c = readByte();
 		if( c < 128 )
 			return Int32.ofInt((c << 14) | (b << 7) | a);
 		c &= 0x7F;
-		var d = i.readByte();
+		var d = readByte();
 		if( d < 128 )
 			return Int32.ofInt((d << 21) | (c << 14) | (b << 7) | a);
 		d &= 0x7F;
-		var e = i.readByte();
+		var e = readByte();
 		if( e > 15 ) throw "assert";
 		var small = Int32.ofInt((d << 21) | (c << 14) | (b << 7) | a);
 		var big = Int32.shl(Int32.ofInt(e),28);
@@ -115,11 +137,11 @@ class OpReader {
 	#end
 
 	inline function reg() {
-		return i.readByte();
+		return readByte();
 	}
 
 	inline function jmp(j) {
-		return OJump(j,i.readInt24());
+		return OJump(j,readInt24());
 	}
 
 	public function readOp(op) {
@@ -173,10 +195,10 @@ class OpReader {
 		case 0x1A:
 			jmp(JPhysNeq);
 		case 0x1B:
-			var def = i.readInt24();
+			var def = readInt24();
 			var cases = new Array();
 			for( _ in 0...readInt() + 1 )
-				cases.push(i.readInt24());
+				cases.push(readInt24());
 			OSwitch(def,cases);
 		case 0x1C:
 			OPushWith;
@@ -193,7 +215,7 @@ class OpReader {
 		case 0x23:
 			OForEach;
 		case 0x24:
-			OSmallInt(i.readInt8());
+			OSmallInt(readInt8());
 		case 0x25:
 			OInt(readInt());
 		case 0x26:
@@ -325,7 +347,7 @@ class OpReader {
 		case 0x64:
 			OGetGlobalScope;
 		case 0x65:
-			OGetScope(i.readByte());
+			OGetScope(readByte());
 		case 0x66:
 			OGetProp(readIndex());
 		case 0x68:
@@ -457,7 +479,7 @@ class OpReader {
 		case 0xD7:
 			OSetReg(3);
 		case 0xEF:
-			if( i.readByte() != 1 ) throw "assert";
+			if( readByte() != 1 ) throw "assert";
 			var name = readIndex();
 			var r = reg();
 			var line = readInt();
@@ -475,15 +497,26 @@ class OpReader {
 		}
 	}
 
-	public static function decode( i : haxe.io.Input ) {
+	public static function decodeWithLengths( i : haxe.io.Input, lengths : Array<Int> ) {
 		var opr = new OpReader(i);
 		var ops = new Array();
 		while( true ) {
 			var op;
-			try op = i.readByte() catch( e : haxe.io.Eof ) break;
-			ops.push(opr.readOp(op));
+			var position_before_opcode = opr.bytes_read;
+
+			try op = opr.readByte() catch( e : haxe.io.Eof ) break;
+
+			var opcode = opr.readOp(op);
+
+			lengths.push(opr.bytes_read - position_before_opcode);
+			ops.push(opcode);
 		}
 		return ops;
+	}
+
+	public static function decode( i : haxe.io.Input ) {
+		var dummy:Array<Int> = new Array(); // discard
+		return decodeWithLengths(i, dummy);
 	}
 
 }
