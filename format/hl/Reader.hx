@@ -289,12 +289,13 @@ class Reader {
 		if( i.readString(3) != "HLB" )
 			throw "Invalid HL file";
 		version = _read();
-		if( version <= 1 || version > 4 )
+		if( version <= 1 || version > 5 )
 			throw "HL Version " + version + " is not supported";
 		flags = haxe.EnumFlags.ofInt(uindex());
 		var nints = uindex();
 		var nfloats = uindex();
 		var nstrings = uindex();
+		var nbytes = version >= 5 ? uindex() : 0;
 		var ntypes = uindex();
 		var nglobals = uindex();
 		var nnatives = uindex();
@@ -304,6 +305,11 @@ class Reader {
 		var ints = [for( _ in 0...nints ) i.readInt32()];
 		var floats = [for( _ in 0...nfloats ) i.readDouble()];
 		strings = readStrings(nstrings);
+		var bytes = null, bytesPos = null;
+		if( version >= 5 ) {
+			bytes = i.read(i.readInt32());
+			bytesPos = [for( _ in 0...nbytes ) uindex()];
+		}
 		debugFiles = null;
 		if( flags.has(HasDebug) )
 			debugFiles = readStrings(uindex());
@@ -333,6 +339,8 @@ class Reader {
 			ints : ints,
 			floats : floats,
 			strings : strings,
+			bytes : bytes,
+			bytesPos : bytesPos,
 			debugFiles : debugFiles,
 			types : types,
 			entryPoint : entryPoint,

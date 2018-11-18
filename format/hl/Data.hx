@@ -10,6 +10,8 @@ typedef Data = {
 	var ints : Array<Int>;
 	var floats : Array<Float>;
 	var strings : Array<String>;
+	var bytes : haxe.io.Bytes;
+	var bytesPos : Array<Int>;
 	var debugFiles : Array<String>;
 	var types : Array<HLType>;
 	var globals : Array<HLType>;
