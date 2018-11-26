@@ -7,32 +7,38 @@ Formats
 
 Currently supported formats are :
 
-  * ABC (Flash AS3 bytecode format)
-  * AGAL (Adobe Shader Assembler for Stage3D - writer only atm)
-  * AMF (Flash serialized object)
-  * AS1 (Adobe ActionScript1-2 bytecode in SWF - reader only atm)
-  * BMP (Bitmap Image format)
-  * FLV (Flash Video)
-  * GZ (compressed file)
-  * JPG (Image file format - writer only atm)
-  * MP3 (compressed audio)
-  * NEKO (NekoVM bytecode)
-  * PBJ (PixelBender Binary file)
-  * PDF (only generic file structure and partial decryption)
-  * PEX (particle effect format)
-  * PNG (image file format)
-  * SWF (Flash file format)
-  * TAR (Archive)
-  * TGZ (TAR+GZ Archive)
-  * WAV (Raw sound)
-  * ZIP (Compressed Archive)
-  * GIF (Image file format - writer don't have tools)
-  * TGA (TARGA Image file format; Reader/Writer does not support developer data chunk; Writer does not support RLE encoding)
+
+| Format | Description | Reader | Writer |
+|---|---|---|---|
+| ABC | Flash AS3 bytecode format | ☑ | ☑ |
+| AGAL | Adobe Shader Assembler for Stage3D | ❌ | ☑ |
+| AMF | Flash serialized object | ☑ | ☑ |
+| AS1 | Adobe ActionScript1-2 bytecode in SWF | ☑ | ❌ |
+| BMP | Bitmap Image format | ☑ | ☑ |
+| ELF | Executable and Linkable Format | ☑ | ❌ |
+| FLV | Flash Video | ☑ | ☑ |
+| GIF | Image file format | ☑ | ☑ |
+| GZ | Compressed file | ☑ | ❌ |
+| HL | HashLink | ☑ | ❌ |
+| JPG | Image file format | ❌ | ☑ |
+| LZ4 | Compressed file | ☑ | ❌ |
+| MP3 | Compressed audio | ☑ | ☑ |
+| NEKO | NekoVM bytecode | ☑ | ❌ |
+| PBJ | PixelBender Binary file | ☑ | ☑ |
+| PDF | Only generic file structure and partial decryption | ☑ | ❌ |
+| PEX | Particle effect format | ☑ | ❌ |
+| PNG | Image file format | ☑ | ☑ |
+| SWF | Flash file format | ☑ | ☑ |
+| TAR | Compressed Archive | ☑ | ☑ |
+| TGA | TARGA Image file format; Reader/Writer does not support developer data chunk; Writer does not support RLE encoding | ☑ | ☑ |
+| TGZ | TAR+GZ Archive | ☑ | ❌ |
+| WAV | Raw sound | ☑ | ☑ |
+| ZIP | Compressed Archive | ☑ | ☑ |
 
 Documentation
 =============
 
-Automatically generated API documentation is here: http://haxefoundation.github.io/format/
+Automatically generated API documentation is here: https://haxefoundation.github.io/format/format/
 
 Installation
 ============
