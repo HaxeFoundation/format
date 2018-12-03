@@ -145,6 +145,8 @@ class Reader {
 			});
 		case 19:
 			return HNull(getType());
+		case 20:
+			return HFun({ args : [for( i in 0..._read() ) HAt(uindex())], ret : HAt(uindex()) });
 		case x:
 			throw "Unsupported type value " + x;
 		}
@@ -318,7 +320,7 @@ class Reader {
 			types[i] = readType();
 		for( i in 0...ntypes )
 			switch( types[i] ) {
-			case HFun(f):
+			case HFun(f), HMethod(f):
 				for( i in 0...f.args.length ) f.args[i] = fixType(f.args[i]);
 				f.ret = fixType(f.ret);
 			case HObj(p):

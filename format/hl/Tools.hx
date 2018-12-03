@@ -7,7 +7,7 @@ class Tools {
 		return switch( t ) {
 		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_):
 			false;
-		case HBytes, HType, HRef(_), HAbstract(_):
+		case HBytes, HType, HRef(_), HAbstract(_), HMethod(_):
 			false;
 		case HDyn, HFun(_), HObj(_), HArray, HVirtual(_), HDynObj, HNull(_), HEnum(_):
 			true;
@@ -21,14 +21,14 @@ class Tools {
 			false;
 		case HBytes, HType, HRef(_), HAbstract(_), HEnum(_):
 			true;
-		case HDyn, HFun(_), HObj(_), HArray, HVirtual(_), HDynObj, HNull(_):
+		case HDyn, HFun(_), HObj(_), HArray, HVirtual(_), HDynObj, HNull(_), HMethod(_):
 			true;
 		}
 	}
 
 	public static function containsPointer( t : HLType ) {
 		switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HBytes, HType, HRef(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HBytes, HType, HRef(_), HMethod(_):
 			return false;
 		case HNull(t):
 			return isPtr(t);
@@ -78,7 +78,7 @@ class Tools {
 		case HBool: "Bool";
 		case HBytes: "hl.Bytes";
 		case HDyn: "Dynamic";
-		case HFun(f):
+		case HFun(f), HMethod(f):
 			if( f.args.length == 0 ) "Void -> " + fstr(f.ret) else [for( a in f.args ) fstr(a)].join(" -> ") + " -> " + fstr(f.ret);
 		case HObj(o):
 			switch( o.name ) {
