@@ -667,6 +667,25 @@ class Tools {
 	}
 
 	/**
+		Creates PNG data from bytes that contains a one byte palette index for each pixel and a separate palette with 3 RGB bytes per color.
+	**/
+	public static function buildIndexed( width : Int, height : Int, data : haxe.io.Bytes, palette : haxe.io.Bytes, ?level = 9 ) : Data {
+		var rgb = haxe.io.Bytes.alloc(width * height + height);
+		var w = 0, r = 0;
+		for( y in 0...height ) {
+			rgb.set(w++,0); // no filter for this scanline
+			for( x in 0...width )
+				rgb.set(w++,data.get(r++));
+		}
+		var l = new List();
+		l.add(CHeader({ width : width, height : height, colbits : 8, color : ColIndexed, interlaced : false }));
+		l.add(CPalette(palette));
+		l.add(CData(format.tools.Deflate.run(rgb,level)));
+		l.add(CEnd);
+		return l;
+	}
+
+	/**
 		Creates PNG data from bytes that contains three bytes (R,G and B values) for each pixel.
 	**/
 	public static function buildRGB( width : Int, height : Int, data : haxe.io.Bytes, ?level = 9 ) : Data {
