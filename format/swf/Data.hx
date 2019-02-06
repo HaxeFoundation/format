@@ -43,6 +43,7 @@ enum SWFTag {
 	TMorphShape( id : Int, data : MorphShapeData );
 	TFont( id : Int, data: FontData);
 	TFontInfo( id : Int, data: FontInfoData);
+	TButton(id:Int,trackAsMenu:Bool ,records:Array<ButtonRecord>);
 	TBackgroundColor( color : Int );
 	TDoActions( data : haxe.io.Bytes );
 	TClip( id : Int, frames : Int, tags : Array<SWFTag> );
@@ -298,6 +299,22 @@ typedef FocalGradient = {
 	var data : Gradient;
 }
 
+class  ButtonRecord  {
+	public var stateHitTest:Bool;
+	public var stateDown:Bool;
+	public var stateOver:Bool;
+	public var stateUp:Bool;
+	public var cid:Int;
+	public var depth:Int;
+	public var matrix:Matrix;
+	public var color : CXA;
+	public var filters : Null<Array<Filter>>;
+	public var blendMode : Null<BlendMode>;
+	public function new(){}
+}
+
+
+
 enum SpreadMode {
 	SMPad;
 	SMReflect;
@@ -548,4 +565,6 @@ typedef FontLayoutData = {
 	var glyphs: Array<FontLayoutGlyphData>;
 	var kerning: Array<FontKerningData>;
 }
+
+
 
