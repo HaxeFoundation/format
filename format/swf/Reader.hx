@@ -37,7 +37,8 @@ class Reader {
 	var bits : format.tools.BitsInput;
 	var version : Int;
 
-	var bitsRead : Int; // TODO not really used, maybe remove later
+	var bitsRead : Int; 
+	var bytesRead : Int;
 
 	public function new(i) {
 		this.i = i;
@@ -458,9 +459,10 @@ class Reader {
 	}
 	
 	function readClipEvents() : Array<ClipEvent> {
-		if ( i.readUInt16() != 0 ) throw error();
-		readInt(); // all events flags
+	//	if ( i.readUInt16() != 0 ) throw error();
 		var a = new Array();
+		var	count=version<=5?i.readUInt16():i.readInt32(); // all events flags
+		if(count==0) return a;
 		while( true ) {
 			var code = readInt();
 			if( code == 0 ) break;
@@ -871,6 +873,63 @@ class Reader {
 			default: throw "Unsupported morph fill style version!";
 		}
 	}
+	function readButton(len:Int,ver:Int):SWFTag{
+		bits.reset();
+		var cid = i.readUInt16();
+		var reserved = bits.readBits(7);
+		var trackAsMenu = bits.readBit();
+		var actionOffset = i.readUInt16();
+		
+		var actions:haxe.io.Bytes;
+		var records:Array<ButtonRecord>;
+		if(actionOffset==0){
+			records = readButtonRecord(ver);
+		}else{
+			records = readButtonRecord(ver);
+			actions=i.readAll();
+		}
+		return TButton(cid,trackAsMenu,records);
+	}
+	function readButtonRecord(ver:Int):Array<ButtonRecord>{
+		var records:Array<ButtonRecord>=new Array();
+		while (true){
+			bits.reset();
+			var record=new ButtonRecord();
+			var reserved = bits.readBits(2);
+			var hasBlendMode=bits.readBit();
+			var	hasFilterList=bits.readBit();
+			record.stateHitTest=bits.readBit();
+			record.stateDown=bits.readBit();
+			record.stateOver=bits.readBit();
+			record.stateUp=bits.readBit();
+			if(!record.stateHitTest &&! record.stateDown &&! record.stateOver &&! record.stateUp) break;
+			record.cid=i.readUInt16();
+			record.depth=i.readUInt16();
+			record.matrix = readMatrix();
+			record.color=readCXA();
+			if(hasFilterList){
+				 record.filters = readFilters();
+			}
+			if(hasBlendMode){
+				record.blendMode = readBlendMode();
+			} 
+			records.push(record);
+		}
+		return records;
+	}
+	function readBUTTONCONDACTION(length){
+		var condIdleToOverDown=bits.readBit();
+		var condOutDownToIdle=bits.readBit();
+		var condOutDownToOverDown=bits.readBit();
+		var condOverDownToOutDown=bits.readBit();
+		var condIOverDownToOverUp=bits.readBit();
+		var condOverUpToOverDown=bits.readBit();
+		var condOverUpToIdle=bits.readBit();
+		var condIdleToOverUp=bits.readBit();
+		var condKeyPress=bits.readBits(7);
+		var condOverDownToIdle=bits.readBit();
+		i.readUInt16();
+	}
 
 	function readBlendMode() {
 		return switch( i.readByte() ) {
@@ -1252,7 +1311,8 @@ class Reader {
 			readMorphShape(1);
 		case TagId.DefineMorphShape2:
 			readMorphShape(2);
-		
+		case TagId.DefineButton2:
+			readButton(len,2);
 		case TagId.DefineFont:
 			readFont(len, 1);
 		case TagId.DefineFont2:
