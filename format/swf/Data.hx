@@ -313,8 +313,6 @@ class  ButtonRecord  {
 	public function new(){}
 }
 
-
-
 enum SpreadMode {
 	SMPad;
 	SMReflect;
@@ -565,6 +563,3 @@ typedef FontLayoutData = {
 	var glyphs: Array<FontLayoutGlyphData>;
 	var kerning: Array<FontKerningData>;
 }
-
-
-
