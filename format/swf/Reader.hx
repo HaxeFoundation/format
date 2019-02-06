@@ -37,8 +37,8 @@ class Reader {
 	var bits : format.tools.BitsInput;
 	var version : Int;
 
-	var bitsRead : Int; 
-	var bytesRead : Int;
+	var bitsRead : Int; // TODO not really used, maybe remove later
+
 
 	public function new(i) {
 		this.i = i;
