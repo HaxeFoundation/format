@@ -4,6 +4,6 @@
 	"license" : "BSD",
 	"contributors" : ["ncannasse"],
 	"description" : "A Haxe Library for supporting different file formats.",
-	"version" : "3.4.1",
+	"version" : "3.4.2",
 	"releasenote" : "See CHANGES.txt"
 }

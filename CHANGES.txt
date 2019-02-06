@@ -1,3 +1,7 @@
+2019-02-06: 3.4.2
+	HL version 5 reader
+	minor fix in png wrt hxcpp+vc2017
+	
 2018-04-14: 3.4.1
 	HL version 4 reader
 	bugfix JS overflow in HL hashing
