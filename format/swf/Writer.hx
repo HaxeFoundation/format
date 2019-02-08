@@ -1251,7 +1251,10 @@ class Writer {
 
 		case TMorphShape(id, data):
 			writeMorphShape(id, data);
-
+				
+		case TButton(id, trackAsMenu, records):
+			throw "Button write not implemented";
+				
 		case TFont(id, data):
 			writeFont(id, data);
 
