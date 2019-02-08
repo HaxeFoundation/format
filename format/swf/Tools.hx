@@ -147,6 +147,7 @@ class Tools {
 		case TBackgroundColor(color): [StringTools.hex(color,6)];
 		case TShape(id,_): ["id",id]; // TODO write when TShape final
 		case TMorphShape(id,_): ["id",id]; // TODO
+		case TButton(id,_):["id",id]; // TODO
 		case TFont(id,_): ["id",id]; // TODO
 		case TFontInfo(id,_): ["id",id]; // TODO
 		case TBinaryData(id,data): ["id",id,"data",hex(data,max)];
