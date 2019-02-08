@@ -1251,7 +1251,10 @@ class Writer {
 
 		case TMorphShape(id, data):
 			writeMorphShape(id, data);
-
+				
+		case TButton(id, trackAsMenu, records):
+			//TODO write button
+				
 		case TFont(id, data):
 			writeFont(id, data);
 
