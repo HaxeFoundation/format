@@ -458,16 +458,17 @@ class Reader {
 		#end
 	}
 	
-	function readClipEvents() : Array<ClipEvent> {
-	//	if ( i.readUInt16() != 0 ) throw error();
+	function readClipEvents():Array<ClipEvent> {
+		if (i.readUInt16() != 0) throw error();
 		var a = new Array();
-		var	count=version<=5?i.readUInt16():i.readInt32(); // all events flags
-		if(count==0) return a;
-		while( true ) {
-			var code = readInt();
-			if( code == 0 ) break;
-			var data = i.read(readInt());
-			a.push({ eventsFlags : code, data : data });
+		var flags = version <= 5 ? i.readUInt16() : readInt(); // all events flags
+		if (flags == 0) return a;
+		while (true) {
+			var code = version <= 5 ? i.readUInt16() : readInt();
+			if (code == 0) break;
+			var offset = readInt();
+			var data = i.read(offset);
+			a.push({eventsFlags: code, data: data});
 		}
 		return a;
 	}
