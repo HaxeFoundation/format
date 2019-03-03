@@ -42,7 +42,7 @@ class BitsOutput {
 		// Clear unused bits
 		v = v & ((1 << n ) - 1);
 		if( n + nbits >= 32 ) {
-			if( n >= 31 ) throw "Bits error";
+			if( n > 31 ) throw "Bits error";
 			var n2 = 32 - nbits - 1;
 			var n3 = n - n2;
 			writeBits(n2,v >>> n3);
