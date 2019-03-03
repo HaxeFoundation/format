@@ -47,7 +47,7 @@ class BitsInput {
 		}
 		var k = i.readByte();
 		if( nbits >= 24 ) {
-			if( n >= 31 ) throw "Bits error";
+			if( n > 31 ) throw "Bits error";
 			var c = 8 + nbits - n;
 			var d = bits & ((1 << nbits) - 1);
 			d = (d << (8 - c)) | (k << c);
