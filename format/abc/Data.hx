@@ -27,8 +27,9 @@
  */
 package format.abc;
 
-enum Index<T> {
-	Idx( v : Int );
+abstract Index<T>(Int) {
+	public inline function new(i) this = i;
+	public inline function asInt() return this;
 }
 
 enum Namespace {
@@ -158,8 +159,8 @@ class ABCData {
 	public var inits : Array<Init>;
 	public var functions : Array<Function>;
 
-	public function get<T>( t : Array<T>, i : Index<T> ) : T {
-		return switch( i ) { case Idx(n): t[n-1]; };
+	public inline function get<T>( t : Array<T>, i : Index<T> ) : T {
+		return t[i.asInt() - 1];
 	}
 
 	public function new() {

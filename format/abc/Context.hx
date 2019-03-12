@@ -111,7 +111,7 @@ class Context {
 			n = data.strings.length;
 			hstrings.set(s,n);
 		}
-		return Idx(n);
+		return new Index(n);
 	}
 
 	public function namespace(n) {
@@ -125,15 +125,15 @@ class Context {
 				continue;
 			var ok = true;
 			for( j in 0...s.length )
-				if( !Type.enumEq(s[j],ns[j]) ) {
+				if (s[j] != ns[j]) {
 					ok = false;
 					break;
 				}
 			if( ok )
-				return Idx(i + 1);
+				return new Index(i + 1);
 		}
 		data.nssets.push(ns);
-		return Idx(data.nssets.length);
+		return new Index(data.nssets.length);
 	}
 
 	public function name(n) {
@@ -162,23 +162,23 @@ class Context {
 
 	public function methodType(m) : Index<MethodType> {
 		data.methodTypes.push(m);
-		return Idx(data.methodTypes.length - 1);
+		return new Index(data.methodTypes.length - 1);
 	}
 
 	function lookup<T>( arr : Array<T>, n : T ) : Index<T> {
 		for( i in 0...arr.length )
 			if( arr[i] == n )
-				return Idx(i + 1);
+				return new Index(i + 1);
 		arr.push(n);
-		return Idx(arr.length);
+		return new Index(arr.length);
 	}
 
 	function elookup<T:EnumValue>( arr : Array<T>, n : T ) : Index<T> {
 		for( i in 0...arr.length )
 			if( Type.enumEq(arr[i],n) )
-				return Idx(i + 1);
+				return new Index(i + 1);
 		arr.push(n);
-		return Idx(arr.length);
+		return new Index(arr.length);
 	}
 
 	public function getData() {
@@ -202,7 +202,7 @@ class Context {
 		registers = new Array();
 		for( x in 0...f.nRegs )
 			registers.push(true);
-		return Idx(data.functions.length - 1);
+		return new Index(data.functions.length - 1);
 	}
 
 	function endFunction() {
@@ -265,7 +265,7 @@ class Context {
 		classes.push({
 			name: tpath,
 			slot: 0,
-			kind: FClass(Idx(data.classes.length - 1)),
+			kind: FClass(new Index(data.classes.length - 1)),
             metadatas: null,
 		});
 		curFunction = null;
@@ -282,7 +282,7 @@ class Context {
 			OGetLex( curClass.superclass ),
 			OScope,
 			OGetLex( curClass.superclass ),
-			OClassDef( Idx(data.classes.length - 1) ),
+			OClassDef( new Index(data.classes.length - 1) ),
 			OPopScope,
 			OInitProp( curClass.name ),
 		]);
@@ -301,7 +301,7 @@ class Context {
 		});
 		return curFunction.f;
 	}
-	
+
 	public function beginConstructor(args) {
 		beginFunction(args, null);
 		curClass.constructor = curFunction.f.type;
