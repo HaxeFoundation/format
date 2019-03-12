@@ -1,10 +1,10 @@
 /*
- * format - haXe File Formats
+ * format - Haxe File Formats
  *
  *  MP3 File Format
  *  Copyright (C) 2009 Robin Palotai
  *
- * Copyright (c) 2009, The haXe Project Contributors
+ * Copyright (c) 2009, The Haxe Project Contributors
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
