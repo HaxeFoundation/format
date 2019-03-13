@@ -79,15 +79,15 @@ class Writer {
 		o.writeString(s);
 	}
 
-	function writeIndex( i : Index<Dynamic> ) {
+	function writeIndex( i : Null<Index<Dynamic>> ) {
 		switch( i ) {
 			// i may be null, see Reader.readIndexOpt
-			case null: writeInt(0); 
-			case Idx(n): writeInt(n);
+			case null: writeInt(0);
+			case n: writeInt(n.asInt());
 		}
 	}
 
-	function writeIndexOpt( i : Index<Dynamic> ) {
+	function writeIndexOpt( i : Null<Index<Dynamic>> ) {
 		if( i == null ) {
 			o.writeByte(0);
 			return;

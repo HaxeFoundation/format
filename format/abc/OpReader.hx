@@ -63,7 +63,7 @@ class OpReader {
 	}
 
 	inline function readIndex<T>() : Index<T> {
-		return Idx(readInt());
+		return new Index(readInt());
 	}
 
 	#if haxe3

@@ -127,9 +127,7 @@ class OpWriter {
 	}
 
 	function idx( i : Index<Dynamic> ) {
-		switch( i ) {
-		case Idx(i): int(i);
-		}
+		int(i.asInt());
 	}
 
 	function jumpCode(j) {

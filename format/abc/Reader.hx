@@ -43,12 +43,12 @@ class Reader {
 	}
 
 	inline function readIndex<T>() : Index<T> {
-		return Idx(readInt());
+		return new Index(readInt());
 	}
 
 	function readIndexOpt<T>() : Null<Index<T>> {
 		var i = readInt();
-		return (i == 0) ? null : Idx(i);
+		return (i == 0) ? null : new Index(i);
 	}
 
 	function readList<T>(f) : Array<T> {
@@ -139,11 +139,11 @@ class Reader {
 		}
 		var n = i.readByte();
 		return switch(n) {
-		case 0x01: VString(Idx(idx));
-		case 0x03: VInt(Idx(idx));
-		case 0x04: VUInt(Idx(idx));
-		case 0x06: VFloat(Idx(idx));
-		case 0x05, 0x08, 0x16, 0x17, 0x18, 0x19, 0x1A: VNamespace(n,Idx(idx));
+		case 0x01: VString(new Index(idx));
+		case 0x03: VInt(new Index(idx));
+		case 0x04: VUInt(new Index(idx));
+		case 0x06: VFloat(new Index(idx));
+		case 0x05, 0x08, 0x16, 0x17, 0x18, 0x19, 0x1A: VNamespace(n,new Index(idx));
 		case 0x0A: if( idx != 0x0A ) throw "assert"; VBool(false);
 		case 0x0B: if( idx != 0x0B ) throw "assert"; VBool(true);
 		case 0x0C: if( idx != 0x0C ) throw "assert"; VNull;
@@ -245,7 +245,7 @@ class Reader {
 		var name = readIndex();
 		var csuper = readIndexOpt();
 		var flags = i.readByte();
-		var ns = null;
+		var ns:Null<Index<Namespace>> = null;
 		if( (flags & 0x08) != 0 ) ns = readIndex();
 		var interfs = readList2(readIndex);
 		var construct = readIndex();
@@ -260,7 +260,7 @@ class Reader {
 			isSealed : (flags & 0x01) != 0,
 			isFinal : (flags & 0x02) != 0,
 			isInterface : (flags & 0x04) != 0,
-			statics : null,
+			statics : new Index(0), // will be filled later
 			staticFields : null,
 		};
 	}
