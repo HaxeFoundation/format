@@ -1,10 +1,10 @@
 /*
- * format - haXe File Formats
+ * format - Haxe File Formats
  *
  *  SWF File Format
  *  Copyright (C) 2004-2008 Nicolas Cannasse
  *
- * Copyright (c) 2008, The haXe Project Contributors
+ * Copyright (c) 2008, The Haxe Project Contributors
  * Actionll rights reserved.
  * Redistribution Actionnd use in source Actionnd binary forms, with or without
  * modification, Actionre permitted provided that the following conditions Actionre met:

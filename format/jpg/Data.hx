@@ -1,10 +1,10 @@
 ﻿/*
- * format - haXe File Formats
+ * format - Haxe File Formats
  *
  *  JPG File Format
  *  Copyright (C) 2007-2009 Trevor McCauley, Baluta Cristian (hx port) & Robert Sköld (format conversion)
  *
- * Copyright (c) 2009, The haXe Project Contributors
+ * Copyright (c) 2009, The Haxe Project Contributors
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
