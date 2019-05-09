@@ -103,12 +103,38 @@ class Reader {
 		
 		var datalen = readInt();
 		
-		// Some files report an incorrect length, so we'll
-		// read the whole file, then subtract if necessary
-		var data = i.readAll ();
-		if (data.length > datalen) 
-			data = data.sub (0, datalen);
-		
+		var data = i.read(datalen);
+
+		var firstMarker = 0;
+		var cuePoints = new Array<CuePoint>();
+		try {
+			var nextChunk = i.readString (4);
+			while (nextChunk != "cue ") {
+				// read past other subchunks
+				i.read(readInt());
+				nextChunk = i.readString (4);
+			}
+
+			// cue
+			if (nextChunk == "cue ") {
+				var size = readInt();
+				var nbCuePoints = readInt();
+
+				for (idx in 0...nbCuePoints) {
+					var cueId = readInt();
+					readInt();
+					i.readString(4);
+					readInt();
+					readInt();
+					var cueSampleOffset = readInt();
+					cuePoints.push({ id : cueId, sampleOffset: cueSampleOffset });
+				}
+			}
+
+		} catch (e : Dynamic) {
+			// catch eof
+		}
+
 		return {
 			header: {
 				format: format,
@@ -118,7 +144,8 @@ class Reader {
 				blockAlign: blockAlign,
 				bitsPerSample: bitsPerSample
 			},
-			data: data
+			data: data,
+			cuePoints: cuePoints
 		}
 	}
 
