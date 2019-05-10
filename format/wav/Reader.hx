@@ -100,12 +100,11 @@ class Reader {
 		// data
 		if (nextChunk != "data")
 			throw "expected data subchunk";
-		
+
 		var datalen = readInt();
-		
+
 		var data = i.read(datalen);
 
-		var firstMarker = 0;
 		var cuePoints = new Array<CuePoint>();
 		try {
 			var nextChunk = i.readString (4);
@@ -117,10 +116,10 @@ class Reader {
 
 			// cue
 			if (nextChunk == "cue ") {
-				var size = readInt();
+				readInt();
 				var nbCuePoints = readInt();
 
-				for (idx in 0...nbCuePoints) {
+				for (_ in 0...nbCuePoints) {
 					var cueId = readInt();
 					readInt();
 					i.readString(4);
@@ -131,9 +130,7 @@ class Reader {
 				}
 			}
 
-		} catch (e : Dynamic) {
-			// catch eof
-		}
+		} catch (e : haxe.io.Eof) { }
 
 		return {
 			header: {
