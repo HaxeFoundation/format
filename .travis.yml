@@ -4,8 +4,7 @@ os:
   - linux
   - osx
 
-sudo: false
-dist: trusty
+dist: xenial
 
 env:
   global:
@@ -21,6 +20,9 @@ addons:
     packages:
       # Python
       - python3
+      # PHP
+      - php-cli
+      - php-mbstring
       # C#
       - mono-devel
       - mono-mcs
@@ -36,12 +38,10 @@ install:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
       export DISPLAY=:99.0;
       export AUDIODEV=null;
-      phpenv global 7.0;
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       brew update;
       brew install mono;
       brew upgrade python;
-      brew install php;
     fi
   # Download and setup a standalone flash player debugger
   - haxe flash/install.hxml
