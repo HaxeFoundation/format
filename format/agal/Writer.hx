@@ -56,7 +56,7 @@ class Writer {
 		var idIf2 = Type.enumIndex(OEif);
 		for( c in data.code ) {
 			var idx = Type.enumIndex(c);
-			var params = Type.enumParameters(c);
+			var params : Array<Dynamic> = Type.enumParameters(c);
 			var dst : Reg = params[0];
 			writeInt(( idx >= idKil ) ? (idx - idKil + 0x27) : idx);
 			if( idx == idKil ) {
