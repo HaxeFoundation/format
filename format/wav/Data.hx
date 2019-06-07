@@ -32,6 +32,7 @@ package format.wav;
 typedef WAVE = {
 	header : WAVEHeader,
 	data : haxe.io.Bytes,
+	cuePoints : Array<CuePoint>
 }
 
 typedef WAVEHeader = {
@@ -41,6 +42,11 @@ typedef WAVEHeader = {
 	byteRate : Int,		// samplingRate * channels * bitsPerSample / 8
 	blockAlign : Int,	 // channels * bitsPerSample / 8
 	bitsPerSample : Int
+}
+
+typedef CuePoint = {
+	id : Int,
+	sampleOffset : Int
 }
 
 enum WAVEFormat {

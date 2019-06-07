@@ -100,15 +100,42 @@ class Reader {
 		// data
 		if (nextChunk != "data")
 			throw "expected data subchunk";
-		
+
 		var datalen = readInt();
-		
-		// Some files report an incorrect length, so we'll
-		// read the whole file, then subtract if necessary
-		var data = i.readAll ();
-		if (data.length > datalen) 
-			data = data.sub (0, datalen);
-		
+
+		var data : haxe.io.Bytes;
+		try {
+			data = i.read(datalen);
+		} catch (e : haxe.io.Eof) {
+			throw "Invalid chunk data length";
+		}
+
+		var cuePoints = new Array<CuePoint>();
+		try {
+
+			while (true) {
+				var nextChunk = i.readString (4);
+				switch (nextChunk) {
+					case "cue ":
+						readInt();
+						var nbCuePoints = readInt();
+
+						for (_ in 0...nbCuePoints) {
+							var cueId = readInt();
+							readInt();
+							i.readString(4);
+							readInt();
+							readInt();
+							var cueSampleOffset = readInt();
+							cuePoints.push({ id : cueId, sampleOffset: cueSampleOffset });
+						}
+					default:
+						i.read(readInt());
+				}
+			}
+
+		} catch (e : haxe.io.Eof) { }
+
 		return {
 			header: {
 				format: format,
@@ -118,7 +145,8 @@ class Reader {
 				blockAlign: blockAlign,
 				bitsPerSample: bitsPerSample
 			},
-			data: data
+			data: data,
+			cuePoints: cuePoints
 		}
 	}
 
