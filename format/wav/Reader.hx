@@ -103,30 +103,34 @@ class Reader {
 
 		var datalen = readInt();
 
-		var data = i.read(datalen);
+		var data : haxe.io.Bytes;
+		try {
+			data = i.read(datalen);
+		} catch (e : haxe.io.Eof) {
+			throw "Invalid chunk data length";
+		}
 
 		var cuePoints = new Array<CuePoint>();
 		try {
-			var nextChunk = i.readString (4);
-			while (nextChunk != "cue ") {
-				// read past other subchunks
-				i.read(readInt());
-				nextChunk = i.readString (4);
-			}
 
-			// cue
-			if (nextChunk == "cue ") {
-				readInt();
-				var nbCuePoints = readInt();
+			while (true) {
+				var nextChunk = i.readString (4);
+				switch (nextChunk) {
+					case "cue ":
+						readInt();
+						var nbCuePoints = readInt();
 
-				for (_ in 0...nbCuePoints) {
-					var cueId = readInt();
-					readInt();
-					i.readString(4);
-					readInt();
-					readInt();
-					var cueSampleOffset = readInt();
-					cuePoints.push({ id : cueId, sampleOffset: cueSampleOffset });
+						for (_ in 0...nbCuePoints) {
+							var cueId = readInt();
+							readInt();
+							i.readString(4);
+							readInt();
+							readInt();
+							var cueSampleOffset = readInt();
+							cuePoints.push({ id : cueId, sampleOffset: cueSampleOffset });
+						}
+					default:
+						i.read(readInt());
 				}
 			}
 
