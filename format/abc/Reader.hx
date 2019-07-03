@@ -205,18 +205,19 @@ class Reader {
 	function readField() : Field {
 		var name = readIndex();
 		var kind = i.readByte();
+		var type = kind & 0xF;
 		var slot = readInt();
 		var f;
-		switch( kind & 0xF ) {
+		switch( type ) {
 		case 0x00, 0x06:
 			var t = readIndexOpt();
 			var v = readValue(false);
-			f = FVar(t,v,kind == 0x06);
+			f = FVar(t,v,type == 0x06);
 		case 0x01, 0x02, 0x03:
 			var mt = readIndex();
 			var isFinal = kind & 0x10 != 0;
 			var over = kind & 0x20 != 0;
-			var kind = switch( kind & 0xF  ) {
+			var kind = switch( type ) {
 				case 0x01: KNormal;
 				case 0x02: KGetter;
 				case 0x03: KSetter;
