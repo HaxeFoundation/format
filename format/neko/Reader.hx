@@ -105,6 +105,19 @@ class Reader {
 		return a;
 	}
 
+	function hash( s : String ) : Int {
+		var h = 0;
+		#if neko
+		for( i in 0...s.length )
+			h = 223 * h + s.charCodeAt(i);
+		return h;
+		#else
+		for( i in 0...s.length )
+			h = (((223 * h) >> 1) + s.charCodeAt(i)) << 1;
+		return h >> 1;
+		#end
+	}
+
 	public function read() : Data {
 		if( i.readString(4) != "NEKO" ) error();
 		var nglobals = readInt();
@@ -139,8 +152,18 @@ class Reader {
 
 		// fields
 		var fields = alloc(nfields);
-		for( k in 0...nfields )
-			fields[k] = i.readUntil(0);
+		var fieldHashes : Map<Int, String> = [];
+		for( k in 0...nfields ) {
+			var fld = i.readUntil(0);
+			fields[k] = fld;
+
+			var hsh = hash(fld);
+			if (fieldHashes.exists(hsh)) {
+				if (fieldHashes[hsh] != fld) error();
+			} else {
+				fieldHashes[hsh] = fld;
+			}
+		}
 
 		// code
 		var code: Array<Opcode> = [];
@@ -179,14 +202,20 @@ class Reader {
 				case 5: OAccStack(p + 2);
 				case 6: OAccGlobal(p);
 				case 7: OAccEnv(p);
-				case 8: OAccField(p); //(try Hashtbl.find ids p catch { Not_found -> throw Invalid_file })
+				case 8:
+					if (!fieldHashes.exists(p)) error();
+					OAccField(fieldHashes[p]);
 				case 9: OAccArray;
 				case 10: OAccIndex(p + 2);
-				case 11: OAccBuiltin(p); //(try Hashtbl.find ids p catch { Not_found -> throw Invalid_file })
+				case 11:
+					if (!fieldHashes.exists(p)) error();
+					OAccBuiltin(fieldHashes[p]);
 				case 12: OSetStack(p);
 				case 13: OSetGlobal(p);
 				case 14: OSetEnv(p);
-				case 15: OSetField(p);// (try Hashtbl.find ids p catch { Not_found -> throw Invalid_file })
+				case 15:
+					if (!fieldHashes.exists(p)) error();
+					OSetField(fieldHashes[p]);
 				case 16: OSetArray;
 				case 17: OSetIndex(p);
 				case 18: OSetThis;

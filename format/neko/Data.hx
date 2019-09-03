@@ -36,14 +36,14 @@ enum Opcode {
 	OAccStack(p: Int);
 	OAccGlobal(p: Int);
 	OAccEnv(p: Int);
-	OAccField(p: Int);
+	OAccField(p: String);
 	OAccArray;
 	OAccIndex(p: Int);
-	OAccBuiltin(p: Int);
+	OAccBuiltin(p: String);
 	OSetStack(p: Int);
 	OSetGlobal(p: Int);
 	OSetEnv(p: Int);
-	OSetField(p: Int);
+	OSetField(p: String);
 	OSetArray;
 	OSetIndex(p: Int);
 	OSetThis;

@@ -33,8 +33,6 @@ class VM {
 
 	// globals
 	var builtins : Builtins;
-	var hfields : Map<Int,String>;
-	var hbuiltins : Map<Int,Value>;
 	var hloader : Int;
 	var hexports : Int;
 
@@ -47,17 +45,11 @@ class VM {
 	var module : Module;
 
 	public function new() {
-		hbuiltins = new Map();
-		hfields = new Map();
 		stack = new haxe.ds.GenericStack<Value>();
 		builtins = new Builtins(this);
-		for( b in builtins.table.keys() )
-			hbuiltins.set(hash(b), builtins.table.get(b));
-		hloader = hash("loader");
-		hexports = hash("exports");
 	}
 
-	function hash( s : String ) {
+	function hash( s : String ) : Int {
 		var h = 0;
 		#if neko
 		for( i in 0...s.length )
@@ -72,17 +64,6 @@ class VM {
 
 	public dynamic function doPrint( s : String ) {
 		haxe.Log.trace(s, cast {});
-	}
-
-	public function hashField( f : String ) {
-		var fid = hash(f);
-		var f2 = hfields.get(fid);
-		if( f2 != null ) {
-			if( f2 == f ) return fid;
-			throw "Hashing conflicts between '" + f + "' and '" + f2 + "'";
-		}
-		hfields.set(fid, f);
-		return fid;
 	}
 
 	public function _abstract<T>( b : Value, t : Class<T> ) : T {
@@ -120,7 +101,7 @@ class VM {
 
 	public function defaultLoader() {
 		var loader = new ValueObject(null);
-		loader.fields.set(hash("loadprim"), VFunction(VFun2(loadPrim)));
+		loader.fields.set("loadprim", VFunction(VFun2(loadPrim)));
 		return loader;
 	}
 
@@ -174,8 +155,6 @@ class VM {
 			case GlobalVersion(v): VString('(version $v)');
 			};
 		}
-		for( f in m.fields )
-			hashField(f);
 		vthis = VNull;
 		env = [];
 		loop(0);
@@ -193,11 +172,6 @@ class VM {
 		} else
 			pos = "@" + StringTools.hex(pc);
 		throw VString(pos+" : "+msg);
-	}
-
-	function fieldName( fid : Int ) {
-		var name = hfields.get(fid);
-		return (name == null) ? "?" + fid : name;
 	}
 
 	public function call( vthis : Value, vfun : Value, args : Array<Value> ) : Value {
@@ -329,7 +303,7 @@ class VM {
 		case VObject(o):
 			var a = { };
 			for( f in o.fields.keys() )
-				Reflect.setField(a, fieldName(f), unwrap(o.fields.get(f)));
+				Reflect.setField(a, f, unwrap(o.fields.get(f)));
 			return a;
 		case VFunction(f):
 			var me = this;
@@ -349,7 +323,7 @@ class VM {
 		}
 	}
 
-	public function getField( v : Value, fid : Int ) {
+	public function getField( v : Value, fid : String ) {
 		switch( v ) {
 		case VObject(o):
 			while( true ) {
@@ -362,7 +336,7 @@ class VM {
 				}
 			}
 		case VProxy(o):
-			var f : Dynamic = try Reflect.field(o, fieldName(fid)) catch( e : Dynamic ) null;
+			var f : Dynamic = try Reflect.field(o, fid) catch( e : Dynamic ) null;
 			v = wrap(f);
 		default:
 			v = null;
@@ -404,7 +378,7 @@ class VM {
 // case OAccEnv:
 			case OAccField(v):
 				acc = getField(acc, v);
-				if( acc == null ) error(pc, "Invalid field access : " + fieldName(v));
+				if( acc == null ) error(pc, "Invalid field access : " + v);
 			case OAccArray:
 				var arr = stack.pop();
 				switch( arr ) {
@@ -426,7 +400,7 @@ class VM {
 				acc = accIndex(pc, acc, 1);
 			case OAccBuiltin(v):
 				error(pc, "TODO");
-				//acc = hbuiltins.get(v);
+				//acc = v;
 				//if( acc == null ) {
 				//	if( code[pc - 1] == hloader )
 				//		acc = VObject(module.loader);
@@ -449,8 +423,8 @@ class VM {
 				var obj = stack.pop();
 				switch( obj ) {
 				case VObject(o): o.fields.set(v, acc);
-				case VProxy(o): Reflect.setField(o, fieldName(v), unwrap(acc));
-				default: error(pc, "Invalid field access : " + fieldName(v));
+				case VProxy(o): Reflect.setField(o, v, unwrap(acc));
+				default: error(pc, "Invalid field access : " + v);
 				}
 // case OSetArray:
 // case OSetIndex:
@@ -589,7 +563,7 @@ class VM {
 				acc = (v == Builtins.CINVALID) ? VNull : VInt(v);
 			case OHash:
 				switch( acc ) {
-				case VString(f): acc = VInt(hashField(f));
+				case VString(f): acc = VInt(hash(f));
 				default: error(pc, "$hash");
 				}
 			case ONew:

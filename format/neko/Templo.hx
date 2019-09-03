@@ -38,14 +38,14 @@ class Templo {
 		var me = this;
 		this.vm = ivm;
 		var pstring = new ValueObject();
-		pstring.fields.set(vm.hashField("new"), VFunction(VFun1(function(v:Value) {
+		pstring.fields.set("new", VFunction(VFun1(function(v:Value) {
 			return VProxy(me.vm.valueToString(v));
 		})));
 		var parray = new ValueObject();
-		parray.fields.set(vm.hashField("new"), VFunction(VFun0(function() {
+		parray.fields.set("new", VFunction(VFun0(function() {
 			return VProxy(new Array());
 		})));
-		parray.fields.set(vm.hashField("new1"), VFunction(VFun2(function(v:Value,len:Value) {
+		parray.fields.set("new1", VFunction(VFun2(function(v:Value,len:Value) {
 			switch(v) {
 			case VArray(a):
 				var vlen;
@@ -158,7 +158,7 @@ class Templo {
 		var api = new Templo(vm);
 		var loader = vm.defaultLoader();
 		var vapi = new ValueObject();
-		var field = function(n, v) vapi.fields.set(vm.hashField(n), v);
+		var field = function(n, v) vapi.fields.set(n, v);
 		var fun = function(n, v) field(n, VFunction(v));
 		field("String", api._String);
 		field("Array", api._Array);
@@ -170,14 +170,14 @@ class Templo {
 		fun("loop", VFun4(api.loop));
 		fun("use", VFun4(api.use));
 		fun("macros", VFun2(api.macros));
-		loader.fields.set(vm.hashField("__templo"), VObject(vapi));
+		loader.fields.set("__templo", VObject(vapi));
 		return loader;
 	}
 
 	public static function execute( vm : VM, data : Data, ctx : {} ) {
 		var m = vm.load(data, format.neko.Templo.makeLoader(vm));
 		var buf = new ABuffer();
-		var v = vm.call(VObject(m.exports), m.exports.fields.get(vm.hashField("execute")), [VAbstract(buf), VProxy(ctx)]);
+		var v = vm.call(VObject(m.exports), m.exports.fields.get("execute"), [VAbstract(buf), VProxy(ctx)]);
 		return buf.toString();
 	}
 
