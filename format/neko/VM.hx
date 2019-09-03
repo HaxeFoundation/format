@@ -457,12 +457,12 @@ class VM {
 			case OJumpIf(tgt):
 				switch( acc ) {
 				case VBool(a): if( a ) pc = tgt;
-				default: pc += 1;
+				default:
 				}
 			case OJumpIfNot(tgt):
 				switch( acc ) {
 				case VBool(a): if( !a ) pc = tgt;
-				default: pc += 1;
+				default:
 				}
 // case OTrap:
 // case OEndTrap:
