@@ -29,13 +29,13 @@ package format.neko;
 import format.neko.Data;
 
 class Reader {
-	
+
 	var i : haxe.io.Input;
-	
+
 	public function new( i : haxe.io.Input ) {
 		this.i = i;
 	}
-	
+
 	function error() : Dynamic {
 		throw "Invalid file format";
 		return null;
@@ -48,7 +48,7 @@ class Reader {
 		return i.readUInt30();
 		#end
 	}
-	
+
 	function readDebugInfos() : DebugInfos {
 		var nfiles = i.readByte();
 		var manyFiles = false;
@@ -98,18 +98,23 @@ class Reader {
 		}
 		return pos;
 	}
-	
+
 	function alloc<T>( size : Int ) : Array<T> {
 		var a = new Array<T>();
 		if( size > 0 ) a[size-1] = null;
 		return a;
 	}
-	
+
 	public function read() : Data {
 		if( i.readString(4) != "NEKO" ) error();
 		var nglobals = readInt();
 		var nfields = readInt();
 		var codesize = readInt();
+		if (nglobals < 0 || nglobals > 0xffff
+				|| nfields < 0 || nfields > 0xffff
+				|| codesize < 0 || codesize > 0xffffff)
+				error();
+
 		// globals
 		var globals = alloc(nglobals);
 		for( k in 0...nglobals )
@@ -126,38 +131,151 @@ class Reader {
 				GlobalFloat(i.readUntil(0));
 			case 5:
 				GlobalDebug(readDebugInfos());
+			case 6:
+				GlobalVersion(i.readByte());
 			default:
 				error();
 			}
+
 		// fields
 		var fields = alloc(nfields);
 		for( k in 0...nfields )
 			fields[k] = i.readUntil(0);
+
 		// code
-		var code = alloc(codesize + 1);
-		var p = 0;
-		while( p < codesize ) {
+		var code: Array<Opcode> = [];
+		var jumps: Array<{cpos: Int, idx: Int}> = [];
+		var pos = alloc(codesize + 1);
+		var cpos = 0;
+		while( cpos < codesize ) {
 			var t = i.readByte();
+			var opId = 0;
+			var p = 0;
 			switch( t & 3 ) {
 			case 0:
-				code[p++] = t >> 2;
+				opId = t >> 2;
 			case 1:
-				code[p++] = t >> 3;
-				code[p++] = (t >> 2) & 1;
+				opId = t >> 3;
+				p = (t >> 2) & 1;
 			case 2:
-				code[p++] = t >> 2;
-				code[p++] = i.readByte();
+				if (t == 2) {
+					opId = i.readByte();
+				} else {
+					opId = t >> 2;
+					p = i.readByte();
+				}
+			case 3:
+				opId = t >> 2;
+				p = #if haxe3 i.readInt32() #else i.readInt31() #end;
 			default:
-				code[p++] = t >> 2;
-				code[p++] = #if haxe3 i.readInt32() #else i.readInt31() #end;
+				error();
 			}
+			var op: Opcode = switch (opId) {
+				case 0: OAccNull;
+				case 1: OAccTrue;
+				case 2: OAccFalse;
+				case 3: OAccThis;
+				case 4: OAccInt(p);
+				case 5: OAccStack(p + 2);
+				case 6: OAccGlobal(p);
+				case 7: OAccEnv(p);
+				case 8: OAccField(p); //(try Hashtbl.find ids p catch { Not_found -> throw Invalid_file })
+				case 9: OAccArray;
+				case 10: OAccIndex(p + 2);
+				case 11: OAccBuiltin(p); //(try Hashtbl.find ids p catch { Not_found -> throw Invalid_file })
+				case 12: OSetStack(p);
+				case 13: OSetGlobal(p);
+				case 14: OSetEnv(p);
+				case 15: OSetField(p);// (try Hashtbl.find ids p catch { Not_found -> throw Invalid_file })
+				case 16: OSetArray;
+				case 17: OSetIndex(p);
+				case 18: OSetThis;
+				case 19: OPush;
+				case 20: OPop(p);
+				case 21: OCall(p);
+				case 22: OObjCall(p);
+				case 23:
+					jumps.push({cpos: cpos, idx: code.length});
+					OJump(p);
+				case 24:
+					jumps.push({cpos: cpos, idx: code.length});
+					OJumpIf(p);
+				case 25:
+					jumps.push({cpos: cpos, idx: code.length});
+					OJumpIfNot(p);
+				case 26:
+					jumps.push({cpos: cpos, idx: code.length});
+					OTrap(p);
+				case 27: OEndTrap;
+				case 28: ORet(p);
+				case 29: OMakeEnv(p);
+				case 30: OMakeArray(p);
+				case 31: OBool;
+				case 32: OIsNull;
+				case 33: OIsNotNull;
+				case 34: OAdd;
+				case 35: OSub;
+				case 36: OMult;
+				case 37: ODiv;
+				case 38: OMod;
+				case 39: OShl;
+				case 40: OShr;
+				case 41: OUShr;
+				case 42: OOr;
+				case 43: OAnd;
+				case 44: OXor;
+				case 45: OEq;
+				case 46: ONeq;
+				case 47: OGt;
+				case 48: OGte;
+				case 49: OLt;
+				case 50: OLte;
+				case 51: ONot;
+				case 52: OTypeOf;
+				case 53: OCompare;
+				case 54: OHash;
+				case 55: ONew;
+				case 56: OJumpTable(p);
+				case 57: OApply(p);
+				case 58: OAccStack0;
+				case 59: OAccStack1;
+				case 60: OAccIndex0;
+				case 61: OAccIndex1;
+				case 62: OPhysCompare;
+				case 63: OTailCall(p & 7, p >> 3);
+				case 64: OLoop;
+				default: error();
+			}
+			pos[cpos] = code.length;
+			cpos += ((t&3 == 0) || t == 2) ? 1 : 2;
+			code.push(op);
 		}
-		code[p++] = Type.enumIndex(ORet);
+		if (cpos != codesize) error();
+
+		/* Fixup jump targets */
+		for (jmp in jumps) {
+			code[jmp.idx] = switch (code[jmp.idx]) {
+				case OJump(p):      OJump(pos[jmp.cpos+p]);
+				case OJumpIf(p):    OJumpIf(pos[jmp.cpos+p]);
+				case OJumpIfNot(p): OJumpIfNot(pos[jmp.cpos+p]);
+				case OTrap(p): 	    OTrap(pos[jmp.cpos+p]);
+				default:            error();
+			};
+		}
+
+		/* Fixup function positions */
+		globals = globals.map(function(glob) {
+			switch(glob) {
+				case GlobalFunction(f, nargs): return GlobalFunction(pos[f], nargs);
+				default: return glob;
+			}
+		} );
+
 		return {
 			globals : globals,
 			fields : fields,
 			code : code,
 		};
 	}
-	
+
 }
