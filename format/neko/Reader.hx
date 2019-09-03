@@ -152,7 +152,7 @@ class Reader {
 
 		// fields
 		var fields = alloc(nfields);
-		var fieldHashes : Map<Int, String> = [];
+		var fieldHashes = new Map<Int, String>();
 		for( k in 0...nfields ) {
 			var fld = i.readUntil(0);
 			fields[k] = fld;

@@ -399,16 +399,15 @@ class VM {
 			case OAccIndex1:
 				acc = accIndex(pc, acc, 1);
 			case OAccBuiltin(v):
-				error(pc, "TODO");
-				//acc = v;
-				//if( acc == null ) {
-				//	if( code[pc - 1] == hloader )
-				//		acc = VObject(module.loader);
-				//	else if( code[pc-1] == hexports )
-				//		acc = VObject(module.exports);
-				//	else
-				//		error(pc - 1, "Builtin not found : " + fieldName(code[pc - 1]));
-				//}
+				acc = builtins.table.get(v);
+				if( acc == null ) {
+					if( v == "loader" )
+						acc = VObject(module.loader);
+					else if( v == "exports" )
+						acc = VObject(module.exports);
+					else
+						error(pc, "Builtin not found : " + v);
+				}
 			case OSetStack(idx):
 				var head = stack.head;
 				while( idx > 0 ) {
