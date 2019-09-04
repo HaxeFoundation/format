@@ -43,7 +43,7 @@ enum Value {
 }
 
 class ValueObject {
-	public var fields : Map<Int,Value>;
+	public var fields : Map<String,Value>;
 	public var proto : Null<ValueObject>;
 	public function new(?p) {
 		fields = new Map();

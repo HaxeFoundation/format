@@ -32,33 +32,33 @@ enum Opcode {
 	OAccTrue;
 	OAccFalse;
 	OAccThis;
-	OAccInt;
-	OAccStack;
-	OAccGlobal;
-	OAccEnv;
-	OAccField;
+	OAccInt(p: Int);
+	OAccStack(p: Int);
+	OAccGlobal(p: Int);
+	OAccEnv(p: Int);
+	OAccField(p: String);
 	OAccArray;
-	OAccIndex;
-	OAccBuiltin;
-	OSetStack;
-	OSetGlobal;
-	OSetEnv;
-	OSetField;
+	OAccIndex(p: Int);
+	OAccBuiltin(p: String);
+	OSetStack(p: Int);
+	OSetGlobal(p: Int);
+	OSetEnv(p: Int);
+	OSetField(p: String);
 	OSetArray;
-	OSetIndex;
+	OSetIndex(p: Int);
 	OSetThis;
 	OPush;
-	OPop;
-	OCall;
-	OObjCall;
-	OJump;
-	OJumpIf;
-	OJumpIfNot;
-	OTrap;
+	OPop(p: Int);
+	OCall(p: Int);
+	OObjCall(p: Int);
+	OJump(p: Int);
+	OJumpIf(p: Int);
+	OJumpIfNot(p: Int);
+	OTrap(p: Int);
 	OEndTrap;
-	ORet;
-	OMakeEnv;
-	OMakeArray;
+	ORet(p: Int);
+	OMakeEnv(p: Int);
+	OMakeArray(p: Int);
 	// value ops
 	OBool;
 	OIsNull;
@@ -86,14 +86,16 @@ enum Opcode {
 	OCompare;
 	OHash;
 	ONew;
-	OJumpTable;
-	OApply;
+	OJumpTable(p: Int);
+	OApply(p: Int);
 	OAccStack0;
 	OAccStack1;
 	OAccIndex0;
 	OAccIndex1;
 	OPhysCompare;
-	OTailCall;
+	OTailCall(p: Int, r: Int);
+	OLoop;
+	OLast;
 }
 
 typedef DebugInfos = Array<Null<{ file : String, line : Int }>>;
@@ -104,10 +106,11 @@ enum Global {
 	GlobalString( v : String );
 	GlobalFloat( v : String );
 	GlobalDebug( debug : DebugInfos );
+	GlobalVersion( v : Int );
 }
 
 typedef Data = {
 	var globals : Array<Global>;
 	var fields : Array<String>;
-	var code : Array<Int>;
+	var code : Array<Opcode>;
 }

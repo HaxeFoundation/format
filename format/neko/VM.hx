@@ -32,10 +32,7 @@ import format.neko.Value;
 class VM {
 
 	// globals
-	var opcodes : Array<Opcode>;
 	var builtins : Builtins;
-	var hfields : Map<Int,String>;
-	var hbuiltins : Map<Int,Value>;
 	var hloader : Int;
 	var hexports : Int;
 
@@ -48,20 +45,11 @@ class VM {
 	var module : Module;
 
 	public function new() {
-		hbuiltins = new Map();
-		hfields = new Map();
-		opcodes = [];
 		stack = new haxe.ds.GenericStack<Value>();
-		for( f in Type.getEnumConstructs(Opcode) )
-			opcodes.push(Type.createEnum(Opcode, f));
 		builtins = new Builtins(this);
-		for( b in builtins.table.keys() )
-			hbuiltins.set(hash(b), builtins.table.get(b));
-		hloader = hash("loader");
-		hexports = hash("exports");
 	}
 
-	function hash( s : String ) {
+	function hash( s : String ) : Int {
 		var h = 0;
 		#if neko
 		for( i in 0...s.length )
@@ -76,17 +64,6 @@ class VM {
 
 	public dynamic function doPrint( s : String ) {
 		haxe.Log.trace(s, cast {});
-	}
-
-	public function hashField( f : String ) {
-		var fid = hash(f);
-		var f2 = hfields.get(fid);
-		if( f2 != null ) {
-			if( f2 == f ) return fid;
-			throw "Hashing conflicts between '" + f + "' and '" + f2 + "'";
-		}
-		hfields.set(fid, f);
-		return fid;
 	}
 
 	public function _abstract<T>( b : Value, t : Class<T> ) : T {
@@ -124,7 +101,7 @@ class VM {
 
 	public function defaultLoader() {
 		var loader = new ValueObject(null);
-		loader.fields.set(hash("loadprim"), VFunction(VFun2(loadPrim)));
+		loader.fields.set("loadprim", VFunction(VFun2(loadPrim)));
 		return loader;
 	}
 
@@ -175,10 +152,9 @@ class VM {
 					throw "assert";
 			});
 			case GlobalDebug(debug): module.debug = debug; VNull;
+			case GlobalVersion(v): VString('(version $v)');
 			};
 		}
-		for( f in m.fields )
-			hashField(f);
 		vthis = VNull;
 		env = [];
 		loop(0);
@@ -196,11 +172,6 @@ class VM {
 		} else
 			pos = "@" + StringTools.hex(pc);
 		throw VString(pos+" : "+msg);
-	}
-
-	function fieldName( fid : Int ) {
-		var name = hfields.get(fid);
-		return (name == null) ? "?" + fid : name;
 	}
 
 	public function call( vthis : Value, vfun : Value, args : Array<Value> ) : Value {
@@ -332,7 +303,7 @@ class VM {
 		case VObject(o):
 			var a = { };
 			for( f in o.fields.keys() )
-				Reflect.setField(a, fieldName(f), unwrap(o.fields.get(f)));
+				Reflect.setField(a, f, unwrap(o.fields.get(f)));
 			return a;
 		case VFunction(f):
 			var me = this;
@@ -352,7 +323,7 @@ class VM {
 		}
 	}
 
-	public function getField( v : Value, fid : Int ) {
+	public function getField( v : Value, fid : String ) {
 		switch( v ) {
 		case VObject(o):
 			while( true ) {
@@ -365,7 +336,7 @@ class VM {
 				}
 			}
 		case VProxy(o):
-			var f : Dynamic = try Reflect.field(o, fieldName(fid)) catch( e : Dynamic ) null;
+			var f : Dynamic = try Reflect.field(o, fid) catch( e : Dynamic ) null;
 			v = wrap(f);
 		default:
 			v = null;
@@ -376,9 +347,8 @@ class VM {
 	function loop( pc : Int ) {
 		var acc = VNull;
 		var code = module.code.code;
-		var opcodes = opcodes;
 		while( true ) {
-			var op = opcodes[code[pc++]];
+			var op = code[pc++];
 			//var dbg = module.debug[pc];
 			//if( dbg != null ) trace(dbg.file + "(" + dbg.line + ") " + op+ " " +Lambda.count(stack));
 			switch( op ) {
@@ -390,12 +360,11 @@ class VM {
 				acc = VBool(false);
 			case OAccThis:
 				acc = vthis;
-			case OAccInt:
-				acc = VInt(code[pc++]);
-			case OAccStack:
-				var idx = code[pc++];
+			case OAccInt(v):
+				acc = VInt(v);
+			case OAccStack(idx):
 				var head = stack.head;
-				while( idx > -2 ) {
+				while( idx > 0 ) {
 					head = head.next;
 					idx--;
 				}
@@ -404,13 +373,12 @@ class VM {
 				acc = stack.head.elt;
 			case OAccStack1:
 				acc = stack.head.next.elt;
-			case OAccGlobal:
-				acc = module.gtable[code[pc++]];
+			case OAccGlobal(v):
+				acc = module.gtable[v];
 // case OAccEnv:
-			case OAccField:
-				acc = getField(acc, code[pc]);
-				if( acc == null ) error(pc, "Invalid field access : " + fieldName(code[pc]));
-				pc++;
+			case OAccField(v):
+				acc = getField(acc, v);
+				if( acc == null ) error(pc, "Invalid field access : " + v);
 			case OAccArray:
 				var arr = stack.pop();
 				switch( arr ) {
@@ -424,40 +392,38 @@ class VM {
 				default:
 					error(pc, "Invalid array access");
 				}
-			case OAccIndex:
-				acc = accIndex(pc, acc, code[pc] + 2);
-				pc++;
+			case OAccIndex(v):
+				acc = accIndex(pc, acc, v);
 			case OAccIndex0:
 				acc = accIndex(pc, acc, 0);
 			case OAccIndex1:
 				acc = accIndex(pc, acc, 1);
-			case OAccBuiltin:
-				acc = hbuiltins.get(code[pc++]);
+			case OAccBuiltin(v):
+				acc = builtins.table.get(v);
 				if( acc == null ) {
-					if( code[pc - 1] == hloader )
+					if( v == "loader" )
 						acc = VObject(module.loader);
-					else if( code[pc-1] == hexports )
+					else if( v == "exports" )
 						acc = VObject(module.exports);
 					else
-						error(pc - 1, "Builtin not found : " + fieldName(code[pc - 1]));
+						error(pc, "Builtin not found : " + v);
 				}
-			case OSetStack:
-				var idx = code[pc++];
+			case OSetStack(idx):
 				var head = stack.head;
 				while( idx > 0 ) {
 					head = head.next;
 					idx--;
 				}
 				head.elt = acc;
-			case OSetGlobal:
-				module.gtable[code[pc++]] = acc;
+			case OSetGlobal(idx):
+				module.gtable[idx] = acc;
 // case OSetEnv:
-			case OSetField:
+			case OSetField(v):
 				var obj = stack.pop();
 				switch( obj ) {
-				case VObject(o): o.fields.set(code[pc++], acc);
-				case VProxy(o): Reflect.setField(o, fieldName(code[pc++]), unwrap(acc));
-				default: error(pc, "Invalid field access : " + fieldName(code[pc]));
+				case VObject(o): o.fields.set(v, acc);
+				case VProxy(o): Reflect.setField(o, v, unwrap(acc));
+				default: error(pc, "Invalid field access : " + v);
 				}
 // case OSetArray:
 // case OSetIndex:
@@ -465,13 +431,11 @@ class VM {
 			case OPush:
 				if( acc == null ) throw "assert";
 				stack.add(acc);
-			case OPop:
-				for( i in 0...code[pc++] )
+			case OPop(v):
+				for( i in 0...v )
 					stack.pop();
-			case OTailCall:
+			case OTailCall(nargs, nstack):
 				var v = code[pc];
-				var nstack = v >> 3;
-				var nargs = v & 7;
 				var head = stack.head;
 				while( nstack-- > 0 )
 					head = head.next;
@@ -484,36 +448,32 @@ class VM {
 					args.next = head;
 				}
 				return mcall(pc, vthis, acc, nargs);
-			case OCall:
-				acc = mcall(pc, vthis, acc, code[pc]);
-				pc++;
-			case OObjCall:
-				acc = mcall(pc, stack.pop(), acc, code[pc]);
-				pc++;
-			case OJump:
-				pc += code[pc] - 1;
-			case OJumpIf:
+			case OCall(v):
+				acc = mcall(pc, vthis, acc, v);
+			case OObjCall(v):
+				acc = mcall(pc, stack.pop(), acc, v);
+			case OJump(tgt):
+				pc = tgt;
+			case OJumpIf(tgt):
 				switch( acc ) {
-				case VBool(a): if( a ) pc += code[pc] - 2;
+				case VBool(a): if( a ) pc = tgt;
 				default:
 				}
-				pc++;
-			case OJumpIfNot:
+			case OJumpIfNot(tgt):
 				switch( acc ) {
-				case VBool(a): if( !a ) pc += code[pc] - 2;
-				default: pc += code[pc] - 2;
+				case VBool(a): if( !a ) pc = tgt;
+				default:
 				}
-				pc++;
 // case OTrap:
 // case OEndTrap:
-			case ORet:
-				for( i in 0...code[pc++] )
+			case ORet(v):
+				for( i in 0...v )
 					stack.pop();
 				return acc;
 // case OMakeEnv:
-			case OMakeArray:
+			case OMakeArray(v):
 				var a = new Array();
-				for( i in 0...code[pc++] )
+				for( i in 0...v )
 					a.unshift(stack.pop());
 				a.unshift(acc);
 				acc = VArray(a);
@@ -602,7 +562,7 @@ class VM {
 				acc = (v == Builtins.CINVALID) ? VNull : VInt(v);
 			case OHash:
 				switch( acc ) {
-				case VString(f): acc = VInt(hashField(f));
+				case VString(f): acc = VInt(hash(f));
 				default: error(pc, "$hash");
 				}
 			case ONew:
@@ -616,7 +576,7 @@ class VM {
 			case OPhysCompare:
 				error(pc, "$pcompare");
 			default:
-				throw "TODO:" + opcodes[code[pc - 1]];
+				throw "TODO:" + code[pc - 1];
 			}
 		}
 		return null;
