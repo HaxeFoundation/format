@@ -70,12 +70,15 @@ class Tools {
 				for(k in o.extra)
 					m[k] = encode(o.extra[k]);
 				AArray(a, m);
+			// TODO: Handle native array types?
+			#if !haxe4
 			case cast Vector:
 				var o : Vector<Dynamic> = o;
 				var a = new Vector<Value>(o.length);
 				for(i in 0...o.length)
 					a[i] = encode(o[i]);
 				AVector(a);
+			#end
 			case cast haxe.io.Bytes:
 				ABytes(o);
 			case cast Date:

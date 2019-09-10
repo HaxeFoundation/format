@@ -343,7 +343,11 @@ class Reader {
 		if( len == 0 )
 			return AString( "" );  // 0x01 is empty string and is never sent by reference
 		// get the string characters
+		#if haxe4
+		var u:UnicodeString = "";
+		#else
 		var u = new haxe.Utf8(len);
+		#end
 		var c = 0, d = 0, j:Int = 0, it = 0;
 		while (j < len) {
 			c = i.readByte();
@@ -369,7 +373,13 @@ class Reader {
 				d |= i.readByte() & 0x3f;
 			}
 			j += it + 1;
-			if (d != 0x01) u.addChar(d);
+			if (d != 0x01) {
+				#if haxe4
+				u += String.fromCharCode(d);
+				#else
+				u.addChar(d);
+				#end
+			}
 		}
 		var ret = AString( u.toString() );
 		// store the string off for if it gets referenced later
