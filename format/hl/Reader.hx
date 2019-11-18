@@ -101,28 +101,7 @@ class Reader {
 		case 10:
 			return HFun({ args : [for( i in 0..._read() ) HAt(uindex())], ret : HAt(uindex()) });
 		case 11:
-			var p : ObjPrototype = {
-				name : getString(),
-				tsuper : null,
-				fields : null,
-				proto : null,
-				bindings : null,
-				globalValue : null,
-			};
-			var sup = index();
-			if( sup >= 0 ) {
-				p.tsuper = types[sup];
-				if( p.tsuper == null ) throw "assert";
-			}
-			p.globalValue = uindex() - 1;
-			if( p.globalValue < 0 ) p.globalValue = null;
-			var nfields = uindex();
-			var nproto = uindex();
-			var nbindings = uindex();
-			p.fields = [for( i in 0...nfields ) { name : getString(), t : HAt(uindex()) }];
-			p.proto = [for( i in 0...nproto ) { name : getString(), findex : uindex(), pindex : index() }];
-			p.bindings = [for( i in 0...nbindings ) { fid : uindex(), mid : uindex() }];
-			return HObj(p);
+			return HObj(readProto());
 		case 12:
 			return HArray;
 		case 13:
@@ -146,10 +125,37 @@ class Reader {
 		case 19:
 			return HNull(getType());
 		case 20:
-			return HFun({ args : [for( i in 0..._read() ) HAt(uindex())], ret : HAt(uindex()) });
+			return HMethod({ args : [for( i in 0..._read() ) HAt(uindex())], ret : HAt(uindex()) });
+		case 21:
+			return HStruct(readProto());
 		case x:
 			throw "Unsupported type value " + x;
 		}
+	}
+
+	function readProto() {
+		var p : ObjPrototype = {
+			name : getString(),
+			tsuper : null,
+			fields : null,
+			proto : null,
+			bindings : null,
+			globalValue : null,
+		};
+		var sup = index();
+		if( sup >= 0 ) {
+			p.tsuper = types[sup];
+			if( p.tsuper == null ) throw "assert";
+		}
+		p.globalValue = uindex() - 1;
+		if( p.globalValue < 0 ) p.globalValue = null;
+		var nfields = uindex();
+		var nproto = uindex();
+		var nbindings = uindex();
+		p.fields = [for( i in 0...nfields ) { name : getString(), t : HAt(uindex()) }];
+		p.proto = [for( i in 0...nproto ) { name : getString(), findex : uindex(), pindex : index() }];
+		p.bindings = [for( i in 0...nbindings ) { fid : uindex(), mid : uindex() }];
+		return p;
 	}
 
 	function fixType( t : HLType ) {

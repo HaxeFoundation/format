@@ -43,6 +43,7 @@ enum HLType {
 	HEnum( proto : EnumPrototype );
 	HNull( t : HLType );
 	HMethod( fun : FunPrototype );
+	HStruct( proto : ObjPrototype );
 	// only for reader
 	HAt( i : Int );
 }

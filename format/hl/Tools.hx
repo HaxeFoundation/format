@@ -5,7 +5,7 @@ class Tools {
 
 	public static function isDynamic( t : HLType ) {
 		return switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HStruct(_):
 			false;
 		case HBytes, HType, HRef(_), HAbstract(_), HMethod(_):
 			false;
@@ -19,7 +19,7 @@ class Tools {
 		return switch( t ) {
 		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_):
 			false;
-		case HBytes, HType, HRef(_), HAbstract(_), HEnum(_):
+		case HBytes, HType, HRef(_), HAbstract(_), HEnum(_), HStruct(_):
 			true;
 		case HDyn, HFun(_), HObj(_), HArray, HVirtual(_), HDynObj, HNull(_), HMethod(_):
 			true;
@@ -40,7 +40,7 @@ class Tools {
 					if( isPtr(t) )
 						return true;
 			return false;
-		case HObj(p):
+		case HObj(p), HStruct(p):
 			for( f in p.fields )
 				if( isPtr(f.t) )
 					return true;
@@ -123,6 +123,8 @@ class Tools {
 			e.name;
 		case HNull(t):
 			"Null<" + toString(t) + ">";
+		case HStruct(o):
+			o.name;
 		case HAt(_):
 			"<...>";
 		}
