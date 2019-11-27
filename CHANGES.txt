@@ -1,5 +1,6 @@
 unreleased: 3.4.3
 	fix 31-bit int reading/writing (affects swf)
+	abc : fix const trait parsing
 
 2019-02-06: 3.4.2
 	HL version 5 reader
@@ -142,8 +143,8 @@ unreleased: 3.4.3
 2010-02-23: 1.15
 	swf : fixed TBackgroundColor (use bigEndian r/w)
 	tools : fixed CRC32 with -cpp
-	jpg : added (contributed by Robert Sköld)
-	bmp : added (contributed by Robert Sköld)
+	jpg : added (contributed by Robert Skï¿½ld)
+	bmp : added (contributed by Robert Skï¿½ld)
 	swf : fixed readLossless with 8bits bitmaps
 	swf : fixed issue when rect is not rounded
 	tools : added Inflate/Deflate support for cpp
