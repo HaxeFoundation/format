@@ -1,6 +1,9 @@
-unreleased: 3.4.3
+2019-11-27: 3.5.0
 	fix 31-bit int reading/writing (affects swf)
 	abc : fix const trait parsing
+	neko : changed parser
+	hl : 1.11 bytecode support
+	wav : support cue chunks
 
 2019-02-06: 3.4.2
 	HL version 5 reader
