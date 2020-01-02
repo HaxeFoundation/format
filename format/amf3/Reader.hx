@@ -71,7 +71,7 @@ class Reader {
 		else if( n & 3 == 1 )
 		{
 			// object traits reference
-			n >>= 3;
+			n >>= 2;
 			var refTraits = objectTraitsTable[n];
 			dyn = refTraits.isDynamic;
 			isExternalizable = refTraits.isExternalizable;
