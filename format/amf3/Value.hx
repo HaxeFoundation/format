@@ -36,9 +36,9 @@ enum Value {
 	ANumber( f : Float );
 	AString( s : String );
 	ADate( d : Date );
-	AObject( fields : Map<String,Value>, ?size : Int );
+	AObject( fields : Map<String,Value>, classname: String, ?size : Int );
 	AArray( values : Array<Value>, ?extra : Map<String,Value> );
-	AVector( values : Vector<Value> );
+	AVector( values : Vector<Value>, classname: String );
 	AXml( x : Xml );
 	ABytes( b : haxe.io.Bytes );
 	AMap( m : Map<Value, Value> );

@@ -42,7 +42,7 @@ class Tools {
 			for ( f in Reflect.fields(o) ) {
 				h.set(f, encode(Reflect.field(o, f)));
 			}
-			AObject(h);
+			AObject(h, null);
 		case TClass(c):
 			switch( c ) {
 			case cast String:
@@ -77,7 +77,7 @@ class Tools {
 				var a = new Vector<Value>(o.length);
 				for(i in 0...o.length)
 					a[i] = encode(o[i]);
-				AVector(a);
+				AVector(a, null);
 			#end
 			case cast haxe.io.Bytes:
 				ABytes(o);
@@ -86,11 +86,12 @@ class Tools {
 			case _:
 				var h = new Map();
 				var i = 0;
-				for ( f in Type.getInstanceFields(Type.getClass(o)) ) {
+				var _class = Type.getClass(o);
+				for ( f in Type.getInstanceFields(_class) ) {
 					h.set(f, encode(Reflect.getProperty(o, f)));
 					i++;
 				}
-				AObject(h, i);
+				AObject(h, Type.getClassName(_class), i);
 			}
 		default:
 			throw "Can't encode "+Std.string(o);
@@ -181,7 +182,7 @@ class Tools {
 	public static function vector( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
-			case AVector(a):
+			case AVector(a,_):
 				var v = new Vector<Dynamic>(a.length);
 				for (i in 0...a.length)
 					v[i] = decode(a[i]);

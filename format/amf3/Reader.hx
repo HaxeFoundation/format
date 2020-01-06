@@ -71,11 +71,11 @@ class Reader {
 		else if( n & 3 == 1 )
 		{
 			// object traits reference
-			n >>= 3;
+			n >>= 2;
 			var refTraits = objectTraitsTable[n];
 			dyn = refTraits.isDynamic;
 			isExternalizable = refTraits.isExternalizable;
-			//className = refTraits.className;
+			className = refTraits.className;
 			//trace(Tools.decode(className));  // TODO make registered class feature or use Type.resolveClass?
 			sealedMemberNames = refTraits.sealedMemberNames;
 		}
@@ -114,7 +114,7 @@ class Reader {
 
 		var h = new Map();
 
-		var ret = AObject( h );
+		var ret = AObject( h, className != null ? Tools.decode(className) : null );
 
 		// save new object in reference table
 		complexObjectsTable.push( ret );
@@ -210,7 +210,7 @@ class Reader {
 			a[r] = AInt( i.readInt32() );
 		}
 
-		var ret = fixed? AVector( a ) : AArray( a );
+		var ret = fixed? AVector( a, "Int" ) : AArray( a );
 
 		complexObjectsTable.push(ret);
 
@@ -238,7 +238,7 @@ class Reader {
 			a[r] = ANumber( i.readDouble() );
 		}
 
-		var ret = fixed? AVector( a ) : AArray( a );
+		var ret = fixed? AVector( a, "Number" ) : AArray( a );
 
 		complexObjectsTable.push(ret);
 
@@ -264,7 +264,7 @@ class Reader {
 		if( fixed )
 		{
 			a = new Vector(len);
-			ret = AVector( a );
+			ret = AVector( a, objectTypeName );
 		}
 		else
 		{
