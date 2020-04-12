@@ -2,7 +2,7 @@
 	"name" : "format",
 	"url" : "https://github.com/HaxeFoundation/format",
 	"license" : "BSD",
-	"contributors" : ["ncannasse"],
+	"contributors" : ["ncannasse", "HaxeFoundation"],
 	"description" : "A Haxe Library for supporting different file formats.",
 	"version" : "3.5.0",
 	"releasenote" : "See CHANGES.txt"
