@@ -148,7 +148,8 @@ class Tools {
 				paddedStride: paddedStride,
 				topToBottom: topToBottom,
 				bpp: bpp,
-				dataLength: dataLength
+				dataLength: dataLength,
+				compression: 0
 			},
 			pixels: bytesBGR
 		}
