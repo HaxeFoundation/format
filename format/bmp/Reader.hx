@@ -83,12 +83,7 @@ class Reader {
 		var colorTable : haxe.io.Bytes = null;
 		if ( bits <= 8 ) {
 			if ( colorsUsed == 0 ) {
-				colorsUsed = switch (bits) {
-					case 1: 2;
-					case 4: 16;
-					case 8: 256;
-					default: throw 'Unsupported bpp $bits';
-				}
+				colorsUsed = Tools.getNumColorsForBitDepth(bits);
 			}
 			var colorTableLength = 4 * colorsUsed;
 			colorTable = haxe.io.Bytes.alloc( colorTableLength );
