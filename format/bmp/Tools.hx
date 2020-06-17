@@ -35,6 +35,8 @@ class Tools {
 	//												  a  r  g  b
 	static var ARGB_MAP(default, never):Array<Int> = [0, 1, 2, 3];
 	static var BGRA_MAP(default, never):Array<Int> = [3, 2, 1, 0];
+
+	static var COLOR_SIZE(default, never):Int = 4;
 	
 	/**
 		Extract BMP pixel data (24bpp in BGR format) and expands it to BGRA, removing any padding in the process.
@@ -67,6 +69,19 @@ class Tools {
 	inline static public function computePaddedStride(width:Int, bpp:Int):Int {
 		return ((((width * bpp) + 31) & ~31) >> 3);
 	}
+
+	/**
+	 * Gets number of colors for indexed palettes
+	 */
+	inline static public function getNumColorsForBitDepth(bpp:Int):Int {
+		return switch (bpp) {
+			case 1: 2;
+			case 4: 16;
+			case 8: 256;
+			case 16: 65536;
+			default: throw 'Unsupported bpp $bpp';
+		}
+	}
 	
 	
 	// `channelMap` contains indices to map into ARGB (f.e. the mapping for ARGB is [0,1,2,3], while for BGRA is [3,2,1,0])
@@ -85,24 +100,81 @@ class Tools {
 			yDir = 1;
 			srcPos = 0;
 		}
-    
-		while( dstPos < dstLen ) {
-			var i = srcPos;
-			while( i < srcPos + srcStride ) {
-				var b = srcBytes.get(i + 0);
-				var g = srcBytes.get(i + 1);
-				var r = srcBytes.get(i + 2);
-				
-				dstBytes.set(dstPos + channelMap[0], alpha); // alpha
-				dstBytes.set(dstPos + channelMap[1], r);
-				dstBytes.set(dstPos + channelMap[2], g);
-				dstBytes.set(dstPos + channelMap[3], b);
-				
-				i += 3;
-				dstPos += 4;
-			}
-			srcPos += yDir * srcPaddedStride;
+
+		switch bmp.header.compression {
+			case 0:
+				while( dstPos < dstLen ) {
+					var i = srcPos;
+					while( i < srcPos + srcStride ) {
+						if ( bmp.header.bpp == 32 ) alpha = srcBytes.get(i);
+						var r = srcBytes.get(i + 1);
+						var g = srcBytes.get(i + 2);
+						var b = srcBytes.get(i + 3);
+						
+						dstBytes.set(dstPos + channelMap[0], alpha); // alpha
+						dstBytes.set(dstPos + channelMap[1], r);
+						dstBytes.set(dstPos + channelMap[2], g);
+						dstBytes.set(dstPos + channelMap[3], b);
+						
+						i += 3;
+						dstPos += 4;
+					}
+					srcPos += yDir * srcPaddedStride;
+				}
+			case 1:
+				srcPos = 0;
+				var colorTableLength = getNumColorsForBitDepth(bmp.header.bpp);
+				var colorTable = haxe.io.Bytes.alloc(colorTableLength * COLOR_SIZE);
+				var definedColorTableLength = Std.int( bmp.colorTable.length / COLOR_SIZE );
+				for( i in 0...definedColorTableLength ) {
+					var b = bmp.colorTable.get( i * COLOR_SIZE);
+					var g = bmp.colorTable.get( i * COLOR_SIZE + 1);
+					var r = bmp.colorTable.get( i * COLOR_SIZE + 2);
+
+					colorTable.set(i * COLOR_SIZE + channelMap[0], alpha);
+					colorTable.set(i * COLOR_SIZE + channelMap[1], r);
+					colorTable.set(i * COLOR_SIZE + channelMap[2], g);
+					colorTable.set(i * COLOR_SIZE + channelMap[3], b);
+				}
+				// We want to have the table the full length in case indices outside the range are present
+				colorTable.fill(definedColorTableLength, colorTableLength - definedColorTableLength, 0);
+				for( i in definedColorTableLength...colorTableLength ) {
+					colorTable.set(i * COLOR_SIZE + channelMap[0], alpha);
+				}
+				var x = 0;
+				var y = bmp.header.topToBottom ? 0 : bmp.header.height - 1;
+				while( srcPos < bmp.header.dataLength ) {
+					var count = srcBytes.get(srcPos++);
+					var index = srcBytes.get(srcPos++);
+					if ( count == 0 ) {
+						if ( index == 0 ) {
+							x = 0;
+							y += yDir;
+						} else if ( index == 1 ) {
+							break;
+						} else if ( index == 2 ) {
+							x += srcBytes.get(srcPos++);
+							y += srcBytes.get(srcPos++);
+						} else {
+							count = index;
+							for( i in 0...count ) {
+								index = srcBytes.get(srcPos++);
+								dstBytes.blit( COLOR_SIZE * ((x+i) + y * bmp.header.width), colorTable, index * COLOR_SIZE, COLOR_SIZE );
+							}
+							if (srcPos % 2 != 0) srcPos++;
+							x += count;
+						}
+					} else {
+						for( i in 0...count ) {
+							dstBytes.blit( COLOR_SIZE * ((x+i) + y * bmp.header.width), colorTable, index * COLOR_SIZE, COLOR_SIZE );
+						}
+						x += count;
+					}
+				}
+			default:
+				throw 'compression ${bmp.header.compression} not supported';
 		}
+
 		return dstBytes;
 	}
 	
