@@ -107,9 +107,13 @@ class Tools {
 					var i = srcPos;
 					while( i < srcPos + srcStride ) {
 						if ( bmp.header.bpp == 32 ) alpha = srcBytes.get(i);
-						var r = srcBytes.get(i + 1);
-						var g = srcBytes.get(i + 2);
-						var b = srcBytes.get(i + 3);
+						// var r = srcBytes.get(i + 1);
+						// var g = srcBytes.get(i + 2);
+						// var b = srcBytes.get(i + 3);
+						var b = srcBytes.get(i + 0);
+						var g = srcBytes.get(i + 1);
+						var r = srcBytes.get(i + 2);
+						if ( bmp.header.bpp == 32 ) alpha = srcBytes.get(i + 3);
 						
 						dstBytes.set(dstPos + channelMap[0], alpha); // alpha
 						dstBytes.set(dstPos + channelMap[1], r);
