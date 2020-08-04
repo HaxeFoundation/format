@@ -145,10 +145,10 @@ class Reader {
 
 	function readCXAColor(nbits) : RGBA {
 		return {
-			r : bits.readBits(nbits),
-			g : bits.readBits(nbits),
-			b : bits.readBits(nbits),
-			a : bits.readBits(nbits),
+			r : (bits.readBit() ? -256:0) + bits.readBits(nbits - 1),
+			g : (bits.readBit() ? -256:0) + bits.readBits(nbits - 1),
+			b : (bits.readBit() ? -256:0) + bits.readBits(nbits - 1),
+			a : (bits.readBit() ? -256:0) + bits.readBits(nbits - 1),
 		};
 	}
 
