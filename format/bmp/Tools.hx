@@ -235,7 +235,8 @@ class Tools {
 				dataLength: dataLength,
 				compression: 0
 			},
-			pixels: bytesBGR
+			pixels: bytesBGR,
+			colorTable: null
 		}
 	}
 }

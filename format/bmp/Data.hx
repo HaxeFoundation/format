@@ -32,7 +32,11 @@ package format.bmp;
 typedef Data = {
 	var header : format.bmp.Header;
 	var pixels : haxe.io.Bytes;
+#if (haxe_ver < 4)
+	var colorTable : Null<haxe.io.Bytes>;
+#else
 	var ?colorTable : haxe.io.Bytes;
+#end
 }
 
 typedef Header = {
