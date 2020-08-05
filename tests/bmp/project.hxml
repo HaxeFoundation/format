@@ -10,30 +10,30 @@
 
 --each
 
-# -neko bin/tests.n
+-neko bin/tests.n
 
-# --next
-# -swf bin/tests.swf
-# -swf-header 900:600:30
-# -D fdb
+--next
+-swf bin/tests.swf
+-swf-header 900:600:30
+-D fdb
 
-# --next
-# -cpp bin/cpp
+--next
+-cpp bin/cpp
 
-# --next
-# -php bin/php
+--next
+-php bin/php
 
-# --next
-# -js bin/tests.js
+--next
+-js bin/tests.js
 
-# --next
-# -java bin/java
+--next
+-java bin/java
 
-# --next
-# -cs bin/cs
+--next
+-cs bin/cs
 
-# --next
-# -python bin/test.py
+--next
+-python bin/test.py
 
 --next
 --interp
