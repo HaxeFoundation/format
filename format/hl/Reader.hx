@@ -117,10 +117,16 @@ class Reader {
 		case 18:
 			var name = getString();
 			var global = uindex() - 1;
+			var constructs = [for( i in 0...uindex() ) { name : getString(), params : [for( i in 0...uindex() ) HAt(uindex())] }];
+			if( name == strings[0] && constructs.length == 1 && constructs[0].name == strings[0] ) {
+				// fake enum (closure context)
+				name = null;
+				constructs[0].name = "";
+			}
 			return HEnum({
 				name : name,
 				globalValue : global < 0 ? null : global,
-				constructs : [for( i in 0...uindex() ) { name : getString(), params : [for( i in 0...uindex() ) HAt(uindex())] }],
+				constructs : constructs,
 			});
 		case 19:
 			return HNull(getType());
