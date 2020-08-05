@@ -89,12 +89,11 @@ class Tools {
 		var srcBytes = bmp.pixels;
 		var dstLen = bmp.header.width * bmp.header.height * 4;
 		var dstBytes = haxe.io.Bytes.alloc( dstLen );
-		var srcStride = bmp.header.width * 3;
 		var srcPaddedStride = bmp.header.paddedStride;
 		
 		var yDir = -1;
 		var dstPos = 0;
-		var srcPos = bmp.header.dataLength - srcPaddedStride;
+		var srcPos = srcPaddedStride * (bmp.header.height - 1);
     
 		if ( bmp.header.topToBottom ) {
 			yDir = 1;
@@ -104,23 +103,32 @@ class Tools {
 		switch bmp.header.compression {
 			case 0:
 				while( dstPos < dstLen ) {
-					var i = srcPos;
-					while( i < srcPos + srcStride ) {
-						if ( bmp.header.bpp == 32 ) alpha = srcBytes.get(i);
-						// var r = srcBytes.get(i + 1);
-						// var g = srcBytes.get(i + 2);
-						// var b = srcBytes.get(i + 3);
-						var b = srcBytes.get(i + 0);
-						var g = srcBytes.get(i + 1);
-						var r = srcBytes.get(i + 2);
-						if ( bmp.header.bpp == 32 ) alpha = srcBytes.get(i + 3);
-						
-						dstBytes.set(dstPos + channelMap[0], alpha); // alpha
-						dstBytes.set(dstPos + channelMap[1], r);
-						dstBytes.set(dstPos + channelMap[2], g);
-						dstBytes.set(dstPos + channelMap[3], b);
-						
-						i += 3;
+					for( i in 0...bmp.header.width ) {
+						if (bmp.header.bpp == 24) {
+
+							var currentSrcPos = srcPos + i * 3;
+							var b = srcBytes.get(currentSrcPos + 0);
+							var g = srcBytes.get(currentSrcPos + 1);
+							var r = srcBytes.get(currentSrcPos + 2);
+							
+							dstBytes.set(dstPos + channelMap[0], alpha);
+							dstBytes.set(dstPos + channelMap[1], r);
+							dstBytes.set(dstPos + channelMap[2], g);
+							dstBytes.set(dstPos + channelMap[3], b);
+
+						} else if (bmp.header.bpp == 32) {
+
+							var currentSrcPos = srcPos + i * 4;
+							var b = srcBytes.get(currentSrcPos + 0);
+							var g = srcBytes.get(currentSrcPos + 1);
+							var r = srcBytes.get(currentSrcPos + 2);
+							
+							dstBytes.set(dstPos + channelMap[0], alpha);
+							dstBytes.set(dstPos + channelMap[1], r);
+							dstBytes.set(dstPos + channelMap[2], g);
+							dstBytes.set(dstPos + channelMap[3], b);
+
+						}
 						dstPos += 4;
 					}
 					srcPos += yDir * srcPaddedStride;

@@ -16,6 +16,7 @@ typedef ExpectedValues = {
 	size : { w:Int, h:Int },             // actual size of BMP
 	dataLength : Int,                    // byteLength including padding
 	compression : Int,                   // compression type (0 == none)
+	bpp : Int,                           // bits per pixel
 	pixelPos : Array<{ x:Int, y:Int }>,  // pixels to test (top to bottom)
 	pixelBGR : Array<Int>,               // BGR value of pixels at pixelPos in Data.pixels
 	pixelBGRA : Array<Int>,              // BGRA value of pixels at pixelPos after extractBGRA()
@@ -28,6 +29,7 @@ class Tests extends TestCase
 		"bgrw.bmp" => {
 			size : { w:2, h:2 },
 			dataLength : 16,
+			bpp: 24,
 			compression : 0,
 			pixelPos : [ {x:  1, y:  1}, {x:  0, y:  1} ],
 			pixelBGR : [   0x00FFFFFF  ,   0x000000FF   ],
@@ -37,6 +39,7 @@ class Tests extends TestCase
 		"lena.bmp" => {
 			size : { w:199, h:199 },
 			dataLength : 119400,
+			bpp: 24,
 			compression : 0,
 			pixelPos : [ {x:  1, y:  1}, {x:198, y:198} ],
 			pixelBGR : [   0x004D71C5,     0x00252745   ],
@@ -46,15 +49,37 @@ class Tests extends TestCase
 		"xing_b24.bmp" => {
 			size : { w:240, h:164 },
 			dataLength : 118080,
+			bpp: 24,
 			compression : 0,
 			pixelPos : [ {x:  1, y:  1}, {x: 64, y:152} ],
 			pixelBGR : [   0x002D6829  ,   0x0093FDF7   ],
 			pixelBGRA: [   0x2D6829ff  ,   0x93FDF7FF   ],
 			pixelARGB: [   0xff29682D  ,   0xFFF7FD93   ],
 		},
+		"xing_b32.bmp" => {
+			size : { w:240, h:164 },
+			dataLength : 157440,
+			bpp: 32,
+			compression : 0,
+			pixelPos : [ {x:  1, y:  1}, {x: 64, y:152} ],
+			pixelBGR : [   0x002D6829  ,   0x0093FDF7   ],
+			pixelBGRA: [   0x2D6829ff  ,   0x93FDF7FF   ],
+			pixelARGB: [   0xff29682D  ,   0xFFF7FD93   ],
+		},
+		"xing_indexed.bmp" => {
+			size : { w:240, h:164 },
+			dataLength : 40076,
+			bpp: 8,
+			compression : 1,
+			pixelPos : [ {x:  1, y:  1}, {x: 64, y:152} ],
+			pixelBGR : [   0x00285E32  ,   0x0094FDF7   ],
+			pixelBGRA: [   0x285E32FF  ,   0x94FDF7FF   ],
+			pixelARGB: [   0xFF325E28  ,   0xFFF7FD94   ],
+		},
 		"xing_toptobottom.bmp" => {
 			size : { w:240, h:164 },
 			dataLength : 118080,
+			bpp: 24,
 			compression : 0,
 			pixelPos : [ {x:  1, y:163-1}, {x: 64, y:163-152} ],
 			pixelBGR : [   0x002D6829  ,   0x0093FDF7   ],
@@ -104,6 +129,14 @@ class Tests extends TestCase
 			_assertEquals(expected[k].size.h, header.height, k + " height");
 		}
 	}
+
+	public function testBpp() {
+		for (k in expected.keys()) {
+			var header = data[k].header;
+			_assertEquals(expected[k].bpp, header.bpp, k + " bpp");
+			_assertEquals(expected[k].compression, header.compression, k + " compression");
+		}
+	}
   
 	public function testDataLength() {
 		for (k in expected.keys()) {
@@ -111,12 +144,16 @@ class Tests extends TestCase
 			var pixels = data[k].pixels;
 			_assertEquals(expected[k].dataLength, header.dataLength, k + " dataLength");
 			_assertEquals(expected[k].dataLength, pixels.length, k + " pixels.length");
-			_assertEquals(expected[k].dataLength, header.paddedStride * header.height, k + " paddedStride * height");
+			if (header.compression == 0) {
+				_assertEquals(expected[k].dataLength, header.paddedStride * header.height, k + " paddedStride * height");
+			}
 		}
 	}
   
 	public function testBGR() {
 		for (k in expected.keys()) {
+			// Only works for 24-bit
+			if (expected[k].bpp != 24) continue;
 			for (i in 0...Lambda.count(expected[k].pixelPos)) {
 				var pixelCoord = expected[k].pixelPos[i];
 				var bgr = PixelTools.getBGR(data[k], pixelCoord.x, pixelCoord.y);
@@ -139,7 +176,6 @@ class Tests extends TestCase
 	
 	public function testARGB() {
 		for (k in expected.keys()) {
-			trace(k);
 			var header = data[k].header;
 			var bytesARGB = Tools.extractARGB(data[k]);
 			for (i in 0...Lambda.count(expected[k].pixelPos)) {
@@ -153,6 +189,9 @@ class Tests extends TestCase
 	public function testBuilt_vs_Read() {
 		for (k in expected.keys()) {
 			var header = data[k].header;
+			// Only writing of rgb is supported
+			if (expected[k].compression != 0) continue;
+			if (expected[k].bpp == 32) continue;
 
 			var extractedARGB = Tools.extractARGB(data[k]);
 			var builtFromARGB = Tools.buildFromARGB(header.width, header.height, extractedARGB, header.topToBottom);
@@ -168,6 +207,9 @@ class Tests extends TestCase
 	public function testWritten_vs_Read() {
 		for (k in expected.keys()) {
 			var header = data[k].header;
+			// Only writing of rgb is supported
+			if (expected[k].compression != 0) continue;
+			if (expected[k].bpp == 32) continue;
 
 			var extractedARGB = Tools.extractARGB(data[k]);
 			var builtFromARGB = Tools.buildFromARGB(header.width, header.height, extractedARGB, header.topToBottom);
