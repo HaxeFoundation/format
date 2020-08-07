@@ -100,11 +100,43 @@ class Tools {
 			srcPos = 0;
 		}
 
+		if ( bmp.header.bpp < 8 ) {
+			throw 'bpp ${bmp.header.bpp} not supported';
+		}
+
+		var colorTable:haxe.io.Bytes = null;
+		if ( bmp.header.bpp <= 8 ) {
+			var colorTableLength = getNumColorsForBitDepth(bmp.header.bpp);
+			colorTable = haxe.io.Bytes.alloc(colorTableLength * COLOR_SIZE);
+			var definedColorTableLength = Std.int( bmp.colorTable.length / COLOR_SIZE );
+			for( i in 0...definedColorTableLength ) {
+				var b = bmp.colorTable.get( i * COLOR_SIZE);
+				var g = bmp.colorTable.get( i * COLOR_SIZE + 1);
+				var r = bmp.colorTable.get( i * COLOR_SIZE + 2);
+
+				colorTable.set(i * COLOR_SIZE + channelMap[0], alpha);
+				colorTable.set(i * COLOR_SIZE + channelMap[1], r);
+				colorTable.set(i * COLOR_SIZE + channelMap[2], g);
+				colorTable.set(i * COLOR_SIZE + channelMap[3], b);
+			}
+			// We want to have the table the full length in case indices outside the range are present
+			colorTable.fill(definedColorTableLength, colorTableLength - definedColorTableLength, 0);
+			for( i in definedColorTableLength...colorTableLength ) {
+				colorTable.set(i * COLOR_SIZE + channelMap[0], alpha);
+			}
+		}
+
 		switch bmp.header.compression {
 			case 0:
 				while( dstPos < dstLen ) {
 					for( i in 0...bmp.header.width ) {
-						if (bmp.header.bpp == 24) {
+						if (bmp.header.bpp == 8) {
+
+							var currentSrcPos = srcPos + i;
+							var index = srcBytes.get(currentSrcPos);
+							dstBytes.blit( dstPos, colorTable, index * COLOR_SIZE, COLOR_SIZE );
+
+						} else if (bmp.header.bpp == 24) {
 
 							var currentSrcPos = srcPos + i * 3;
 							var b = srcBytes.get(currentSrcPos + 0);
@@ -135,24 +167,6 @@ class Tools {
 				}
 			case 1:
 				srcPos = 0;
-				var colorTableLength = getNumColorsForBitDepth(bmp.header.bpp);
-				var colorTable = haxe.io.Bytes.alloc(colorTableLength * COLOR_SIZE);
-				var definedColorTableLength = Std.int( bmp.colorTable.length / COLOR_SIZE );
-				for( i in 0...definedColorTableLength ) {
-					var b = bmp.colorTable.get( i * COLOR_SIZE);
-					var g = bmp.colorTable.get( i * COLOR_SIZE + 1);
-					var r = bmp.colorTable.get( i * COLOR_SIZE + 2);
-
-					colorTable.set(i * COLOR_SIZE + channelMap[0], alpha);
-					colorTable.set(i * COLOR_SIZE + channelMap[1], r);
-					colorTable.set(i * COLOR_SIZE + channelMap[2], g);
-					colorTable.set(i * COLOR_SIZE + channelMap[3], b);
-				}
-				// We want to have the table the full length in case indices outside the range are present
-				colorTable.fill(definedColorTableLength, colorTableLength - definedColorTableLength, 0);
-				for( i in definedColorTableLength...colorTableLength ) {
-					colorTable.set(i * COLOR_SIZE + channelMap[0], alpha);
-				}
 				var x = 0;
 				var y = bmp.header.topToBottom ? 0 : bmp.header.height - 1;
 				while( srcPos < bmp.header.dataLength ) {
