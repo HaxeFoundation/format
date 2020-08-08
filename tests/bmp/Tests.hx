@@ -189,9 +189,8 @@ class Tests extends TestCase
 	public function testBuilt_vs_Read() {
 		for (k in expected.keys()) {
 			var header = data[k].header;
-			// Only writing of rgb is supported
-			if (expected[k].compression != 0) continue;
-			if (expected[k].bpp == 32) continue;
+			// Only writing of 24-bit supported
+			if (expected[k].bpp != 32) continue;
 
 			var extractedARGB = Tools.extractARGB(data[k]);
 			var builtFromARGB = Tools.buildFromARGB(header.width, header.height, extractedARGB, header.topToBottom);
@@ -207,9 +206,8 @@ class Tests extends TestCase
 	public function testWritten_vs_Read() {
 		for (k in expected.keys()) {
 			var header = data[k].header;
-			// Only writing of rgb is supported
-			if (expected[k].compression != 0) continue;
-			if (expected[k].bpp == 32) continue;
+			// Only writing of 24-bit supported
+			if (expected[k].bpp != 24) continue;
 
 			var extractedARGB = Tools.extractARGB(data[k]);
 			var builtFromARGB = Tools.buildFromARGB(header.width, header.height, extractedARGB, header.topToBottom);

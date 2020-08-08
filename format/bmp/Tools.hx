@@ -100,7 +100,7 @@ class Tools {
 			srcPos = 0;
 		}
 
-		if ( bmp.header.bpp < 8 ) {
+		if ( bmp.header.bpp < 8 || bmp.header.bpp == 16 ) {
 			throw 'bpp ${bmp.header.bpp} not supported';
 		}
 
@@ -139,7 +139,7 @@ class Tools {
 						} else if (bmp.header.bpp == 24) {
 
 							var currentSrcPos = srcPos + i * 3;
-							var b = srcBytes.get(currentSrcPos + 0);
+							var b = srcBytes.get(currentSrcPos);
 							var g = srcBytes.get(currentSrcPos + 1);
 							var r = srcBytes.get(currentSrcPos + 2);
 							
@@ -151,7 +151,7 @@ class Tools {
 						} else if (bmp.header.bpp == 32) {
 
 							var currentSrcPos = srcPos + i * 4;
-							var b = srcBytes.get(currentSrcPos + 0);
+							var b = srcBytes.get(currentSrcPos);
 							var g = srcBytes.get(currentSrcPos + 1);
 							var r = srcBytes.get(currentSrcPos + 2);
 							
