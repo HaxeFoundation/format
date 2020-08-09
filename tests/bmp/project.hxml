@@ -4,6 +4,8 @@
 -resource bgrw.bmp
 -resource lena.bmp
 -resource xing_b24.bmp
+-resource xing_b32.bmp
+-resource xing_indexed.bmp
 -resource xing_toptobottom.bmp
 
 --each

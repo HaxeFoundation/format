@@ -32,6 +32,11 @@ package format.bmp;
 typedef Data = {
 	var header : format.bmp.Header;
 	var pixels : haxe.io.Bytes;
+#if (haxe_ver < 4)
+	var colorTable : Null<haxe.io.Bytes>;
+#else
+	var ?colorTable : haxe.io.Bytes;
+#end
 }
 
 typedef Header = {
@@ -41,4 +46,5 @@ typedef Header = {
 	var topToBottom : Bool;   // whether the bitmap is stored top to bottom
 	var bpp : Int;            // bits per pixel
 	var dataLength : Int;     // equal to `paddedStride` * `height`
+	var compression : Int;    // which compression is being used, 0 for no compression
 }
