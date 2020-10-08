@@ -344,10 +344,9 @@ class Reader {
 			return AString( "" );  // 0x01 is empty string and is never sent by reference
 		// get the string characters
 		#if haxe4
-		var u:UnicodeString = "";
+		var ret = AString( i.readString(len, UTF8) );
 		#else
 		var u = new haxe.Utf8(len);
-		#end
 		var c = 0, d = 0, j:Int = 0, it = 0;
 		while (j < len) {
 			c = i.readByte();
@@ -374,14 +373,12 @@ class Reader {
 			}
 			j += it + 1;
 			if (d != 0x01) {
-				#if haxe4
-				u += String.fromCharCode(d);
-				#else
 				u.addChar(d);
-				#end
 			}
 		}
 		var ret = AString( u.toString() );
+		#end
+
 		// store the string off for if it gets referenced later
 		stringTable.push(ret);
 		return ret;
