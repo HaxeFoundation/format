@@ -1,0 +1,10 @@
+-neko bin/test_amf.n
+-main TestAmf3	
+-lib utest
+-cp ../..
+
+--next
+-js bin/test_amf.js
+-main TestAmf3	
+-lib utest
+-cp ../..
