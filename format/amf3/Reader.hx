@@ -114,7 +114,7 @@ class Reader {
 
 		var h = new Map();
 
-		var ret = AObject( h, className != null ? Tools.decode(className) : null );
+		var ret = AObject( h, null, className != null ? Tools.decode(className) : null );
 
 		// save new object in reference table
 		complexObjectsTable.push( ret );
