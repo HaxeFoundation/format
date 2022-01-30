@@ -335,7 +335,7 @@ class Reader {
 			case HFun(f), HMethod(f):
 				for( i in 0...f.args.length ) f.args[i] = fixType(f.args[i]);
 				f.ret = fixType(f.ret);
-			case HObj(p):
+			case HObj(p), HStruct(p):
 				for( f in p.fields )
 					f.t = fixType(f.t);
 			case HVirtual(fl):
