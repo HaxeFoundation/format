@@ -5,7 +5,7 @@ class Tools {
 
 	public static function isDynamic( t : HLType ) {
 		return switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HStruct(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HStruct(_), HPacked(_):
 			false;
 		case HBytes, HType, HRef(_), HAbstract(_), HMethod(_):
 			false;
@@ -17,7 +17,7 @@ class Tools {
 
 	public static function isPtr( t : HLType ) {
 		return switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HPacked(_):
 			false;
 		case HBytes, HType, HRef(_), HAbstract(_), HEnum(_), HStruct(_):
 			true;
@@ -42,11 +42,19 @@ class Tools {
 			return false;
 		case HObj(p), HStruct(p):
 			for( f in p.fields )
-				if( isPtr(f.t) )
-					return true;
+				switch( f.t ) {
+				case HPacked(t):
+					if( containsPointer(t) )
+						return true;
+				default:
+					if( isPtr(f.t) )
+						return true;
+				}
 			if( p.tsuper == null )
 				return false;
 			return containsPointer(p.tsuper);
+		case HPacked(t):
+			return containsPointer(t);
 		}
 	}
 
@@ -125,6 +133,8 @@ class Tools {
 			"Null<" + toString(t) + ">";
 		case HStruct(o):
 			o.name;
+		case HPacked(t):
+			"Packed<" + toString(t) + ">";
 		case HAt(_):
 			"<...>";
 		}

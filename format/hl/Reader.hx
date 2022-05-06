@@ -134,6 +134,8 @@ class Reader {
 			return HMethod({ args : [for( i in 0..._read() ) HAt(uindex())], ret : HAt(uindex()) });
 		case 21:
 			return HStruct(readProto());
+		case 22:
+			return HPacked(getType());
 		case x:
 			throw "Unsupported type value " + x;
 		}
