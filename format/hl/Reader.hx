@@ -135,7 +135,7 @@ class Reader {
 		case 21:
 			return HStruct(readProto());
 		case 22:
-			return HPacked(getType());
+			return HPacked({ v : HAt(uindex()) });
 		case x:
 			throw "Unsupported type value " + x;
 		}
@@ -347,6 +347,8 @@ class Reader {
 				for( c in e.constructs )
 					for( i in 0...c.params.length )
 						c.params[i] = fixType(c.params[i]);
+			case HPacked(t):
+				t.v = fixType(t.v);
 			default:
 			}
 		return {

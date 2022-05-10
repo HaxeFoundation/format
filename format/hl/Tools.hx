@@ -44,7 +44,7 @@ class Tools {
 			for( f in p.fields )
 				switch( f.t ) {
 				case HPacked(t):
-					if( containsPointer(t) )
+					if( containsPointer(t.v) )
 						return true;
 				default:
 					if( isPtr(f.t) )
@@ -54,7 +54,7 @@ class Tools {
 				return false;
 			return containsPointer(p.tsuper);
 		case HPacked(t):
-			return containsPointer(t);
+			return containsPointer(t.v);
 		}
 	}
 
@@ -134,7 +134,7 @@ class Tools {
 		case HStruct(o):
 			o.name;
 		case HPacked(t):
-			"Packed<" + toString(t) + ">";
+			"Packed<" + toString(t.v) + ">";
 		case HAt(_):
 			"<...>";
 		}
