@@ -433,7 +433,8 @@ class Tools {
 							bgra.set(w++, v);
 							bgra.set(w++, v);
 							bgra.set(w++, v);
-							bgra.set(w++, data.get(r++) + bgra.get(w - stride));
+							var va = data.get(r++) + bgra.get(w - stride);
+							bgra.set(w++, va);
 						}
 					else
 						for( x in 0...width ) {
