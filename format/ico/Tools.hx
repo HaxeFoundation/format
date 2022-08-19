@@ -57,6 +57,22 @@ class Tools {
 					index = write(output, index, colors[icx], masks[pos]);
 				}
 			}
+		case 6: // 24bits with 1 alpha bit
+			var masks = buildMasks(bmp);
+			var ptrmak = 0;
+			while (--height >= 0) {
+				starts = height * stride + base;
+				ptrmak = height * bmp.width;
+				column = 0;
+				while (column < stride) {
+					output[index++] = source.get(starts + column + 2);
+					output[index++] = source.get(starts + column + 1);
+					output[index++] = source.get(starts + column + 0);
+					output[index++] = masks[ptrmak] - 1; //  m == 1 ? 0 : -1;
+					column += 3;
+					ptrmak ++;
+				}
+			}
 		case 8: // 32bits
 			while (--height >= 0) {
 				starts = base + height * stride;
@@ -71,7 +87,6 @@ class Tools {
 				}
 			}
 		default:
-			// TODO: There is no documentation for 16, 24bits
 		}
 		return output;
 	}
