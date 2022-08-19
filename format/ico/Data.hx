@@ -44,7 +44,7 @@ class DIB {
 	public var iand(default, null) : Int;
 	public var width(default, null) : Int;
 	public var height(default, null) : Int;
-	public var colors(default, null) : Array<Int>; // RGB
+	public var colors(default, null) : Array<Int>; // 0RGB
 	public function new( data, info ) {
 		this.data = data;
 		this.info = info;
@@ -87,7 +87,7 @@ class BMPInfo {
 	public function numberColors() : Int {
 		if (clrUsed > 0)
 			return clrUsed;
-		return switch(bitCount) {   // Math.pow(2, bitCount)
+		return switch(bitCount) {   // 1 << bitCount
 		case 1:    2;
 		case 4:   16;
 		case 8:  256;
@@ -101,6 +101,8 @@ class BMPInfo {
 	// Locate the image bits in a CF_DIB format DIB.
 	public inline function findDIBBits() return sizeof + paletteSize();
 
-	// Calculates the number of bytes in one scan line.
-	public inline function bytesPerline() return ((width * planes * bitCount + 31) >> 5) << 2;
+	// Calculates the number of bytes in one scan line from Indexes
+	public inline function bytesPerline() return WIDTHBYTES(width * bitCount);
+
+	static public inline function WIDTHBYTES( bits ) return bits + 31 >> 5 << 2;
 }
