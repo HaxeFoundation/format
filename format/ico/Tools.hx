@@ -68,7 +68,7 @@ class Tools {
 					output[index++] = source.get(starts + column + 2);
 					output[index++] = source.get(starts + column + 1);
 					output[index++] = source.get(starts + column + 0);
-					output[index++] = masks[ptrmak] - 1; //  m == 1 ? 0 : -1;
+					output[index++] = masks[ptrmak] - 1; // m == 1 ? 0 : -1;
 					column += 3;
 					ptrmak ++;
 				}
@@ -103,7 +103,7 @@ class Tools {
 		return i;
 	}
 
-	static function buildMasks( bmp : DIB ) : Uint8Array { //
+	static function buildMasks( bmp : DIB ) : Uint8Array {
 		var data = bmp.data;
 		var base = bmp.iand;
 		var width = bmp.height;

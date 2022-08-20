@@ -29,8 +29,8 @@ class ICOEntry {
 	public var height : Int;        // BYTE
 	public var colorCount : Int;    // BYTE
 	public var reserved : Int;      // BYTE
-	public var planes : Int;        // WORD
-	public var bitCount : Int;      // WORD
+	public var planes : Int;        // WORD, (x hotspot if CURSOR)
+	public var bitCount : Int;      // WORD, (y hotspot if CURSOR)
 	public var size : Int;          // DWORD
 	public var offset : Int;        // DWORD
 	public function new() {

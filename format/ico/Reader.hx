@@ -17,23 +17,23 @@ class Reader {
 
 	public function read() : ICORoot {
 		var root = new ICORoot();
-		root.reserved = input.readUInt16();
+		root.reserved = readUInt16();
 		root.type = cast readUInt16();
 		root.count = readUInt16();
 
-		if (root.reserved != 0 || root.type != ICON)
-			throw "Invalid header";
+		if (root.reserved != 0)
+			return root; // empty
 
 		for (i in 0...root.count) {
 			var entry = new ICOEntry();
-			entry.width = readByte();
-			entry.height = readByte();
-			entry.colorCount = readByte();
-			entry.reserved = readByte();
-			entry.planes = readUInt16();
-			entry.bitCount = readUInt16();
-			entry.size = readInt32();
-			entry.offset = readInt32();
+			entry.width        = readByte();
+			entry.height       = readByte();
+			entry.colorCount   = readByte();
+			entry.reserved     = readByte();
+			entry.planes       = readUInt16();
+			entry.bitCount     = readUInt16();
+			entry.size         = readInt32();
+			entry.offset       = readInt32();
 			root.entries.push(entry);
 		}
 
