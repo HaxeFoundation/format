@@ -10,22 +10,21 @@ class Tools {
 	static public function extract( bmp : DIB ) : Uint8Array {
 		// fast reference
 		var ixor = bmp.ixor;
-		var iand = bmp.iand;
 		var source = bmp.data;
-		var width = bmp.width;
 		var height = bmp.height;
 		var colors = bmp.colors;
 
 		var stride = bmp.info.bytesPerline();
-		var output = new Uint8Array(width * height * 4);
-		var byteWidth = (width * bmp.info.bitCount) + 7 >> 3;
+		var output = new Uint8Array(bmp.width * height * 4);
+		var byteWidth = (bmp.width * bmp.info.bitCount) + 7 >> 3;
 		var index = 0;
 		var column : Int;
 		var starts : Int;
 
 		switch (bmp.info.bitCount >> 2) { // shrink switch table
 		case 0: // 1bits
-			var rowlen = width * 4;
+			var iand = bmp.iand;
+			var rowlen = bmp.width * 4;
 			var limits = rowlen;
 			while (--height >= 0) {
 				starts = height * stride;
@@ -35,9 +34,17 @@ class Tools {
 					var icx = source.get(ixor + pos);
 					var mak = source.get(iand + pos);
 					var bits = 8;
-					while(--bits >= 0 && index < limits) {
-						writeRGBA(output, index, colors[(icx >> bits) & 1], (mak >> bits) & 1);
-						index += 4;
+					while (--bits >= 0 && index < limits) {
+						var rgb = colors[icx >> bits & 1];
+						if ((mak >> bits & 1) == 1) {
+							output[index + 3] = 0;
+							index += 4;
+							continue;
+						}
+						output[index++] = rgb >> 16 & 0xFF;
+						output[index++] = rgb >>  8 & 0xFF;
+						output[index++] = rgb & 0xFF;
+						output[index++] = 0xFF;
 					}
 				}
 				limits += rowlen;
@@ -51,6 +58,11 @@ class Tools {
 					var icx = source.get(starts + column++);
 					writeRGB(output, index, colors[(icx >> 4) & 15]);
 					index += 4;
+
+					// if the iamge width is not multiple of 2
+					if (column == byteWidth && (byteWidth & 1) == 1)
+						continue;
+
 					writeRGB(output, index, colors[(icx     ) & 15]);
 					index += 4;
 				}
@@ -97,17 +109,6 @@ class Tools {
 		return output;
 	}
 
-	static function writeRGBA( output : Uint8Array, i : Int, rgb : Int, ts : Int ) : Void {
-		if (ts == 1) {
-			output[i + 3] = 0;
-			return;
-		}
-		output[i++] = (rgb >> 16) & 0xFF;
-		output[i++] = (rgb >>  8) & 0xFF;
-		output[i++] = rgb & 0xFF;
-		output[i] = 0xFF;
-	}
-
 	static function writeRGB( output : Uint8Array, i : Int, rgb : Int ) : Void {
 		if (output[i + 3] == 0)
 			return;
@@ -124,10 +125,10 @@ class Tools {
 		var height = bmp.height;
 		var limits = rowlen;
 		var i = 3;
-		while(--height >= 0) {
+		while (--height >= 0) {
 			var column = 0;
 			var starts = iand + height * stride;
-			while(column < stride) {
+			while (column < stride) {
 				var mark = data.get(starts + column++);
 				var bits = 8;
 				while (--bits >= 0 && i < limits) {
