@@ -8,80 +8,86 @@ class Tools {
 	 extract DIB to [R, G, B, A, ...] format
 	*/
 	static public function extract( bmp : DIB ) : Uint8Array {
+		// fast reference
+		var ixor = bmp.ixor;
+		var iand = bmp.iand;
 		var source = bmp.data;
+		var width = bmp.width;
 		var height = bmp.height;
 		var colors = bmp.colors;
+
 		var stride = bmp.info.bytesPerline();
-		var output = new Uint8Array(bmp.width * height * 4);
-		var base = bmp.ixor;
+		var output = new Uint8Array(width * height * 4);
+		var byteWidth = (width * bmp.info.bitCount) + 7 >> 3;
 		var index = 0;
 		var column : Int;
 		var starts : Int;
+
 		switch (bmp.info.bitCount >> 2) { // shrink switch table
 		case 0: // 1bits
-			var mask = bmp.iand;
-			var realWidth = bmp.width >> 3;
+			var rowlen = width * 4;
+			var limits = rowlen;
 			while (--height >= 0) {
 				starts = height * stride;
 				column = 0;
-				while (column < realWidth) {
+				while (column < byteWidth) {
 					var pos = starts + column++;
-					var icx = source.get(base + pos);
-					var mak = source.get(mask + pos);
+					var icx = source.get(ixor + pos);
+					var mak = source.get(iand + pos);
 					var bits = 8;
-					while(--bits >= 0) {
-						index = write(output, index, colors[(icx >> bits) & 1], (mak >> bits) & 1);
+					while(--bits >= 0 && index < limits) {
+						writeRGBA(output, index, colors[(icx >> bits) & 1], (mak >> bits) & 1);
+						index += 4;
 					}
 				}
+				limits += rowlen;
 			}
 		case 1: // 4bits
-			var masks = buildMasks(bmp);
+			copyAlphaChannel(output, bmp);
 			while (--height >= 0) {
-				starts = height * stride;
+				starts = ixor + height * stride;
 				column = 0;
-				while (column < stride) {
-					var pos = starts + column++;
-					var icx = source.get(base + pos);
-					index = write(output, index, colors[(icx >> 4) & 15], masks[(pos << 1) + 0]);
-					index = write(output, index, colors[(icx >> 0) & 15], masks[(pos << 1) + 1]);
+				while (column < byteWidth) {
+					var icx = source.get(starts + column++);
+					writeRGB(output, index, colors[(icx >> 4) & 15]);
+					index += 4;
+					writeRGB(output, index, colors[(icx     ) & 15]);
+					index += 4;
 				}
 			}
 		case 2: // 8bits
-			var masks = buildMasks(bmp);
+			copyAlphaChannel(output, bmp);
 			while (--height >= 0) {
-				starts = height * stride;
+				starts = ixor + height * stride;
 				column = 0;
-				while (column < stride) {
-					var pos = starts + column++;
-					var icx = source.get(base + pos);
-					index = write(output, index, colors[icx], masks[pos]);
+				while (column < byteWidth) {
+					var icx = source.get(starts + column++);
+					writeRGB(output, index, colors[icx]);
+					index += 4;
 				}
 			}
 		case 6: // 24bits with 1 alpha bit
-			var masks = buildMasks(bmp);
-			var ptrmak = 0;
+			copyAlphaChannel(output, bmp);
 			while (--height >= 0) {
-				starts = height * stride + base;
-				ptrmak = height * bmp.width;
+				starts = ixor + height * stride;
 				column = 0;
-				while (column < stride) {
-					output[index++] = source.get(starts + column + 2);
-					output[index++] = source.get(starts + column + 1);
-					output[index++] = source.get(starts + column + 0);
-					output[index++] = masks[ptrmak] - 1; // m == 1 ? 0 : -1;
+				while (column < byteWidth) {
+					output[index    ] = source.get(starts + column + 2);
+					output[index + 1] = source.get(starts + column + 1);
+					output[index + 2] = source.get(starts + column    );
+					index  += 4;
 					column += 3;
-					ptrmak ++;
 				}
 			}
-		case 8: // 32bits
+		case 8: // 32bits, NOTE: it still has the unused alpha table in "bmp.iand"
 			while (--height >= 0) {
-				starts = base + height * stride;
+				starts = ixor + height * stride;
 				column = 0;
-				while (column < stride) {
+				while (column < byteWidth) {
 					var argb = source.getInt32(starts + column);
 					output[index++] = (argb >> 16) & 0xFF;
 					output[index++] = (argb >>  8) & 0xFF;
-					output[index++] = (argb >>  0) & 0xFF;
+					output[index++] = (argb      ) & 0xFF;
 					output[index++] = (argb >> 24) & 0xFF;
 					column += 4;
 				}
@@ -91,41 +97,46 @@ class Tools {
 		return output;
 	}
 
-	static function write( output : Uint8Array, i : Int, rgb : Int, ts : Int ) : Int {
+	static function writeRGBA( output : Uint8Array, i : Int, rgb : Int, ts : Int ) : Void {
 		if (ts == 1) {
 			output[i + 3] = 0;
-			return i + 4;
+			return;
 		}
 		output[i++] = (rgb >> 16) & 0xFF;
 		output[i++] = (rgb >>  8) & 0xFF;
 		output[i++] = rgb & 0xFF;
-		output[i++] = 0xFF;
-		return i;
+		output[i] = 0xFF;
 	}
 
-	static function buildMasks( bmp : DIB ) : Uint8Array {
+	static function writeRGB( output : Uint8Array, i : Int, rgb : Int ) : Void {
+		if (output[i + 3] == 0)
+			return;
+		output[i++] = (rgb >> 16) & 0xFF;
+		output[i++] = (rgb >>  8) & 0xFF;
+		output[i] = rgb & 0xFF;
+	}
+
+	static function copyAlphaChannel( output : Uint8Array, bmp : DIB ) : Void {
 		var data = bmp.data;
-		var base = bmp.iand;
-		var width = bmp.height;
+		var iand = bmp.iand;
+		var stride = BMPInfo.WIDTHBYTES(bmp.width);
+		var rowlen = bmp.width * 4;
 		var height = bmp.height;
-		var realWidth = width >> 3;
-		var stride = BMPInfo.WIDTHBYTES(width);
-		var output = new Uint8Array(height * width);
-		var i = 0;
-		var h = 0;
-		while(h < height) {
+		var limits = rowlen;
+		var i = 3;
+		while(--height >= 0) {
 			var column = 0;
-			var starts = base + h * stride;
-			while(column < realWidth) {
+			var starts = iand + height * stride;
+			while(column < stride) {
 				var mark = data.get(starts + column++);
 				var bits = 8;
-				while (--bits >= 0) {
-					output[i++] = (mark >> bits) & 1;
+				while (--bits >= 0 && i < limits) {
+					output[i] = ((mark >> bits) & 1) - 1; // if (1) then 0 else -1
+					i += 4;
 				}
 			}
-			h++;
+			limits += rowlen;
 		}
-		return output;
 	}
 }
 

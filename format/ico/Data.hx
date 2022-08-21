@@ -104,5 +104,6 @@ class BMPInfo {
 	// Calculates the number of bytes in one scan line from Indexes
 	public inline function bytesPerline() return WIDTHBYTES(width * bitCount);
 
+	// Multiple of 4
 	static public inline function WIDTHBYTES( bits ) return bits + 31 >> 5 << 2;
 }
