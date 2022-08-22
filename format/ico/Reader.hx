@@ -1,6 +1,7 @@
 package format.ico;
 
 import format.ico.Data;
+import format.ico.DIB;
 
 class Reader {
 

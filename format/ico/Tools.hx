@@ -1,11 +1,12 @@
 package format.ico;
 
 import format.ico.Data;
+import format.ico.DIB;
 
 class Tools {
 
 	/**
-	 extract DIB to [R, G, B, A, ...] format
+	* extract DIB to [R, G, B, A, ...] format
 	*/
 	static public function extract( bmp : DIB ) : Uint8Array {
 		// fast reference
