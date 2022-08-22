@@ -20,6 +20,7 @@ Currently supported formats are :
 | GIF | Image file format | ☑ | ☑ |
 | GZ | Compressed file | ☑ | ❌ |
 | HL | HashLink | ☑ | ❌ |
+| ICO | Windows ICO/CUR File format | ☑ | ❌ |
 | JPG | Image file format | ❌ | ☑ |
 | LZ4 | Compressed file | ☑ | ❌ |
 | MP3 | Compressed audio | ☑ | ☑ |
