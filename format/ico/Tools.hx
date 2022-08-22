@@ -37,15 +37,10 @@ class Tools {
 					var bits = 8;
 					while (--bits >= 0 && index < limits) {
 						var rgb = colors[icx >> bits & 1];
-						if ((mak >> bits & 1) == 1) {
-							output[index + 3] = 0;
-							index += 4;
-							continue;
-						}
 						output[index++] = rgb >> 16 & 0xFF;
 						output[index++] = rgb >>  8 & 0xFF;
 						output[index++] = rgb & 0xFF;
-						output[index++] = 0xFF;
+						output[index++] = (mak >> bits & 1) - 1;
 					}
 				}
 				limits += rowlen;
@@ -62,7 +57,7 @@ class Tools {
 
 					// if the iamge width is not multiple of 2
 					if (column == byteWidth && (byteWidth & 1) == 1)
-						continue;
+						break;
 
 					writeRGB(output, index, colors[(icx     ) & 15]);
 					index += 4;
