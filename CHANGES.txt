@@ -1,3 +1,9 @@
+2023-06-22: 3.6.0
+	added ICO reader
+	bmp: RLE support
+	hl: support latest bytecode and types
+	amf3/swf : various fixes
+	
 2019-11-27: 3.5.0
 	fix 31-bit int reading/writing (affects swf)
 	abc : fix const trait parsing
