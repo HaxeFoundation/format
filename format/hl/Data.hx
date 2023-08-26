@@ -203,4 +203,5 @@ enum Opcode {
 	ORefData( dst : Reg, src : Reg );
 	ORefOffset( dst : Reg, src : Reg, offset : Reg );
 	ONop;
+	OPrefetch( r : Reg, field : Index<ObjField>, mode : Int );
 }
