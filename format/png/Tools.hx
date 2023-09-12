@@ -647,6 +647,118 @@ class Tools {
 		return bgra;
 	}
 
+	public static function extract( d : Data, ?output : haxe.io.Bytes ) : haxe.io.Bytes {
+		var h = getHeader(d);
+		var channels = switch( h.color ) {
+		case ColIndexed: throw "assert"; // indexed mode is not supported atm
+		case ColGrey(alpha): alpha ? 2 : 1;
+		case ColTrue(alpha): alpha ? 4 : 3;
+		}
+		var bpp = h.colbits >> 3;
+		if( output == null )
+			output = haxe.io.Bytes.alloc(channels * bpp * h.width * h.height);
+		var data = null;
+		var fullData : haxe.io.BytesBuffer = null;
+		for( c in d )
+			switch( c ) {
+			case CData(b):
+				if( fullData != null )
+					fullData.add(b);
+				else if( data == null )
+					data = b;
+				else {
+					fullData = new haxe.io.BytesBuffer();
+					fullData.add(data);
+					fullData.add(b);
+					data = null;
+				}
+			default:
+			}
+		if( fullData != null )
+			data = fullData.getBytes();
+		if( data == null )
+			throw "Data not found";
+		data = format.tools.Inflate.run(data);
+		var r = 0, w = 0;
+		var pixelBytes = channels << 1;
+
+		inline function write(v) {
+			output.set(w++, v);
+		}
+		inline function read() {
+			return data.get(r++);
+		}
+
+		var width = h.width;
+		var ncomps = channels * bpp;
+		var upperLine = ncomps * width;
+		if( data.length < h.height * (ncomps * width + 1) ) throw "Not enough data";
+
+		var tmp = [for( i in 0...ncomps ) 0];
+		for( y in 0...h.height ) {
+			var f = data.get(r++);
+			if( f != 0 && f != 2 ) {
+				for( i in 0...ncomps )
+					tmp[i] = 0;
+			}
+			switch( f ) {
+			case 0:
+				for( x in 0...width * ncomps )
+					write(read());
+			case 1:
+				for( x in 0...width ) {
+					for( i in 0...ncomps ) {
+						tmp[i] += read();
+						write(tmp[i]);
+					}
+				}
+			case 2:
+				var stride = y == 0 ? 0 : upperLine;
+				for( x in 0...width * ncomps ) {
+					var v = read() + output.get(w - stride);
+					write(v);
+				}
+			case 3:
+				var stride = y == 0 ? 0 : upperLine;
+				for( x in 0...width ) {
+					for( i in 0...ncomps ) {
+						tmp[i] = (read() + ((tmp[i] + output.getUInt16(w - stride)) >> 1)) & 0xFF;
+						write(tmp[i]);
+					}
+				}
+			case 4:
+				inline function filter( x, prev ) {
+					var b = y == 0 ? 0 : output.get(w - upperLine);
+					var c = x == 0 || y == 0 ? 0 : output.get(w - upperLine - ncomps);
+					var k = prev + b - c;
+					var pa = k - prev; if( pa < 0 ) pa = -pa;
+					var pb = k - b; if( pb < 0 ) pb = -pb;
+					var pc = k - c; if( pc < 0 ) pc = -pc;
+					return (pa <= pb && pa <= pc) ? prev : (pb <= pc ? b : c);
+				}
+				for( x in 0...width ) {
+					for( i in 0...ncomps ) {
+						tmp[i] = (filter(x,tmp[i]) + read()) & 0xFF;
+						write(tmp[i]);
+					}
+				}
+			default:
+				throw "Invalid filter "+f;
+			}
+		}
+		if( h.colbits == 16 ) {
+			// swap bytes order
+			var w = 0;
+			for( x in 0...h.height * width * channels ) {
+				var a = output.get(w);
+				var b = output.get(w+1);
+				output.set(w++, b);
+				output.set(w++, a);
+			}
+		}
+		return output;
+	}
+
 	/**
 		Creates PNG data from bytes that contains one bytes (grey values) for each pixel.
 	**/
