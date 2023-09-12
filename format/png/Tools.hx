@@ -647,16 +647,20 @@ class Tools {
 		return bgra;
 	}
 
-	public static function extract( d : Data, ?output : haxe.io.Bytes ) : haxe.io.Bytes {
+	public static function extract( d : Data, ?output : haxe.io.Bytes, expandAlpha = false ) : haxe.io.Bytes {
 		var h = getHeader(d);
+		var hasAlpha = false;
 		var channels = switch( h.color ) {
 		case ColIndexed: throw "assert"; // indexed mode is not supported atm
-		case ColGrey(alpha): alpha ? 2 : 1;
-		case ColTrue(alpha): alpha ? 4 : 3;
+		case ColGrey(alpha): hasAlpha = alpha; alpha ? 2 : 1;
+		case ColTrue(alpha): hasAlpha = alpha; alpha ? 4 : 3;
 		}
+		if( expandAlpha && hasAlpha )
+			expandAlpha = false;
 		var bpp = h.colbits >> 3;
+		var outChannels = expandAlpha ? channels + 1 : channels;
 		if( output == null )
-			output = haxe.io.Bytes.alloc(channels * bpp * h.width * h.height);
+			output = haxe.io.Bytes.alloc(outChannels * bpp * h.width * h.height);
 		var data = null;
 		var fullData : haxe.io.BytesBuffer = null;
 		for( c in d )
@@ -680,7 +684,6 @@ class Tools {
 			throw "Data not found";
 		data = format.tools.Inflate.run(data);
 		var r = 0, w = 0;
-		var pixelBytes = channels << 1;
 
 		inline function write(v) {
 			output.set(w++, v);
@@ -689,9 +692,17 @@ class Tools {
 			return data.get(r++);
 		}
 
+		inline function writeAlpha() {
+			if( expandAlpha ) {
+				write(0xFF);
+				if( bpp == 2 ) write(0xFF);
+			}
+		}
+
 		var width = h.width;
 		var ncomps = channels * bpp;
-		var upperLine = ncomps * width;
+		var upperLine = outChannels * bpp * width;
+		var leftPixel = outChannels * bpp;
 		if( data.length < h.height * (ncomps * width + 1) ) throw "Not enough data";
 
 		var tmp = [for( i in 0...ncomps ) 0];
@@ -703,33 +714,41 @@ class Tools {
 			}
 			switch( f ) {
 			case 0:
-				for( x in 0...width * ncomps )
-					write(read());
+				for( x in 0...width ) {
+					for( i in 0...ncomps )
+						write(read());
+					writeAlpha();
+				}
 			case 1:
 				for( x in 0...width ) {
 					for( i in 0...ncomps ) {
 						tmp[i] += read();
 						write(tmp[i]);
 					}
+					writeAlpha();
 				}
 			case 2:
 				var stride = y == 0 ? 0 : upperLine;
-				for( x in 0...width * ncomps ) {
-					var v = read() + output.get(w - stride);
-					write(v);
+				for( x in 0...width ) {
+					for( i in 0...ncomps ) {
+						var v = read() + output.get(w - stride);
+						write(v);
+					}
+					writeAlpha();
 				}
 			case 3:
 				var stride = y == 0 ? 0 : upperLine;
 				for( x in 0...width ) {
 					for( i in 0...ncomps ) {
-						tmp[i] = (read() + ((tmp[i] + output.getUInt16(w - stride)) >> 1)) & 0xFF;
+						tmp[i] = (read() + ((tmp[i] + output.get(w - stride)) >> 1)) & 0xFF;
 						write(tmp[i]);
 					}
+					writeAlpha();
 				}
 			case 4:
 				inline function filter( x, prev ) {
 					var b = y == 0 ? 0 : output.get(w - upperLine);
-					var c = x == 0 || y == 0 ? 0 : output.get(w - upperLine - ncomps);
+					var c = x == 0 || y == 0 ? 0 : output.get(w - upperLine - leftPixel);
 					var k = prev + b - c;
 					var pa = k - prev; if( pa < 0 ) pa = -pa;
 					var pb = k - b; if( pb < 0 ) pb = -pb;
@@ -741,6 +760,7 @@ class Tools {
 						tmp[i] = (filter(x,tmp[i]) + read()) & 0xFF;
 						write(tmp[i]);
 					}
+					writeAlpha();
 				}
 			default:
 				throw "Invalid filter "+f;
@@ -749,7 +769,7 @@ class Tools {
 		if( h.colbits == 16 ) {
 			// swap bytes order
 			var w = 0;
-			for( x in 0...h.height * width * channels ) {
+			for( x in 0...h.height * width * outChannels ) {
 				var a = output.get(w);
 				var b = output.get(w+1);
 				output.set(w++, b);
