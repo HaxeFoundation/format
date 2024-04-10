@@ -51,15 +51,15 @@ Package Structure
 
 Each format lies in its own package, for example `format.pdf` contains classes for PDF.
 
-The `format.tools` package contain some tools that might be shared by several formats but don't belong to a specific one.
+The `format.tools` package contains some tools that might be shared by several formats but don't belong to a specific one.
 
 Each format must provide the following files :
-  * one `Data.hx` file that contain only data structures / enums used by the format. If there is really a lot, they can be separated into several files, but it's often my easy for the end user to only have to do one single `import format.xxx.Data` to access to all the defined types.
-  * one `Reader.hx` class which enable to read the file format from an `haxe.io.Input`
-  * one `Writer.hx` class which enable to write the file format to an `haxe.io.Output`
+  * one `Data.hx` file that contains only data structures / enums used by the format. If there are really a lot, they can be separated into several files, but it's often easier for the end user to only have to do one single `import format.xxx.Data` to access to all the defined types.
+  * one `Reader.hx` class which enables reading the file format from an `haxe.io.Input`
+  * one `Writer.hx` class which enables writing the file format to an `haxe.io.Output`
   * some other classes that might be necessary for manipulating the data structures
 
-It's important in particular that the data structures storing the decoded information are separated from the actual classes manipulating it. This enable full access to all the file format infos and the ability to easily write libraries that manipulate the format, even if later the Reader implementation is changed for example.
+It's important in particular that the data structures storing the decoded information are separated from the actual classes manipulating it. This enables full access to all the file format infos and the ability to easily write libraries that manipulate the format, even if later the Reader implementation is changed for example.
 
 Contributing
 ============
