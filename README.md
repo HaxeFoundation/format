@@ -23,6 +23,7 @@ Currently supported formats are :
 | ICO | Windows ICO/CUR File format | ☑ | ❌ |
 | JPG | Image file format | ❌ | ☑ |
 | LZ4 | Compressed file | ☑ | ❌ |
+| MAP | Source Maps | ☑ | ❌ |
 | MP3 | Compressed audio | ☑ | ☑ |
 | NEKO | NekoVM bytecode | ☑ | ❌ |
 | PBJ | PixelBender Binary file | ☑ | ☑ |
