@@ -2,10 +2,68 @@ package format.map;
 
 import haxe.DynamicAccess;
 
+@:allow(format.map.Reader)
+class Data {
+
+	/** Specification version. The only supported version is 3. */
+	public var version (default,null) : Int = 3;
+
+	/** File with the generated code that this source map is associated with. */
+	public var file (default,null) : Null<String>;
+
+	/** This value is prepended to the individual entries in the `sources` field. */
+	public var sourceRoot (default,null) : String = '';
+
+	/** A list of original source files. */
+	public var sources (default,null) : Array<String>;
+
+	/** A list of contents of files mentioned in `sources` if those files cannot be hosted. */
+	public var sourcesContent (default,null) : Array<String>;
+
+	/** A list of symbol names used in `mappings` */
+	public var names (default,null) : Array<String>;
+
+	/** Decoded mappings data */
+	var mappings : Array<Array<Mapping>> = [];
+
+	function new() {}
+
+	/**
+	 * Get position in original source file.
+	 * Returns `null` if provided `line` and/or `column` don't exist in compiled file.
+	 * @param line - `1`-based line number in generated file.
+	 * @param column - zero-based column number in generated file.
+	 */
+	 public function originalPositionFor (line:Int, column:Int = 0) : Null<SourcePos> {
+		if (line < 1 || line > mappings.length) return null;
+
+		var pos : SourcePos = null;
+		for (mapping in mappings[line - 1]) {
+			if (mapping.generatedColumn <= column) {
+				pos = mapping.getSourcePos(this, line);
+				break;
+			}
+		}
+
+		return pos;
+	}
+
+	/**
+	 * Invoke `callback` for each mapped position.
+	 */
+	public function eachMapping (callback:SourcePos->Void) {
+		for (line in 0...mappings.length) {
+			for (mapping in mappings[line]) {
+				callback(mapping.getSourcePos(this, line + 1));
+			}
+		}
+	}
+}
+
 /**
  * Structure of a raw source map data.
  */
-abstract Data(DynamicAccess<Any>) to DynamicAccess<Any> {
+ abstract DataRaw(DynamicAccess<Any>) to DynamicAccess<Any> {
 
 	/** Specification version. The only supported version is 3. */
 	public var version(get,never) : Int;

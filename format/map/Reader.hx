@@ -5,83 +5,34 @@ using format.map.Vlq;
 
 class Reader {
     var input : haxe.io.Input;
-    var data: Data;
-
-	/** Specification version. The only supported version is 3. */
-	public var version (default,null) : Int = 3;
-	/** File with the generated code that this source map is associated with. */
-	public var file (default,null) : Null<String>;
-	/** This value is prepended to the individual entries in the `sources` field. */
-	public var sourceRoot (default,null) : String = '';
-	/** A list of original source files. */
-	public var sources (default,null) : Array<String>;
-	/** A list of contents of files mentioned in `sources` if those files cannot be hosted. */
-	public var sourcesContent (default,null) : Array<String>;
-	/** A list of symbol names used in `mappings` */
-	public var names (default,null) : Array<String>;
-
-	/** Decoded mappings data */
-	var mappings : Array<Array<Mapping>> = [];
 
     public function new() {}
-
-    public function read( i : haxe.io.Input ) : Data {
+    public function read (i : haxe.io.Input) : Data {
 		this.input = i;
         var content = i.readUntil("}".code) + "}";
-        parse(content);
-
-        return data;
+        return parse(content);
     }
-
-	/**
-	 * Get position in original source file.
-	 * Returns `null` if provided `line` and/or `column` don't exist in compiled file.
-	 * @param line - `1`-based line number in generated file.
-	 * @param column - zero-based column number in generated file.
-	 */
-	public function originalPositionFor (line:Int, column:Int = 0) : Null<SourcePos> {
-		if (line < 1 || line > mappings.length) return null;
-
-		var pos : SourcePos = null;
-		for (mapping in mappings[line - 1]) {
-			if (mapping.generatedColumn <= column) {
-				pos = mapping.getSourcePos(data, line);
-				break;
-			}
-		}
-
-		return pos;
-	}
-
-	/**
-	 * Invoke `callback` for each mapped position.
-	 */
-	public function eachMapping (callback:SourcePos->Void) {
-		for (line in 0...mappings.length) {
-			for (mapping in mappings[line]) {
-				callback(mapping.getSourcePos(data, line + 1));
-			}
-		}
-	}
 
 	/**
 	 * Parse raw source map data
 	 * @param json - Raw content of source map file
 	 */
-	function parse (json:String) {
-		data = haxe.Json.parse(json);
-		if (data == null) throw new SourceMapException("Failed to parse source map data.");
+	public function parse (json:String): Data {
+		var rawData: DataRaw = haxe.Json.parse(json);
+		if (rawData == null) throw new SourceMapException("Failed to parse source map data.");
 
-		version = data.version;
-		file = data.file;
-		sourceRoot = (data.sourceRoot == null ? '' : data.sourceRoot);
-		sources = data.sources;
-		sourcesContent = (data.sourcesContent == null ? [] : data.sourcesContent);
-		names = data.names;
+		var ret = new Data();
+		ret.version = rawData.version;
+		ret.file = rawData.file;
+		ret.sourceRoot = (rawData.sourceRoot == null ? '' : rawData.sourceRoot);
+		ret.sources = rawData.sources;
+		ret.sourcesContent = (rawData.sourcesContent == null ? [] : rawData.sourcesContent);
+		ret.names = rawData.names;
 
-		var encoded = data.mappings.split(';');
+
+		var encoded = rawData.mappings.split(';');
 		//help some platforms to pre-alloc array
-		mappings[encoded.length - 1] = null;
+		ret.mappings[encoded.length - 1] = null;
 
 		var previousSource = 0;
 		var previousLine = 0;
@@ -89,17 +40,17 @@ class Reader {
 		var previousName = 0;
 
 		for (l in 0...encoded.length) {
-			mappings[l] = [];
+			ret.mappings[l] = [];
 			if (encoded[l].length == 0) continue;
 
 			var previousGeneratedColumn = 0;
 
 			var segments = encoded[l].split(',');
-			mappings[l][segments.length - 1] = null;
+			ret.mappings[l][segments.length - 1] = null;
 
 			for (s in 0...segments.length) {
 				var mapping = new Mapping(segments[s].decode());
-				mappings[l][s] = mapping;
+				ret.mappings[l][s] = mapping;
 				mapping.offsetGeneratedColumn(previousGeneratedColumn);
 				if (mapping.hasSource()) {
 					mapping.offsetSource(previousSource);
@@ -116,5 +67,6 @@ class Reader {
 				previousGeneratedColumn = mapping.generatedColumn;
 			}
 		}
+		return ret;
 	}
 }
