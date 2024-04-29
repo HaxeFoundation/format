@@ -4,14 +4,14 @@ import format.map.Data;
 using format.map.Vlq;
 
 class Reader {
-    var input : haxe.io.Input;
+	var input : haxe.io.Input;
 
-    public function new() {}
-    public function read (i : haxe.io.Input) : Data {
+	public function new() {}
+	public function read (i : haxe.io.Input) : Data {
 		this.input = i;
-        var content = i.readUntil("}".code) + "}";
-        return parse(content);
-    }
+		var content = i.readAll().toString();
+		return parse(content);
+	}
 
 	/**
 	 * Parse raw source map data
