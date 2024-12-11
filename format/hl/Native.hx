@@ -1,4 +1,4 @@
-package hl;
+package format.hl;
 
 enum abstract PixelFormat(Int) {
 	var RGB = 0;
