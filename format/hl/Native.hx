@@ -16,6 +16,8 @@ enum abstract PixelFormat(Int) {
 }
 
 class Native {
+
+#if hl
 	/**
 		Decode JPG data into the target buffer.
 	**/
@@ -49,4 +51,6 @@ class Native {
 	@:hlNative("fmt", "img_scale")
 	public static function scaleImage(out:hl.Bytes, outPos:Int, outStride:Int, outWidth:Int, outHeight:Int, _in:hl.Bytes, inPos:Int, inStride:Int,
 		inWidth:Int, inHeight:Int, flags:Int) {}
+
+#end
 }
