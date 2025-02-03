@@ -45,6 +45,7 @@ enum HLType {
 	HMethod( fun : FunPrototype );
 	HStruct( proto : ObjPrototype );
 	HPacked( t : { v : HLType } );
+	HGUID;
 	// only for reader
 	HAt( i : Int );
 }

@@ -5,7 +5,7 @@ class Tools {
 
 	public static function isDynamic( t : HLType ) {
 		return switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HStruct(_), HPacked(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HStruct(_), HPacked(_), HGUID:
 			false;
 		case HBytes, HType, HRef(_), HAbstract(_), HMethod(_):
 			false;
@@ -17,7 +17,7 @@ class Tools {
 
 	public static function isPtr( t : HLType ) {
 		return switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HPacked(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HPacked(_), HGUID:
 			false;
 		case HBytes, HType, HRef(_), HAbstract(_), HEnum(_), HStruct(_):
 			true;
@@ -28,7 +28,7 @@ class Tools {
 
 	public static function containsPointer( t : HLType ) {
 		switch( t ) {
-		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HBytes, HType, HRef(_), HMethod(_):
+		case HVoid, HUi8, HUi16, HI32, HI64, HF32, HF64, HBool, HAt(_), HBytes, HType, HRef(_), HMethod(_), HGUID:
 			return false;
 		case HNull(t):
 			return isPtr(t);
@@ -137,6 +137,8 @@ class Tools {
 			"Packed<" + toString(t.v) + ">";
 		case HAt(_):
 			"<...>";
+		case HGUID:
+			"hl.GUID";
 		}
 	}
 }
