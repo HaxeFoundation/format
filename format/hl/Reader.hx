@@ -136,6 +136,8 @@ class Reader {
 			return HStruct(readProto());
 		case 22:
 			return HPacked({ v : HAt(uindex()) });
+		case 23:
+			return HGUID;
 		case x:
 			throw "Unsupported type value " + x;
 		}
