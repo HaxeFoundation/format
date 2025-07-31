@@ -841,6 +841,30 @@ class Tools {
 	}
 
 	/**
+		Creates PNG data from bytes that contains four bytes in RGBA format for each pixel.
+	**/
+	public static function build32RGBA( width : Int, height : Int, data : haxe.io.Bytes ) : Data {
+		var rgba = haxe.io.Bytes.alloc(width * height * 4 + height);
+		// add filter byte
+		var w = 0, r = 0;
+		for( y in 0...height ) {
+			rgba.set(w++,0); // no filter for this scanline
+			for( x in 0...width ) {
+				rgba.set(w++,data.get(r)); // r
+				rgba.set(w++,data.get(r+1)); // g
+				rgba.set(w++,data.get(r+2)); // b
+				rgba.set(w++,data.get(r+3)); // a
+				r += 4;
+			}
+		}
+		var l = new List();
+		l.add(CHeader({ width : width, height : height, colbits : 8, color : ColTrue(true), interlaced : false }));
+		l.add(CData(format.tools.Deflate.run(rgba)));
+		l.add(CEnd);
+		return l;
+	}
+
+	/**
 		Creates PNG data from bytes that contains four bytes in ARGB format for each pixel.
 	**/
 	public static function build32ARGB( width : Int, height : Int, data : haxe.io.Bytes, ?level = 9 ) : Data {
