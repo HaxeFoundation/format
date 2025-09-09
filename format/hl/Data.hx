@@ -215,4 +215,5 @@ enum Opcode {
 	ONop;
 	OPrefetch( r : Reg, field : Index<ObjField>, mode : Int );
 	OAsm( op : Int, value : Int, r : RegOpt );
+	OCatch( i : Index<Global> );
 }
