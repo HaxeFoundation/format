@@ -1,0 +1,6 @@
+-cp .
+-cp tests/hxb
+-main TestHxb
+--jvm hxb.jar
+--cmd java -jar hxb.jar
+--times
