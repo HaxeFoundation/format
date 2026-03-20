@@ -117,10 +117,16 @@ class Reader {
 		case 18:
 			var name = getString();
 			var global = uindex() - 1;
+			var constructs = [for( i in 0...uindex() ) { name : getString(), params : [for( i in 0...uindex() ) HAt(uindex())] }];
+			if( name == strings[0] && constructs.length == 1 && constructs[0].name == strings[0] ) {
+				// fake enum (closure context)
+				name = null;
+				constructs[0].name = "";
+			}
 			return HEnum({
 				name : name,
 				globalValue : global < 0 ? null : global,
-				constructs : [for( i in 0...uindex() ) { name : getString(), params : [for( i in 0...uindex() ) HAt(uindex())] }],
+				constructs : constructs,
 			});
 		case 19:
 			return HNull(getType());
@@ -128,6 +134,10 @@ class Reader {
 			return HMethod({ args : [for( i in 0..._read() ) HAt(uindex())], ret : HAt(uindex()) });
 		case 21:
 			return HStruct(readProto());
+		case 22:
+			return HPacked({ v : HAt(uindex()) });
+		case 23:
+			return HGUID;
 		case x:
 			throw "Unsupported type value " + x;
 		}
@@ -329,7 +339,7 @@ class Reader {
 			case HFun(f), HMethod(f):
 				for( i in 0...f.args.length ) f.args[i] = fixType(f.args[i]);
 				f.ret = fixType(f.ret);
-			case HObj(p):
+			case HObj(p), HStruct(p):
 				for( f in p.fields )
 					f.t = fixType(f.t);
 			case HVirtual(fl):
@@ -339,6 +349,8 @@ class Reader {
 				for( c in e.constructs )
 					for( i in 0...c.params.length )
 						c.params[i] = fixType(c.params[i]);
+			case HPacked(t):
+				t.v = fixType(t.v);
 			default:
 			}
 		return {
@@ -474,6 +486,9 @@ class Reader {
 		2,
 		3,
 		0,
+		3,
+		3,
+		1,
 	];
 
 }

@@ -44,6 +44,8 @@ enum HLType {
 	HNull( t : HLType );
 	HMethod( fun : FunPrototype );
 	HStruct( proto : ObjPrototype );
+	HPacked( t : { v : HLType } );
+	HGUID;
 	// only for reader
 	HAt( i : Int );
 }
@@ -101,6 +103,15 @@ typedef Index<T> = Int;
 typedef ObjField = Void;
 typedef Global = Void;
 typedef EnumConstruct = Void;
+
+abstract RegOpt(Int) {
+	public function new( r : Null<Reg> ) {
+		this = r == null ? 0 : r + 1;
+	}
+	public function getReg() : Null<Reg> {
+		return this == 0 ? null : this - 1;
+	}
+}
 
 enum Opcode {
 	OMov( dst : Reg, a : Reg );
@@ -202,4 +213,7 @@ enum Opcode {
 	ORefData( dst : Reg, src : Reg );
 	ORefOffset( dst : Reg, src : Reg, offset : Reg );
 	ONop;
+	OPrefetch( r : Reg, field : Index<ObjField>, mode : Int );
+	OAsm( op : Int, value : Int, r : RegOpt );
+	OCatch( i : Index<Global> );
 }

@@ -42,7 +42,7 @@ class Tools {
 			for ( f in Reflect.fields(o) ) {
 				h.set(f, encode(Reflect.field(o, f)));
 			}
-			AObject(h, null);
+			AObject(h, null, null);
 		case TClass(c):
 			switch( c ) {
 			case cast String:
@@ -91,7 +91,7 @@ class Tools {
 					h.set(f, encode(Reflect.getProperty(o, f)));
 					i++;
 				}
-				AObject(h, Type.getClassName(_class), i);
+				AObject(h, i, Type.getClassName(_class));
 			}
 		default:
 			throw "Can't encode "+Std.string(o);
@@ -109,7 +109,7 @@ class Tools {
 			case ADate(_): date(a);
 			case AArray(_,_): array(a);
 			case AVector(_): vector(a);
-			case AObject(_,_): object(a);
+			case AObject(_,_,_): object(a);
 			case AXml(_): xml(a);
 			case ABytes(_): bytes(a);
 			case AMap(_): map(a);
@@ -194,7 +194,7 @@ class Tools {
 	public static function object( a : Value ) {
 		if( a == null ) return null;
 		return switch( a ) {
-		case AObject(o, _):
+		case AObject(o, _, _):
 			var m = new Map();
 			for (f in o.keys())
 				m.set(f, decode(o.get(f)));

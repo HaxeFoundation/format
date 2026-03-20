@@ -61,23 +61,39 @@ class Reader {
 
 		// Read InfoHeader
 		var infoHeaderSize = input.readInt32();		// InfoHeader size
+		if (infoHeaderSize != 40) {
+			throw 'Info headers with size $infoHeaderSize not supported.';
+		}
 		var width = input.readInt32();				// Image width (actual, not padded)
 		var height = input.readInt32();				// Image height
 		var numPlanes = input.readInt16();			// Number of planes
-		var bits = input.readInt16();				// Bits per pixel (24bit BGR)
-		var compression = input.readInt32();		// Compression type (no compression)
+		var bits = input.readInt16();				// Bits per pixel
+		var compression = input.readInt32();		// Compression type
 		var dataLength = input.readInt32();			// Image data size (includes padding!)
 		input.readInt32();							// Horizontal resolution
 		input.readInt32();							// Vertical resolution
-		input.readInt32();							// Colors used (0 when uncompressed)
+		var colorsUsed = input.readInt32();			// Colors used (0 when uncompressed)
 		input.readInt32();							// Important colors (0 when uncompressed)
 
 		// If there's no compression, the dataLength may be 0
-		if( compression == 0 && dataLength == 0 ) dataLength = fileSize - offset;
+		if ( compression == 0 && dataLength == 0 ) dataLength = fileSize - offset;
+
+		var bytesRead = 54; // total read above
 		
-		if (bits != 24) throw '${bits}bpp bitmaps not implemented.';
+		var colorTable : haxe.io.Bytes = null;
+		if ( bits <= 8 ) {
+			if ( colorsUsed == 0 ) {
+				colorsUsed = Tools.getNumColorsForBitDepth(bits);
+			}
+			var colorTableLength = 4 * colorsUsed;
+			colorTable = haxe.io.Bytes.alloc( colorTableLength );
+			input.readFullBytes( colorTable, 0, colorTableLength );
+			bytesRead += colorTableLength;
+		}
+
+		input.read( offset - bytesRead );
 		
-		var p = haxe.io.Bytes.alloc( dataLength );
+		var p = haxe.io.Bytes.alloc( dataLength );	
 		
 		// Read Raster Data
 		var paddedStride = Tools.computePaddedStride(width, bits);
@@ -96,9 +112,11 @@ class Reader {
 				paddedStride: paddedStride,
 				topToBottom: topToBottom,
 				bpp: bits,
-				dataLength: dataLength
+				dataLength: dataLength,
+				compression: compression
 			},
-			pixels: p
+			pixels: p,
+			colorTable: colorTable
 		}
 	}
 }

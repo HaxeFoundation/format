@@ -1,3 +1,22 @@
+2025-03-23: 3.8.0
+	hl: added hl.Native API
+	hl: support GUID type (hl 1.15)
+	map: added sourcemap reader
+	
+2024-01-01: 3.7.0
+	png: added extract
+	hl: added prefetch and asm opcodes
+
+2024-01-01: 3.7.0
+	png: added extract
+	hl: added prefetch and asm opcodes
+	
+2023-06-22: 3.6.0
+	added ICO reader
+	bmp: RLE support
+	hl: support latest bytecode and types
+	amf3/swf : various fixes
+	
 2019-11-27: 3.5.0
 	fix 31-bit int reading/writing (affects swf)
 	abc : fix const trait parsing

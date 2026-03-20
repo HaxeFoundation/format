@@ -145,10 +145,10 @@ class Reader {
 
 	function readCXAColor(nbits) : RGBA {
 		return {
-			r : bits.readBits(nbits),
-			g : bits.readBits(nbits),
-			b : bits.readBits(nbits),
-			a : bits.readBits(nbits),
+			r : (bits.readBit() ? -256:0) + bits.readBits(nbits - 1),
+			g : (bits.readBit() ? -256:0) + bits.readBits(nbits - 1),
+			b : (bits.readBit() ? -256:0) + bits.readBits(nbits - 1),
+			a : (bits.readBit() ? -256:0) + bits.readBits(nbits - 1),
 		};
 	}
 
@@ -958,7 +958,7 @@ class Reader {
 		if( f2 >> 5 != 0 ) throw error(); // unsupported bit flags
 		var po = new PlaceObject();
 		po.depth = i.readUInt16();
-		if( f2 & 8 != 0 || (f2 & 16 != 0 && f & 2 != 0) ) po.className = readUTF8Bytes().toString();
+		if( f2 & 8 != 0 ) po.className = readUTF8Bytes().toString();
 		if( f & 1 != 0 ) po.move = true;
 		if( f & 2 != 0 ) po.cid = i.readUInt16();
 		if( f & 4 != 0 ) po.matrix = readMatrix();
