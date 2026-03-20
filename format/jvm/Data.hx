@@ -1,5 +1,6 @@
 package format.jvm;
 
+import haxe.Int32;
 import haxe.Int64;
 import haxe.ds.Vector;
 import haxe.io.Bytes;
@@ -223,7 +224,7 @@ enum Instruction {
 	Lload_3;
 	Lmul;
 	Lneg;
-	Lookupswitch(defaultOffset:Int, pairs:Vector<{match:Int, offset:Int}>);
+	Lookupswitch(defaultOffset:Int, pairs:Vector<{match:Int32, offset:Int32}>);
 	Lor;
 	Lrem;
 	Lreturn;
@@ -253,7 +254,7 @@ enum Instruction {
 	Sastore;
 	Sipush(value:Int);
 	Swap;
-	Tableswitch(defaultOffset:Int, low:Int, high:Int, offsets:Vector<Int>);
+	Tableswitch(defaultOffset:Int, low:Int, high:Int, offsets:Vector<Int32>);
 	WideIinc(index:Int, const:Int);
 	Wide(opcode:Int, index:Int);
 }
