@@ -15,9 +15,29 @@ enum abstract PixelFormat(Int) {
 	var CMYK = 11;
 }
 
+enum abstract Subsampling(Int) {
+	var _444 = 0;
+	var _422 = 1;
+	var _420 = 2;
+	var Gray = 3;
+	var _440 = 4;
+	var _441 = 5;
+}
+
 class Native {
 
 #if hl
+
+	#if (hl_ver >= version("1.16.0"))
+	/**
+		Encode JPG data and returns the buffer containing the encoded data. The length of the buffer is returned through outLength. Returns null if the encoding failed.
+	**/
+	@:hlNative("fmt", "jpg_encode")
+	public static function encodeJPG(src:hl.Bytes, width:Int, height:Int, stride:Int, format:PixelFormat, subsampling:Subsampling, quality:Int, flags:Int, outLength:hl.Ref<Int>):Null<hl.Bytes> {
+		return null;
+	}
+	#end
+
 	/**
 		Decode JPG data into the target buffer.
 	**/
