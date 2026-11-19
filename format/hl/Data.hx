@@ -6,6 +6,8 @@ enum CodeFlag {
 
 typedef Data = {
 	var version : Int;
+	@:optional var fileSize : Int;
+	@:optional var buildId : haxe.io.Bytes;
 	var flags : haxe.EnumFlags<CodeFlag>;
 	var ints : Array<Int>;
 	var floats : Array<Float>;
@@ -67,7 +69,7 @@ typedef ObjPrototype = {
 typedef EnumPrototype = {
 	var name : String;
 	var globalValue : Null<Int>;
-	var constructs : Array<{ name : String, params : Array<HLType> }>;
+	var constructs : Array<{ name : String, params : Array<HLType>, ?paramNames : Array<Null<String>> }>;
 }
 
 typedef NativeFunction = {
@@ -84,6 +86,7 @@ typedef HLFunction = {
 	var ops : Array<Opcode>;
 	var debug : Array<Int>;
 	var assigns : Array<{ varName : Index<String>, position : Index<Opcode>, scopeEnd : Index<Opcode> }>;
+	@:optional var localName : Null<String>;
 }
 
 typedef HLConstant = {

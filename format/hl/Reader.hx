@@ -69,6 +69,11 @@ class Reader {
 		return s;
 	}
 
+	function getOptString() {
+		var i = uindex();
+		return i == 0 ? null : strings[i - 1];
+	}
+
 	function getType() {
 		var i = index();
 		var t = types[i];
@@ -117,7 +122,12 @@ class Reader {
 		case 18:
 			var name = getString();
 			var global = uindex() - 1;
-			var constructs = [for( i in 0...uindex() ) { name : getString(), params : [for( i in 0...uindex() ) HAt(uindex())] }];
+			var constructs = [for( i in 0...uindex() ) {
+				var name = getString();
+				var params = [for( i in 0...uindex() ) HAt(uindex())];
+				var paramNames = version >= 7 && params.length > 0 ? [for( p in params ) getOptString()] : null;
+				{ name : name, params : params, paramNames : paramNames };
+			}];
 			if( name == strings[0] && constructs.length == 1 && constructs[0].name == strings[0] ) {
 				// fake enum (closure context)
 				name = null;
@@ -182,13 +192,19 @@ class Reader {
 		var idx = uindex();
 		var nregs = uindex();
 		var nops = uindex();
+		var regs = [for( i in 0...nregs ) getType()];
+		var ops = readCode ? [for( i in 0...nops ) readOp()] : skipOps(nops);
+		var localName = version >= 7 ? getOptString() : null;
+		var debug = readDebug(nops);
+		var assigns = flags.has(HasDebug) && version >= 3 ? [for( i in 0...uindex() ) { varName : uindex(), position : index() - 1, scopeEnd : version >= 6 ? index() - 1 : -1 }] : [];
 		return {
 			t : t,
 			findex : idx,
-			regs : [for( i in 0...nregs ) getType()],
-			ops : readCode ? [for( i in 0...nops ) readOp()] : skipOps(nops),
-			debug : readDebug(nops),
-			assigns : flags.has(HasDebug) && version >= 3 ? [for( i in 0...uindex() ) { varName : uindex(), position : index() - 1, scopeEnd : version >= 6 ? index() - 1 : -1 }] : [],
+			regs : regs,
+			ops : ops,
+			debug : debug,
+			assigns : assigns,
+			localName : localName,
 		};
 	}
 
@@ -307,8 +323,13 @@ class Reader {
 		if( i.readString(3) != "HLB" )
 			throw "Invalid HL file";
 		version = _read();
-		if( version <= 1 || version > 6 )
+		if( version <= 1 || version > 7 )
 			throw "HL Version " + version + " is not supported";
+		var fileSize : Null<Int> = null, buildId = null;
+		if( version >= 7 ) {
+			fileSize = i.readInt32();
+			buildId = i.read(16);
+		}
 		flags = haxe.EnumFlags.ofInt(uindex());
 		var nints = uindex();
 		var nfloats = uindex();
@@ -355,6 +376,8 @@ class Reader {
 			}
 		return {
 			version : version,
+			fileSize : fileSize,
+			buildId : buildId,
 			flags : flags,
 			ints : ints,
 			floats : floats,
