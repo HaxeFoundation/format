@@ -192,7 +192,7 @@ class Writer {
 		o.writeUInt16(0);
 	}
 
-	function writeFilterFlags(f:FilterFlags,top) {
+	function writeFilterFlags(f:FilterFlags) {
 		var flags = 32;
 		if( f.inner ) flags |= 128;
 		if( f.knockout ) flags |= 64;
@@ -213,7 +213,7 @@ class Writer {
 		writeFixed(d.angle);
 		writeFixed(d.distance);
 		writeFixed8(d.strength);
-		writeFilterFlags(d.flags,true);
+		writeFilterFlags(d.flags);
 	}
 
 	function writeFilter( f : Filter ) {
@@ -226,7 +226,7 @@ class Writer {
 			writeFixed(d.angle);
 			writeFixed(d.distance);
 			writeFixed8(d.strength);
-			writeFilterFlags(d.flags,false);
+			writeFilterFlags(d.flags);
 		case FBlur(d):
 			o.writeByte(1);
 			writeFixed(d.blurX);
@@ -238,7 +238,7 @@ class Writer {
 			writeFixed(d.blurX);
 			writeFixed(d.blurY);
 			writeFixed8(d.strength);
-			writeFilterFlags(d.flags,false);
+			writeFilterFlags(d.flags);
 		case FBevel(d):
 			o.writeByte(3);
 			writeRGBA(d.color);
@@ -248,7 +248,7 @@ class Writer {
 			writeFixed(d.angle);
 			writeFixed(d.distance);
 			writeFixed8(d.strength);
-			writeFilterFlags(d.flags,true);
+			writeFilterFlags(d.flags);
 		case FGradientGlow(d):
 			o.writeByte(4);
 			writeFilterGradient(d);

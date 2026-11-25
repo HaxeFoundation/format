@@ -36,7 +36,7 @@ class Reader {
 		i.bigEndian = true;
 	}
 
-	function readObject() {
+	function readObject() : Map<String,Value> {
 		var h = new Map();
 		while( true ) {
 			var c1 = i.readByte();
@@ -65,7 +65,7 @@ class Reader {
 		#end
 	}
 
-	public function readWithCode( id ) {
+	public function readWithCode( id ) : Value {
 		var i = this.i;
 		return switch( id ) {
 		case 0x00:
@@ -103,7 +103,7 @@ class Reader {
 		}
 	}
 
-	public function read() {
+	public function read() : Value {
 		return readWithCode(i.readByte());
 	}
 }

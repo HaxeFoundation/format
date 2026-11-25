@@ -208,7 +208,7 @@ class Reader {
 		};
 	}
 
-	function skipOps(nops) {
+	function skipOps(nops) : Array<Opcode> {
 		for( i in 0...nops ) {
 			var op = _read();
 			var args = OP_ARGS[op];

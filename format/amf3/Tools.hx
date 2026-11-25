@@ -116,11 +116,11 @@ class Tools {
 		}
 	}
 
-	public static function undefined( a : Value ) {
+	public static function undefined( a : Value ) : Dynamic {
 		return null;
 	}
 
-	public static function anull( a : Value ) {
+	public static function anull( a : Value ) : Dynamic {
 		return null;
 	}
 
@@ -191,7 +191,7 @@ class Tools {
 		}
 	}
 
-	public static function object( a : Value ) {
+	public static function object( a : Value ) : Map<String,Dynamic> {
 		if( a == null ) return null;
 		return switch( a ) {
 		case AObject(o, _, _):

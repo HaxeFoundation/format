@@ -50,7 +50,7 @@ class Reader {
 		return l;
 	}
 
-	public function readEntryHeader() {
+	public function readEntryHeader() : Entry {
 		var i = this.i;
 		var fname = i.readUntil(0);
 		if( fname.length == 0 ) {

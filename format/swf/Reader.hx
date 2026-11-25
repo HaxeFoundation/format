@@ -602,7 +602,7 @@ class Reader {
 		};
 	}
 
-	public function readTagList() {
+	public function readTagList() : Array<SWFTag> {
 		var a = new Array();
 		while( true ) {
 			var t = readTag();
@@ -918,7 +918,7 @@ class Reader {
 		}
 		return records;
 	}
-	function readBUTTONCONDACTION(length){
+	function readBUTTONCONDACTION(){
 		var condIdleToOverDown=bits.readBit();
 		var condOutDownToIdle=bits.readBit();
 		var condOutDownToOverDown=bits.readBit();

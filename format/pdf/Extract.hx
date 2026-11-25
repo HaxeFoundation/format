@@ -28,7 +28,7 @@ package format.pdf;
 
 class Extract {
 
-	static function expect( kind, o : Data ) : Dynamic {
+	static function expect( kind : String, o : Data ) : Dynamic {
 		return throw kind+" expected but "+Std.string(o)+" found";
 	}
 

@@ -190,7 +190,7 @@ class Reader {
 		};
 	}
 
-	function readMetadata() {
+	function readMetadata() : Metadata {
 		var name = readIndex();
 		var data = readList2(readIndexOpt);
 		var a = new Array();

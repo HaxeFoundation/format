@@ -144,12 +144,12 @@ class Templo {
 		return VNull;
 	}
 
-	function use( file : Value, buf : Value, ctx : Value, content : Value ) {
+	function use( file : Value, buf : Value, ctx : Value, content : Value ) : Value {
 		throw "TODO";
 		return null;
 	}
 
-	function macros( file : Value, m : Value ) {
+	function macros( file : Value, m : Value ) : Value {
 		throw "TODO";
 		return null;
 	}

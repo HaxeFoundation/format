@@ -146,7 +146,7 @@ class Reader {
 		if( v1 != v2 ) throw "Assert "+Std.string(v1)+" != "+Std.string(v2);
 	}
 
-	function readOp( op ) {
+	function readOp( op ) : PBJOpcode {
 		var dst = i.readUInt16();
 		var mask = i.readByte();
 		var size = (mask & 3) + 1;

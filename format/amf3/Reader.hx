@@ -455,7 +455,7 @@ class Reader {
 		}
 	}
 
-	public function read() {
+	public function read() : Value {
 		return readWithCode(i.readByte());
 	}
 }

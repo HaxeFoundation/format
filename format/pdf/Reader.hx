@@ -54,11 +54,11 @@ class Reader {
 		// is it used in practice ?
 	}
 
-	function invalidChar( c : Int ) {
+	function invalidChar( c : Int ) : Dynamic {
 		return throw "Invalid char "+c;
 	}
 
-	function invalidBreak( e : Break ) {
+	function invalidBreak( e : Break ) : Dynamic {
 		return throw "Invalid break "+e;
 	}
 
